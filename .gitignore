@@ -1,0 +1,16 @@
+# Swift Package Manager build artifacts
+pipeline/.build/
+App/.build/
+
+# Whisper models -- large, publicly downloadable, not project-specific
+pipeline/models/
+
+# Pipeline working cache (temp audio/wav during transcription, cleaned up after each episode)
+pipeline/cache/
+
+# The app bundles a copy of the corpus for local dev -- pipeline/corpus/rmc.sqlite is the
+# single source of truth; this is just a build-time `cp`, not a separate copy to track.
+App/RetroMacCast/Resources/rmc.sqlite
+
+# macOS
+.DS_Store
