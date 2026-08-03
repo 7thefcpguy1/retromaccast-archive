@@ -12,5 +12,11 @@ pipeline/cache/
 # single source of truth; this is just a build-time `cp`, not a separate copy to track.
 App/RetroMacCast/Resources/rmc.sqlite
 
+# The corpus DB itself is ~100MB and changes every pipeline run -- tracking it in git would
+# bloat history by that much on every commit. It's published as a GitHub Release asset by the
+# weekly-sync workflow instead; this repo only ever tracks the code that builds it.
+pipeline/corpus/rmc.sqlite
+pipeline/corpus/manifest.json
+
 # macOS
 .DS_Store

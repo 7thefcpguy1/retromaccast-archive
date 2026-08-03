@@ -13,6 +13,7 @@ public struct Episode: Codable, FetchableRecord, PersistableRecord, Identifiable
     public var audioLocalPath: String?
     public var transcriptStatus: String // pending | downloaded | transcribed | failed
     public var transcriptText: String?
+    public var classifiedAt: String? // ISO date; nil = not yet run through collection classification
 
     public init(
         id: Int,
@@ -24,7 +25,8 @@ public struct Episode: Codable, FetchableRecord, PersistableRecord, Identifiable
         audioURL: String? = nil,
         audioLocalPath: String? = nil,
         transcriptStatus: String = "pending",
-        transcriptText: String? = nil
+        transcriptText: String? = nil,
+        classifiedAt: String? = nil
     ) {
         self.id = id
         self.episodeNumber = episodeNumber
@@ -36,5 +38,6 @@ public struct Episode: Codable, FetchableRecord, PersistableRecord, Identifiable
         self.audioLocalPath = audioLocalPath
         self.transcriptStatus = transcriptStatus
         self.transcriptText = transcriptText
+        self.classifiedAt = classifiedAt
     }
 }

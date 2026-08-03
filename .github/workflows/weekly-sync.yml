@@ -1,0 +1,105 @@
+name: Weekly Corpus Sync
+
+# Picks up new RetroMacCast episodes, transcribes/classifies/synthesizes just the new stuff
+# (never re-touches the existing archive), and publishes the updated corpus as a GitHub
+# Release asset for the app to download. Runs on macos-latest since transcription needs a
+# real whisper.cpp binary (via Homebrew), not something available on Linux runners here.
+
+on:
+  schedule:
+    - cron: "0 8 * * 1" # Every Monday at 08:00 UTC
+  workflow_dispatch: {} # "Run workflow" button in the Actions tab, for manual/on-demand runs
+
+permissions:
+  contents: write # needed to create a Release and upload assets
+
+jobs:
+  sync:
+    runs-on: macos-latest
+    timeout-minutes: 180
+    defaults:
+      run:
+        working-directory: pipeline
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install whisper-cpp + ffmpeg
+        run: brew install whisper-cpp ffmpeg
+
+      - name: Cache Whisper model
+        uses: actions/cache@v4
+        with:
+          path: pipeline/models
+          key: whisper-model-ggml-small-en-v1
+
+      - name: Download Whisper model (if not cached)
+        run: |
+          mkdir -p models
+          if [ ! -f models/ggml-small.en.bin ]; then
+            curl -L --fail -o models/ggml-small.en.bin \
+              https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.en.bin
+          fi
+
+      - name: Build pipeline
+        run: swift build -c release
+
+      - name: Download latest published corpus, if one exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p corpus
+          gh release download --pattern 'rmc.sqlite' --dir corpus --clobber \
+            || echo "No prior release found -- starting from an empty corpus."
+
+      - name: Record starting episode count
+        run: |
+          if [ -f corpus/rmc.sqlite ]; then
+            .build/release/rmc-pipeline export-manifest --output corpus/before-manifest.json
+          else
+            echo '{"episodeCount": 0}' > corpus/before-manifest.json
+          fi
+
+      - name: Crawl index (pick up newly published episodes)
+        run: .build/release/rmc-pipeline crawl-index
+
+      - name: Resolve audio URLs
+        run: .build/release/rmc-pipeline resolve-audio
+
+      - name: Transcribe new episodes
+        run: .build/release/rmc-pipeline transcribe-batch --model models/ggml-small.en.bin
+
+      - name: Record classify start time
+        id: since
+        run: echo "timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+      - name: Classify new episodes into collections
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: .build/release/rmc-pipeline classify
+
+      - name: Reset synthesis for collections touched by new episodes
+        run: .build/release/rmc-pipeline reset-stale-synthesis --since "${{ steps.since.outputs.timestamp }}"
+
+      - name: Re-synthesize touched collections
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: .build/release/rmc-pipeline synthesize
+
+      - name: Export manifest
+        run: .build/release/rmc-pipeline export-manifest
+
+      - name: Publish a release if the episode count changed
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BEFORE=$(jq '.episodeCount' corpus/before-manifest.json)
+          AFTER=$(jq '.episodeCount' corpus/manifest.json)
+          echo "Episodes before: $BEFORE, after: $AFTER"
+          if [ "$BEFORE" = "$AFTER" ]; then
+            echo "No new episodes -- skipping release."
+            exit 0
+          fi
+          TAG="corpus-$(date -u +%Y-%m-%d)"
+          gh release create "$TAG" corpus/rmc.sqlite corpus/manifest.json \
+            --title "Corpus sync $(date -u +%Y-%m-%d)" \
+            --notes "Automated weekly sync -- $AFTER episodes (was $BEFORE)."

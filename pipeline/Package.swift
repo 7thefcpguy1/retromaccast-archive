@@ -22,6 +22,7 @@ let package = Package(
             dependencies: [
                 "RMCCore",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "GRDB", package: "GRDB.swift"),
             ]
         ),
     ]

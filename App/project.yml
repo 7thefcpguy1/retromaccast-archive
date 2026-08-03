@@ -11,7 +11,7 @@ targets:
   RetroMacCast-iOS:
     type: application
     platform: iOS
-    deploymentTarget: "17.0"
+    deploymentTarget: "18.0"
     sources:
       - path: RetroMacCast/Sources
       - path: RetroMacCast/Resources
@@ -36,7 +36,7 @@ targets:
   RetroMacCast-macOS:
     type: application
     platform: macOS
-    deploymentTarget: "14.0"
+    deploymentTarget: "15.0"
     sources:
       - path: RetroMacCast/Sources
       - path: RetroMacCast/Resources

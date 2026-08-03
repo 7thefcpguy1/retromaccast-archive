@@ -1,0 +1,576 @@
+Transcribing 572 episodes (model: models/ggml-small.en.bin)...
+[1/572] done #161 (878040) Episode 161: TransWarp Factor 9 -- 606 segments, ~1173min remaining
+[FAILED] #167 (993573) Episode 167: Antennagate: Error Domain=NSURLErrorDomain Code=-1001 "The request timed out." UserInfo={_kCFStreamErrorCodeKey=-2102, NSUnderlyingError=0xc61515260 {Error Domain=kCFErrorDomainCFNetwork Code=-1001 "(null)" UserInfo={_kCFStreamErrorCodeKey=-2102, _kCFStreamErrorDomainKey=4}}, _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <8E3CA318-B599-43B2-B13E-12FEAF2F0140>.<3>, _NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <8E3CA318-B599-43B2-B13E-12FEAF2F0140>.<3>"
+), NSLocalizedDescription=The request timed out., NSErrorFailingURLStringKey=https://html5-player.libsyn.com/embed/episode/id/993573/height/90/theme/custom/thumbnail/yes/direction/forward/render-playlist/no/custom-color/000000/, NSErrorFailingURLKey=https://html5-player.libsyn.com/embed/episode/id/993573/height/90/theme/custom/thumbnail/yes/direction/forward/render-playlist/no/custom-color/000000/, _kCFStreamErrorDomainKey=4}
+[2/572] done #172 (1072719) Episode 172: Multiplies Before Your Eyes -- 461 segments, ~1265min remaining
+[3/572] done #173 (1098750) Episode 173: Images Limited Only By Your Imagination -- 323 segments, ~1142min remaining
+[4/572] done #174 (1111957) Episode 174: Apple I Hoarding -- 886 segments, ~1187min remaining
+[5/572] done #175 (1122087) Episode 175: Knowledge Navigator -- 378 segments, ~1139min remaining
+[6/572] done #176 (1149148) Episode 176: Beyond Desktop -- 298 segments, ~1084min remaining
+[7/572] done #177 (1171371) Episode 177: Behind Kooter Brown's -- 267 segments, ~1038min remaining
+[8/572] done #178 (1196076) Episode 178: Shooting for Nifty -- 314 segments, ~998min remaining
+[9/572] done #179 (1226500) Episode 179: Mac 512k Server How-To -- 454 segments, ~987min remaining
+[10/572] done #180 (1257326) Episode 180: Barn Grime -- 591 segments, ~963min remaining
+[11/572] done #181 (1291965) Episode 181: Banana Jr Lives! -- 573 segments, ~945min remaining
+[12/572] done #182 (1311447) Episode 182: Kangarilla -- 313 segments, ~922min remaining
+[13/572] done #183 (1330075) Episode 183: Benetton Mac -- 417 segments, ~903min remaining
+[14/572] done #184 (1375752) Episode 184: Air Apparent -- 665 segments, ~901min remaining
+[15/572] done #185 (1407216) Episode 185: I'll Take Two -- 489 segments, ~889min remaining
+[16/572] done #186 (1416931) Episode 186: David Greelish Interview -- 894 segments, ~903min remaining
+[17/572] done #187 (1427299) Episode 187: Wheels for the Mind -- 585 segments, ~894min remaining
+[18/572] done #188 (1448224) Episode 188: Macs & Knives -- 769 segments, ~905min remaining
+[19/572] done #189 (1454847) Episode 189: Return to the Vintage Mac Museum -- 808 segments, ~920min remaining
+[20/572] done #190 (1459643) Episode 190: Quatris 660AV -- 581 segments, ~919min remaining
+[21/572] done #191 (1492709) Episode 191: Return to the Computer History Museum -- 405 segments, ~924min remaining
+[22/572] done #192 (1527088) Episode 192: Contemplating a Byte -- 503 segments, ~920min remaining
+[23/572] done #193 (1532899) Episode 193: Wisdom Book -- 393 segments, ~908min remaining
+[24/572] done #194 (1536810) Episode 194: Softalk Forever! -- 533 segments, ~904min remaining
+[25/572] done #195 (1541696) Episode 195: Macs and other four-letter words -- 340 segments, ~901min remaining
+[26/572] done #196 (1546755) Episode 196: Don't Talk Nasty -- 659 segments, ~896min remaining
+[27/572] done #197 (1551584) Episode 197: Unicorn Tears -- 605 segments, ~891min remaining
+[28/572] done #198 (1557680) Episode 198: Retro iPad -- 354 segments, ~890min remaining
+[29/572] done #199 (1562172) Episode 199: Tugs at your Wallet -- 311 segments, ~884min remaining
+[30/572] done #200 (1567530) Episode 200: Tambour Doors -- 633 segments, ~883min remaining
+[31/572] done #201 (1572388) Episode 201: Sharp and Prohibitive -- 277 segments, ~878min remaining
+[32/572] done #202 (1577367) Episode 202: The Many Macs of MacAbbott -- 792 segments, ~887min remaining
+[33/572] done #203 (1582051) Episode 203: Look Ma! No Wires! -- 600 segments, ~881min remaining
+[34/572] done #204 (1586923) Episode 204: Makin' Pages -- 350 segments, ~877min remaining
+[35/572] done #205 (1596759) Episode 205: Apple Magazine -- 336 segments, ~871min remaining
+[36/572] done #206 (1607043) Episode 206: Premature Specification -- 401 segments, ~869min remaining
+[37/572] done #207 (1616361) Episode 207: One More Thing -- 166 segments, ~854min remaining
+[38/572] done #208 (1638108) Episode 208: Battery Bulge -- 300 segments, ~846min remaining
+[39/572] done #209 (1643806) Episode 209: Johnny Appleseed -- 331 segments, ~840min remaining
+[40/572] done #210 (1649794) Episode 210: Sugared Water Salesman -- 517 segments, ~834min remaining
+[41/572] done #211 (1666570) Episode 211: Spindler's List -- 309 segments, ~827min remaining
+[42/572] done #212 (1672801) Episode 212: 500 Days of Amelio -- 314 segments, ~822min remaining
+[43/572] done #213 (1676394) Episode 213: He's Back! -- 255 segments, ~815min remaining
+[44/572] done #214 (1682581) Episode 214: KansasFest 2011 -- 424 segments, ~816min remaining
+[45/572] done #215 (1691620) Episode 215: Apple Teddy Bears -- 469 segments, ~810min remaining
+[46/572] done #216 (1696582) Episode 216: End of an Era -- 306 segments, ~806min remaining
+[47/572] done #217 (1707339) Episode 217: Shrine of Apple -- 621 segments, ~805min remaining
+[48/572] done #218 (1723653) Episode 218: Individually Mouth-Blown -- 317 segments, ~802min remaining
+[49/572] done #219 (1729500) Episode 219: Steve Jobs 1955-2011 -- 689 segments, ~804min remaining
+[50/572] done #220 (1734216) Episode 220: Shaving Sheep -- 717 segments, ~803min remaining
+[51/572] done #221 (1738889) Episode 221: Pirates of Uncanny Valley -- 582 segments, ~802min remaining
+[52/572] done #222 (1749983) Episode 222: Open the Pod Bay Doors -- 732 segments, ~803min remaining
+[53/572] done #223 (1754844) Episode 223: Sexy Peripherals -- 492 segments, ~798min remaining
+[54/572] done #224 (1760706) Episode 224: Apple Design -- 458 segments, ~794min remaining
+[55/572] done #225 (1774404) Episode 225: Milk our loyal Apple II customers -- 383 segments, ~793min remaining
+[56/572] done #226 (1789208) Episode 226: In the Library with the Candlestick -- 400 segments, ~792min remaining
+[57/572] done #227 (1795611) Episode 227: Mr. Warm and Fuzzy -- 599 segments, ~791min remaining
+[58/572] done #228 (1812207) Episode 228: Sounds Flakey -- 317 segments, ~788min remaining
+[59/572] done #229 (1819529) Episode 229: Technical Tour de Force -- 556 segments, ~789min remaining
+[60/572] done #230 (1827577) Episode 230: Apple Game Server Online! -- 455 segments, ~787min remaining
+[61/572] done #231 (1834838) Episode 231: OpenEmulator -- 498 segments, ~784min remaining
+[62/572] done #232 (1841427) Episode 232: MacTwiggy -- 654 segments, ~782min remaining
+[63/572] done #233 (1849575) Episode 233: Top Twenty Macs -- 766 segments, ~783min remaining
+[64/572] done #234 (1857521) Episode 234: Road Apples -- 601 segments, ~781min remaining
+[65/572] done #235 (1871160) Episode 235: Land of the Rising PowerBook -- 528 segments, ~778min remaining
+[66/572] done #236 (1883626) Episode 236: Fruit of Early Pirates -- 526 segments, ~776min remaining
+[67/572] done #237 (1890137) Episode 237: G4 Apple //c -- 761 segments, ~781min remaining
+[68/572] done #238 (1897388) Episode 238: W.A.L.T. -- 631 segments, ~779min remaining
+[69/572] done #239 (1904094) Episode 239: April Fools -- 595 segments, ~777min remaining
+[70/572] done #240 (1910474) Episode 240: Vintage Computer Festival East 8.0 -- 757 segments, ~779min remaining
+[71/572] done #241 (1930504) Episode 241: Blows Six Colors -- 571 segments, ~777min remaining
+[72/572] done #242 (1937708) Episode 242: The Fighting 32nd -- 556 segments, ~775min remaining
+[73/572] done #243 (1951527) Episode 243: Tension vs Obstacle -- 668 segments, ~774min remaining
+[74/572] done #244 (1965630) Episode 244: McFrugal -- 680 segments, ~775min remaining
+[75/572] done #245 (1979382) Episode 245: One-Fifty -- 818 segments, ~776min remaining
+[76/572] done #246 (1986710) Episode 246: Cadillac of Modems -- 630 segments, ~775min remaining
+[77/572] done #247 (1992661) Episode 247: Apple Cafe -- 880 segments, ~778min remaining
+[78/572] done #248 (2000053) Episode 248: 43 iPads -- 460 segments, ~775min remaining
+[79/572] done #249 (2007110) Episode 249: Internet Launchpad -- 357 segments, ~773min remaining
+[80/572] done #250 (2012166) Episode 250: While Supplies Last! -- 588 segments, ~772min remaining
+[81/572] done #251 (2020693) Episode 251: KansasFest 2012 -- 435 segments, ~772min remaining
+[82/572] done #252 (2027542) Episode 252: John's Macintosh SSDE/30 -- 372 segments, ~770min remaining
+[83/572] done #253 (2033304) Episode 253: Some Changes Are Being Made -- 463 segments, ~770min remaining
+[84/572] done #254 (2039811) Episode 254: Billion Dollar Goblets -- 301 segments, ~767min remaining
+[85/572] done #255 (2046619) Episode 255: The Tribe Has Spoken -- 626 segments, ~766min remaining
+[86/572] done #256 (2053100) Episode 256: MultiServerUniFile -- 426 segments, ~766min remaining
+[87/572] done #257 (2059534) Episode 257: Why buy old Macs? -- 689 segments, ~766min remaining
+[88/572] done #258 (2067052) Episode 258: Finding Old Macs -- 804 segments, ~768min remaining
+[89/572] done #259 (2082104) Episode 259: Dust Bunnies -- 668 segments, ~769min remaining
+[90/572] done #260 (2096407) Episode 260: Spontaneous Combustion -- 534 segments, ~768min remaining
+[91/572] done #261 (2103439) Episode 261: Frito Residue -- 582 segments, ~769min remaining
+[92/572] done #262 (2117640) Episode 262: The Lost Interview -- 733 segments, ~769min remaining
+[93/572] done #263 (2124119) Episode 263: Woz with a Coz? -- 276 segments, ~769min remaining
+[94/572] done #264 (2130640) Episode 264: That puppy is huge! -- 590 segments, ~767min remaining
+[95/572] done #265 (2137190) Episode 265: Dukakis for President -- 639 segments, ~765min remaining
+[96/572] done #266 (2152337) Episode 266: Forbidden Fruit -- 354 segments, ~763min remaining
+[97/572] done #267 (2158675) Episode 267: iPad Cajolers -- 709 segments, ~763min remaining
+[98/572] done #268 (2165681) Episode 268: It's not late, it's retro! -- 522 segments, ~761min remaining
+[99/572] done #269 (2170307) Episode 269: WOZPAK -- 666 segments, ~760min remaining
+[100/572] done #270 (2175564) Episode 270: 2012 Review-2013 Preview -- 608 segments, ~759min remaining
+[101/572] done #271 (2182533) Episode 271: Android Mini vMac -- 351 segments, ~757min remaining
+[102/572] done #272 (2190190) Episode 272: Like a Porsche -- 474 segments, ~755min remaining
+[103/572] done #273 (2197846) Episode 273: Macintosh Sales Training Guide -- 681 segments, ~755min remaining
+[104/572] done #274 (2205651) Episode 274: It's not a doll! -- 313 segments, ~752min remaining
+[105/572] done #275 (2213217) Episode 275: iMacWorld Report -- 522 segments, ~753min remaining
+[106/572] done #276 (2221610) Episode 276: The Powerpig Interview -- 913 segments, ~756min remaining
+[107/572] done #277 (2228514) Episode 277: David talks VCF SE 1.0 -- 1051 segments, ~757min remaining
+[108/572] done #278 (2236567) Episode 278: Frog is F'ing Good -- 263 segments, ~755min remaining
+[109/572] done #279 (2244769) Episode 279: Moof Brau -- 256 segments, ~752min remaining
+[110/572] done #280 (2263043) Episode 280: One Notion Under Jobs -- 493 segments, ~749min remaining
+[111/572] done #281 (2270129) Episode 281: Apple Raspberry Pi -- 458 segments, ~749min remaining
+[112/572] done #282 (2278416) Episode 282: Apple IIGS-CFFA -- 569 segments, ~747min remaining
+[113/572] done #283 (2285976) Episode 283: Laughton's DOS and the Disk II -- 896 segments, ~749min remaining
+[114/572] done #284 (2294808) Episode 284: RetroMacCast Live from VCF-SE 1.0 -- 673 segments, ~749min remaining
+[115/572] done #285 (2302828) Episode 285: Apple Pop-Up Interview -- 546 segments, ~747min remaining
+[116/572] done #286 (2311055) Episode 286: A Hacker's System -- 701 segments, ~745min remaining
+[117/572] done #287 (2320220) Episode 287: Sold the Tandy -- 338 segments, ~744min remaining
+[118/572] done #288 (2336535) Episode 288: Mike & The Replicas -- 498 segments, ~742min remaining
+[119/572] done #289 (2344627) Episode 289: Tic Tac Toe! -- 504 segments, ~741min remaining
+[120/572] done #290 (2352422) Episode 290: Apple Pop-Up Tour -- 724 segments, ~741min remaining
+[121/572] done #291 (2359963) Episode 291: One, Four or Twelve -- 1052 segments, ~745min remaining
+[122/572] done #292 (2370334) Episode 292: Matrix Computer Company -- 925 segments, ~747min remaining
+[123/572] done #293 (2379086) Episode 293: Steve Never Smelled Bad to Me -- 705 segments, ~746min remaining
+[124/572] done #294 (2395965) Episode 294: Kottke Talks Apple II, Mac and More -- 792 segments, ~747min remaining
+[125/572] done #295 (2406492) Episode 295: Provenance -- 301 segments, ~745min remaining
+[126/572] done #296 (2414272) Episode 296: weeMac -- 587 segments, ~743min remaining
+[127/572] done #297 (2440055) Episode 297: JOBS -- 947 segments, ~743min remaining
+[128/572] done #298 (2447625) Episode 298: I shall call it Mini Mac! -- 628 segments, ~741min remaining
+[129/572] done #299 (2455586) Episode 299: Mini-Me's Maxi-Mac -- 545 segments, ~741min remaining
+[130/572] done #300 (2464210) Episode 300: Knuckle Couplers -- 677 segments, ~740min remaining
+[131/572] done #301 (2472244) Episode 301: Please choose an activity -- 973 segments, ~741min remaining
+[132/572] done #302 (2489267) Episode 302: Twiggy Mac Reunion -- 729 segments, ~740min remaining
+[133/572] done #303 (2498635) Episode 303: ICONIC -- 948 segments, ~741min remaining
+[134/572] done #304 (2515741) Episode 304: WOZPAK Special Edition -- 1082 segments, ~743min remaining
+[135/572] done #305 (2535059) Episode 305: Basement Remodeling with Jeremy -- 694 segments, ~741min remaining
+[136/572] done #306 (2546313) Episode 306: Macintosh Friend -- 419 segments, ~739min remaining
+[137/572] done #307 (2555170) Episode 307: Mint in Box! -- 580 segments, ~737min remaining
+[138/572] done #308 (2565161) Episode 308: Gemini iBook -- 709 segments, ~736min remaining
+[139/572] done #309 (2585206) Episode 309: iPod Hi-Fi -- 544 segments, ~734min remaining
+[140/572] done #310 (2594859) Episode 310: Hap's Apple Collection -- 933 segments, ~736min remaining
+[141/572] done #311 (2618960) Episode 311: Zen & the Art of Michael Green -- 619 segments, ~735min remaining
+[142/572] done #312 (2627745) Episode 312: ICONIC SE -- 659 segments, ~734min remaining
+[143/572] done #313 (2637501) Episode 313: Sophistication & Simplicity -- 811 segments, ~736min remaining
+[144/572] done #314 (2648703) Episode 314: Happy 30th Birthday Macintosh! -- 586 segments, ~735min remaining
+[145/572] done #315 (2660068) Episode 315: Hap's House -- 663 segments, ~733min remaining
+[146/572] done #316 (2670996) Episode 316: Bulgarian SDFloppy II -- 562 segments, ~731min remaining
+[147/572] done #317 (2681263) Episode 317: Big Mess o' Wires -- 893 segments, ~732min remaining
+[148/572] done #318 (2695673) Episode 318: Green Mac -- 690 segments, ~730min remaining
+[149/572] done #319 (2708099) Episode 319: Young Steve Jobs -- 630 segments, ~728min remaining
+[150/572] done #320 (2719690) Episode 320: Freestyle Tablet Mac -- 425 segments, ~726min remaining
+[151/572] done #321 (2732067) Episode 321: Buckle Up! -- 530 segments, ~724min remaining
+[152/572] done #322 (2743625) Episode 322: Hell Froze Over -- 427 segments, ~721min remaining
+[153/572] done #323 (2768249) Episode 323: JOBS Special Features -- 634 segments, ~719min remaining
+[154/572] done #324 (2781060) Episode 324: Superstar! -- 542 segments, ~717min remaining
+[155/572] done #325 (2791904) Episode 325: VCF East 9.1 -- 802 segments, ~717min remaining
+[156/572] done #326 (2805797) Episode 326: VCF SE 2.0 Preview -- 678 segments, ~715min remaining
+[157/572] done #327 (2818314) Episode 327: John from VCF SE 2.0 -- 556 segments, ~712min remaining
+[158/572] done #328 (2830674) Episode 328: VCF SE 2.0 Interviews -- 796 segments, ~711min remaining
+[159/572] done #329 (2843299) Episode 329: SCI2HD -- 332 segments, ~709min remaining
+[160/572] done #330 (2879716) Episode 330: High as a Kite -- 478 segments, ~706min remaining
+[161/572] done #331 (2891695) Episode 331: DOS Bigots Will Drool -- 608 segments, ~704min remaining
+[162/572] done #332 (2915185) Episode 332: Xceedingly Rare -- 610 segments, ~702min remaining
+[163/572] done #333 (2928873) Episode 333: Coming up Previous -- 572 segments, ~700min remaining
+[164/572] done #334 (2940894) Episode 334: KansasFest Preview -- 489 segments, ~697min remaining
+[165/572] done #335 (2971792) Episode 335: You get a Galaxian! -- 509 segments, ~695min remaining
+[166/572] done #336 (2991568) Episode 336: Discy Business -- 463 segments, ~694min remaining
+[167/572] done #337 (3016804) Episode 337: KansasFest Wrap-Up -- 1082 segments, ~696min remaining
+[168/572] done #338 (3027366) Episode 338: Mark Twain -- 572 segments, ~693min remaining
+[169/572] done #339 (3039836) Episode 339: Long in the Sawtooth -- 883 segments, ~693min remaining
+[170/572] done #340 (3051776) Episode 340: Hap's Proto Preserve -- 560 segments, ~693min remaining
+[171/572] done #341 (3063775) Episode 341: History of Personal Computing -- 882 segments, ~693min remaining
+[172/572] done #342 (3089004) Episode 342: Out of the Box -- 637 segments, ~691min remaining
+[173/572] done #343 (3102609) Episode 343: Visionary Entrepreneur -- 569 segments, ~689min remaining
+[174/572] done #344 (3122354) Episode 344: Picasso Artwork -- 668 segments, ~687min remaining
+[175/572] done #345 (3131133) Episode 345: RIP Macworld Expo -- 736 segments, ~686min remaining
+[176/572] done #346 (3156640) Episode 346: Fat Mac -- 736 segments, ~685min remaining
+[177/572] done #347 (3171627) Episode 347: Lode Runner -- 588 segments, ~683min remaining
+[178/572] done #348 (3183541) Episode 348: 10-4 Good Buddy -- 652 segments, ~681min remaining
+[179/572] done #349 (3196899) Episode 349: The Classic Edition -- 674 segments, ~679min remaining
+[180/572] done #350 (3225055) Episode 350: What the Heck? -- 881 segments, ~679min remaining
+[181/572] done #351 (3253051) Episode 351: Floppy Emu HD -- 754 segments, ~678min remaining
+[182/572] done #352 (3279183) Episode 352: Factory Error -- 723 segments, ~677min remaining
+[183/572] done #353 (3304945) Episode 353: Macintosh Pioneers -- 640 segments, ~675min remaining
+[184/572] done #354 (3321595) Episode 354: PowerBook Air -- 719 segments, ~674min remaining
+[185/572] done #355 (3351243) Episode 355: Will Podcast for Food -- 566 segments, ~672min remaining
+[186/572] done #356 (3368765) Episode 356: Haunted Macintosh -- 406 segments, ~671min remaining
+[187/572] done #357 (3394162) Episode 357: VCF-SE 3.0 Preview -- 667 segments, ~669min remaining
+[188/572] done #358 (3415154) Episode 358: The Future's So Bright -- 380 segments, ~667min remaining
+[189/572] done #359 (3441623) Episode 359: We don't need no stinkin' ports! -- 386 segments, ~665min remaining
+[190/572] done #360 (3473715) RMC Episode 360: Alert and Beware! -- 514 segments, ~662min remaining
+[191/572] done #361 (3473790) RMC Episode 361: My boss and my friend -- 588 segments, ~660min remaining
+[192/572] done #362 (3488017) RMC Episode 362: Digital Audio Rebellion -- 659 segments, ~659min remaining
+[193/572] done #363 (3500808) RMC Episode 363: Apple II Watch -- 709 segments, ~657min remaining
+[194/572] done #364 (3515107) RMC Episode 364: VCF East X -- 850 segments, ~657min remaining
+[195/572] done #365 (3544323) RMC Episode 365: VCF-SE 3.0 -- 650 segments, ~655min remaining
+[196/572] done #366 (3574409) RMC Episode 366: More from VCF SE 3.0 -- 671 segments, ~653min remaining
+[197/572] done #367 (3587471) RMC Episode 367: Oz Kfest -- 754 segments, ~652min remaining
+[198/572] done #368 (3600982) RMC Episode 368: VCF 3.0 SE Podcasters -- 1397 segments, ~653min remaining
+[199/572] done #369 (3614394) RMC Episode 369: Trix are for kids! -- 770 segments, ~651min remaining
+[200/572] done #370 (3641085) RMC Episode 370: It's a Thumb! -- 644 segments, ~649min remaining
+[201/572] done #371 (3641363) RMC Episode 371: Airborne! -- 645 segments, ~647min remaining
+[202/572] done #372 (3656236) RMC Episode 372: KansasFest 2015 Preview -- 492 segments, ~645min remaining
+[203/572] done #373 (3674726) RMC Episode 373: Crystal Quest -- 553 segments, ~643min remaining
+[204/572] done #374 (3701726) RMC Episode 374: 2015 KansasFest Recap -- 667 segments, ~641min remaining
+[205/572] done #375 (3711478) RMC Episode 375: 2015 KFest Interviews -- 1216 segments, ~642min remaining
+[206/572] done #376 (3735202) RMC Episode 376: 68k MLA -- 510 segments, ~639min remaining
+[207/572] done #377 (3753354) RMC Episode 377: Pizzazz! -- 726 segments, ~637min remaining
+[208/572] done #378 (3773667) RMC Episode 378: MacCharlie -- 689 segments, ~635min remaining
+[209/572] done #379 (3782624) RMC Episode 379: Steve Jobs Movies -- 864 segments, ~634min remaining
+[210/572] done #380 (3810756) RMC Episode 380: Pencil It In -- 566 segments, ~632min remaining
+[211/572] done #381 (3824916) RMC Episode 381: PiXL/PiSA -- 372 segments, ~630min remaining
+[212/572] done #382 (3843529) RMC Episode 382: Does it run Doom? -- 386 segments, ~628min remaining
+[213/572] done #383 (3855086) RMC Episode 383: Insanely High Price -- 482 segments, ~626min remaining
+[214/572] done #384 (3874429) RMC Episode 384: Say hello to progress -- 632 segments, ~623min remaining
+[215/572] done #385 (3917114) RMC Episode 385: No Love for the Apple 2 Team -- 1083 segments, ~623min remaining
+[216/572] done #386 (3961134) RMC Episode 386: Shiny Plastic Finish -- 343 segments, ~621min remaining
+[217/572] done #387 (3978780) RMC Episode 387: I drew a circle! -- 442 segments, ~618min remaining
+[218/572] done #388 (3990846) RMC Episode 388: It was a great idea -- 424 segments, ~616min remaining
+[219/572] done #389 (3998394) RMC Episode 389: You're dead. Start all over. -- 748 segments, ~614min remaining
+[220/572] done #390 (4080374) RMC Episode 390: 2015 Year in Review -- 396 segments, ~613min remaining
+[221/572] done #391 (4080496) RMC Episode 391: OpenDoc -- 586 segments, ~611min remaining
+[222/572] done #392 (4084593) RMC Episode 392: Muggy Bear -- 908 segments, ~610min remaining
+[223/572] done #393 (4098539) RMC Episode 393: Oh I love trash! -- 619 segments, ~608min remaining
+[224/572] done #394 (4128586) RMC Episode 394: Vending Machines -- 663 segments, ~606min remaining
+[225/572] done #395 (4132408) RMC Episode 395: Bit the Bullet -- 621 segments, ~604min remaining
+[226/572] done #396 (4158367) RMC Episode 396: Banned in Boston -- 568 segments, ~602min remaining
+[227/572] done #397 (4163445) RMC Episode 397: Blast From The Past -- 570 segments, ~600min remaining
+[228/572] done #398 (4179681) RMC Episode 398: Inside Jobs -- 444 segments, ~598min remaining
+[229/572] done #399 (4199945) RMC Episode 399: VCF SE 4.0 Preview -- 448 segments, ~596min remaining
+[230/572] done #400 (4215000) RMC Episode 400: Art Vandalay -- 921 segments, ~594min remaining
+[231/572] done #401 (4251140) RMC Episode 401: Road to VCF SE 4.0 -- 402 segments, ~593min remaining
+[232/572] done #402 (4290933) RMC Episode 402: VCF SE 4.0 Trip Report -- 317 segments, ~591min remaining
+[233/572] done #403 (4319949) RMC Episode 403: VCF SE 4.0 Interviews -- 689 segments, ~590min remaining
+[234/572] done #404 (4349427) RMC Episode 404: The Secret History of Mac Gaming -- 842 segments, ~589min remaining
+[235/572] done #405 (4352794) RMC Episode 405: John's Mac TV and XL -- 630 segments, ~587min remaining
+[236/572] done #406 (4385834) RMC Episode 406: Vintage Computer Festival East XI -- 940 segments, ~587min remaining
+[237/572] done #407 (4470466) RMC Episode 407: The BirdMacMan -- 864 segments, ~585min remaining
+[238/572] done #408 (4475157) RMC Episode 408: Computer Museum of America Update -- 905 segments, ~584min remaining
+[239/572] done #409 (4490829) RMC Episode 409: Moving into the Future -- 295 segments, ~581min remaining
+[240/572] done #410 (4505138) RMC Episode 410: KansasFest Preview -- 385 segments, ~580min remaining
+[241/572] done #411 (4555904) RMC Episode 411: KansasFest Trip Report -- 375 segments, ~578min remaining
+[242/572] done #412 (4572498) RMC Episode 412: Cult of KFest -- 558 segments, ~576min remaining
+[243/572] done #413 (4590764) RMC Episode 413: Nibble's Mike Harvey -- 724 segments, ~576min remaining
+[244/572] done #414 (4609293) RMC Episode 414: Getting PC with a Performa -- 358 segments, ~574min remaining
+[245/572] done #415 (4700676) RMC Episode 415: We're Back! -- 373 segments, ~572min remaining
+[246/572] done #416 (4730983) RMC Episode 416: Freakin' Awesome! -- 696 segments, ~570min remaining
+[247/572] done #417 (4763837) RMC Episode 417: To be or not to BeOS -- 628 segments, ~568min remaining
+[248/572] done #418 (4765500) RMC Episode 418: Hello again?!?! -- 274 segments, ~566min remaining
+[249/572] done #419 (4804540) RMC Episode 419: Happy Halloween! -- 416 segments, ~565min remaining
+[250/572] done #420 (4820503) RMC Episode 420: RIP Startup Chime -- 617 segments, ~563min remaining
+[251/572] done #421 (4897121) RMC Episode 421: M.A.C.I.N.T.O.S.H. -- 406 segments, ~562min remaining
+[252/572] done #422 (4897192) RMC Episode 422: Join The People Who've Joined Apple -- 365 segments, ~560min remaining
+[253/572] done #423 (4921627) RMC Episode 423: Zip-a-Dee-Doo-Dah -- 774 segments, ~559min remaining
+[254/572] done #424 (4972936) RMC Episode 424: Tenth Anniversary -- 737 segments, ~557min remaining
+[255/572] done #425 (4973293) RMC Episode 425: Two Bottles on the Wall -- 548 segments, ~555min remaining
+[256/572] done #426 (5032648) RMC Episode 426: Fresh from the Barn -- 811 segments, ~554min remaining
+[257/572] done #427 (5059214) RMC Episode 427: Pomona Macintosh -- 627 segments, ~552min remaining
+[258/572] done #428 (5105812) RMC Episode 428: No Fake Books -- 389 segments, ~551min remaining
+[259/572] done #429 (5117185) RMC Episode 429: Sticky Clicks -- 714 segments, ~549min remaining
+[260/572] done #430 (5139207) RMC Episode 430: Hey Puter! -- 300 segments, ~547min remaining
+[261/572] done #431 (5179776) RMC Episode 431: This Old Mac -- 354 segments, ~545min remaining
+[262/572] done #433 (5226579) RMC Episode 433: Clamshell G4 iBook -- 471 segments, ~543min remaining
+[263/572] done #434 (5229374) RMC Episode 434: RetroConnector Update -- 498 segments, ~542min remaining
+[264/572] done #435 (5257769) RMC Episode 435: OPEN! -- 630 segments, ~539min remaining
+[265/572] done #436 (5270837) RMC Episode 436: VCF-SE 5.0 Preview -- 657 segments, ~538min remaining
+[266/572] done #437 (5312038) RMC Episode 437: MacCaps -- 606 segments, ~536min remaining
+[267/572] done #438 (5362365) RMC Episode 438: VCF SE 5.0 Recap -- 584 segments, ~534min remaining
+[268/572] done #439 (5362522) RMC Episode 439: VCF East Recap -- 1158 segments, ~534min remaining
+[269/572] done #440 (5406866) RMC Episode 440: Love Notes to Newton -- 770 segments, ~532min remaining
+[270/572] done #441 (5459332) RMC Episode 441: These go to 11! -- 239 segments, ~530min remaining
+[271/572] done #442 (5491025) RMC Episode 442: KansasFest 2017 Preview -- 454 segments, ~528min remaining
+[272/572] done #443 (5539440) RMC Episode 443: Back to VCF Southeast 5.0 -- 615 segments, ~526min remaining
+[273/572] done #444 (5555416) RMC Episode 444: MacAttic Tour -- 727 segments, ~524min remaining
+[274/572] done #445 (5671065) RMC Episode 445: KansasFest 2017 Report -- 567 segments, ~522min remaining
+[275/572] done #446 (5671157) RMC Episode 446: VCF West and The Proto Preserve -- 598 segments, ~521min remaining
+[276/572] done #447 (5724561) RMC Episode 447: JB Retro Collect -- 831 segments, ~520min remaining
+[277/572] done #448 (5860760) RMC Episode 448: Let's meet at our place -- 322 segments, ~518min remaining
+[278/572] done #449 (5860915) RMC Episode 449: Not so FastPath -- 462 segments, ~516min remaining
+[279/572] done #450 (5860989) RMC Episode 450: Insanely Great or Greatly Insane? -- 665 segments, ~514min remaining
+[280/572] done #451 (6025650) RMC Episode 451: Mac EvangeList -- 732 segments, ~512min remaining
+[281/572] done #452 (6027618) RMC Episode 452: Holiday Buying Guide -- 279 segments, ~510min remaining
+[282/572] done #453 (6042551) RMC Episode 453: Turkey Macs -- 395 segments, ~508min remaining
+[283/572] done #454 (6042736) RMC Episode 454: One Million Sold -- 526 segments, ~506min remaining
+[284/572] done #455 (6087343) RMC Episode 455: Eleven Years Ago -- 464 segments, ~503min remaining
+[285/572] done #456 (6246335) RMC Episode 456: Saving Apple -- 810 segments, ~502min remaining
+[286/572] done #457 (6246369) RMC Episode 457: What are they anyway? -- 263 segments, ~500min remaining
+[287/572] done #458 (6255257) RMC Episode 458: Apple Djinn -- 509 segments, ~498min remaining
+[288/572] done #459 (6255331) RMC Episode 459: Have you seen my stapler? -- 327 segments, ~496min remaining
+[289/572] done #460 (6301428) RMC Episode 460: Get your Dramamine -- 338 segments, ~494min remaining
+[290/572] done #461 (6340013) RMC Episode 461: Possible But Not Probable -- 316 segments, ~492min remaining
+[291/572] done #462 (6452234) RMC Episode 462: Mac ROM-inator -- 281 segments, ~490min remaining
+[292/572] done #463 (6452289) RMC Episode 463: RetroMicrosoftCast Premiere -- 266 segments, ~487min remaining
+[293/572] done #464 (6487873) RMC Episode 464: Back to Mac -- 591 segments, ~486min remaining
+[294/572] done #465 (6488432) RMC Episode 465: VCF SE 6.0 Preview -- 707 segments, ~484min remaining
+[295/572] done #466 (6685531) RMC Episode 466: Takky -- 236 segments, ~482min remaining
+[296/572] done #467 (6685584) RMC Episode 467: MacAddict May 1998 -- 347 segments, ~480min remaining
+[297/572] done #468 (6691817) RMC Episode 468: 20 Years of iMac -- 351 segments, ~478min remaining
+[298/572] done #469 (6691926) RMC Episode 469: We can rebuild him! -- 314 segments, ~476min remaining
+[299/572] done #470 (6692052) RMC Episode 470: No wires! -- 582 segments, ~474min remaining
+[300/572] done #471 (6830289) RMC Episode 471: Left-Handed Mac -- 623 segments, ~472min remaining
+[301/572] done #472 (6830371) RMC Episode 472: Mac OS X Public Beta -- 303 segments, ~470min remaining
+[302/572] done #473 (6830500) RMC Episode 473: Love Notes to Newton -- 695 segments, ~468min remaining
+[303/572] done #474 (6857521) RMC Episode 474: General Magic -- 591 segments, ~466min remaining
+[304/572] done #475 (7018817) RMC Episode 475: KansasFest 2018 Recap -- 854 segments, ~465min remaining
+[305/572] done #476 (7020630) RMC Episode 476: MacAddict August 1998 -- 319 segments, ~463min remaining
+[306/572] done #477 (7020688) RMC Episode 477: Macworld August 1988 -- 451 segments, ~461min remaining
+[307/572] done #478 (7021833) RMC Episode 478: Why the Mac Rules -- 384 segments, ~459min remaining
+[308/572] done #479 (7341230) RMC Episode 479: HyperCard -- 358 segments, ~458min remaining
+[309/572] done #480 (7341317) RMC Episode 480: Claris the SoftCo -- 286 segments, ~456min remaining
+[310/572] done #481 (7509332) RMC Episode 481: Myst -- 336 segments, ~454min remaining
+[311/572] done #482 (7601147) RMC Episode 482: MFR v2.0 -- 600 segments, ~452min remaining
+[312/572] done #483 (7601252) RMC Episode 483: There's more in the making -- 322 segments, ~450min remaining
+[313/572] done #484 (7850549) RMC Episode 484: Before Macintosh -- 506 segments, ~448min remaining
+[314/572] done #485 (7893509) RMC Episode 485: Holiday Buying Guide -- 713 segments, ~446min remaining
+[315/572] done #486 (8231231) RMC Episode 486: 50% More Flaps! -- 610 segments, ~444min remaining
+[316/572] done #487 (8231489) RMC Episode 487: The End of the Age of Apple? -- 469 segments, ~443min remaining
+[317/572] done #488 (8846456) RMC Episode 488: John's Mobile Re-inking Service -- 332 segments, ~441min remaining
+[318/572] done #489 (9200810) RMC Episode 489: The Secret History of Mac Gaming -- 490 segments, ~440min remaining
+[319/572] done #490 (9201062) RMC Episode 490: Illustrator vs FreeHand -- 921 segments, ~438min remaining
+[320/572] done #491 (9201440) RMC Episode 491: MacEffects Clear Case Project -- 712 segments, ~436min remaining
+[321/572] done #492 (9657686) RMC Episode 492: It's Show Time -- 687 segments, ~435min remaining
+[322/572] done #493 (9746360) RMC Episode 493: John's Recap Recap -- 331 segments, ~433min remaining
+[323/572] done #494 (9902825) RMC Episode 494: Kickstarting the Lisa Documentary -- 802 segments, ~431min remaining
+[324/572] done #495 (9919193) RMC Episode 495: Think Gaga -- 362 segments, ~430min remaining
+[325/572] done #496 (10013204) RMC Episode 496: Downsizing -- 700 segments, ~428min remaining
+[326/572] done #497 (10164359) RMC Episode 497: General Magic The Movie -- 788 segments, ~427min remaining
+[327/572] done #498 (10428230) RMC Episode 498: Interview with Matt Maude -- 552 segments, ~425min remaining
+[328/572] done #499 (10908843) RMC Episode 499: Top Essay Services -- 506 segments, ~424min remaining
+[329/572] done #500 (10908919) RMC Episode 500: 2019 KansasFest Recap -- 393 segments, ~422min remaining
+[330/572] done #501 (11703395) RMC Episode 501: Talking 500 Episodes -- 372 segments, ~420min remaining
+[331/572] done #502 (11703506) RMC Episode 502: VCF West 2019 -- 320 segments, ~418min remaining
+[332/572] done #503 (11703683) RMC Episode 503: iMac G5 -- 812 segments, ~417min remaining
+[333/572] done #504 (12152774) RMC Episode 504: Doom! -- 895 segments, ~415min remaining
+[334/572] done #505 (12152864) RMC Episode 505: Clear Case for Apple II and II Plus -- 919 segments, ~414min remaining
+[335/572] done #506 (12152948) RMC Episode 506: Unicorn with Rainbow -- 729 segments, ~412min remaining
+[336/572] done #507 (12153032) RMC Episode 507: SimCity -- 329 segments, ~410min remaining
+[337/572] done #508 (12237797) RMC Episode 508: Holiday Buying Guide -- 831 segments, ~408min remaining
+[338/572] done #509 (12456911) RMC Episode 509: Twiggy Mac -- 389 segments, ~406min remaining
+[339/572] done #510 (12623744) RMC Episode 510: 2020 Retrolutions -- 373 segments, ~405min remaining
+[340/572] done #511 (12758498) RMC Episode 511: Mac Muzzle -- 826 segments, ~403min remaining
+[341/572] done #512 (12882170) RMC Episode 512: Stripped Down -- 364 segments, ~401min remaining
+[342/572] done #513 (12984923) RMC Episode 513: Cult of Mac 2nd Edition -- 667 segments, ~399min remaining
+[343/572] done #514 (12985241) RMC Episode 514: Macs Sold by the Pound -- 858 segments, ~398min remaining
+[344/572] done #515 (13254755) RMC Episode 515: Clear CaSE/30 -- 450 segments, ~396min remaining
+[345/572] done #516 (13299779) RMC Episode 516: Build a Perfect Website -- 710 segments, ~394min remaining
+[346/572] done #517 (13423538) RMC Episode 517: Apple IIe Clear Case -- 721 segments, ~392min remaining
+[347/572] done #518 (13642244) RMC Episode 518: 17,037,585 -- 512 segments, ~390min remaining
+[348/572] done #519 (13844075) RMC Episode 519: Sorry it is an MP3 -- 860 segments, ~389min remaining
+[349/572] done #520 (13952477) RMC Episode 520: Palm -- 361 segments, ~387min remaining
+[350/572] done #521 (13955162) RMC Episode 521: Apple Pickers -- 299 segments, ~385min remaining
+[351/572] done #522 (14140586) RMC Episode 522: Excessive Fast Food Taxes -- 411 segments, ~383min remaining
+[352/572] done #523 (14152844) RMC Episode 523: Rocky's Papercraft -- 699 segments, ~382min remaining
+[353/572] done #524 (14282399) RMC Episode 524: Hell Froze Over -- 385 segments, ~380min remaining
+[354/572] done #525 (14634869) RMC Episode 525: Secret Passion -- 875 segments, ~379min remaining
+[355/572] done #526 (14634977) RMC Episode 526: Kansasfest 2020 Preview -- 747 segments, ~378min remaining
+[356/572] done #527 (14639375) RMC Episode 527: Heathy Hobbies -- 663 segments, ~376min remaining
+[357/572] done #528 (14809496) RMC Episode 528: RMC Live! -- 339 segments, ~375min remaining
+[358/572] done #529 (14815154) RMC Episode 529: Crystal Quest -- 644 segments, ~373min remaining
+[359/572] done #530 (14905547) RMC Episode 530: Power Macintosh 9500 -- 582 segments, ~371min remaining
+[360/572] done #531 (15084164) RMC Episode 531: WWDC 2020 Recap -- 333 segments, ~370min remaining
+[361/572] done #532 (15096011) RMC Episode 532: Steve from Mac84 -- 979 segments, ~369min remaining
+[362/572] done #533 (15261932) RMC Episode 533: BOOTI TIME! -- 303 segments, ~367min remaining
+[363/572] done #534 (15354314) RMC Episode 534: RWB Apple Porsche -- 511 segments, ~365min remaining
+[364/572] done #535 (15361907) RMC Episode 535: KansasFest Report -- 657 segments, ~363min remaining
+[365/572] done #536 (15444980) RMC Episode 536: It's not easy being green -- 256 segments, ~362min remaining
+[366/572] done #537 (15627896) RMC Episode 537: Jimmy's JLPGA PowerBook 170 -- 387 segments, ~360min remaining
+[367/572] done #538 (15719084) RMC Episode 538: Undressing the Elephant in the Room -- 401 segments, ~358min remaining
+[368/572] done #539 (15806711) RMC Episode 539: Action Retro's Cursed SE -- 789 segments, ~357min remaining
+[369/572] done #540 (15809414) RMC Episode 540: Leakage -- 261 segments, ~355min remaining
+[370/572] done #541 (15989150) RMC Episode 541: 68K2PPC -- 650 segments, ~353min remaining
+[371/572] done #542 (15993035) RMC Episode 542: Subscription Catcher -- 681 segments, ~352min remaining
+[372/572] done #543 (16170674) RMC Episode 543: Flower Power Power Tower -- 889 segments, ~350min remaining
+[373/572] done #544 (16262957) RMC Episode 544: It's True! -- 870 segments, ~349min remaining
+[374/572] done #545 (16354100) RMC Episode 545: As the Apple Returns! -- 821 segments, ~348min remaining
+[375/572] done #546 (16439855) RMC Episode 546: PandeMacs -- 762 segments, ~347min remaining
+[376/572] done #547 (16534919) RMC Episode 547: Publishing Edition -- 751 segments, ~345min remaining
+[377/572] done #548 (16634513) RMC Episode 548: Sy's Quest -- 660 segments, ~343min remaining
+[378/572] done #549 (16639175) RMC Episode 549: Bluets and Granola Bars -- 580 segments, ~341min remaining
+[379/572] done #550 (16729751) RMC Episode 550: 12 Hour Episode -- 825 segments, ~340min remaining
+[380/572] done #551 (17171765) RMC Episode 551: One More Things -- 868 segments, ~339min remaining
+[381/572] done #552 (17405855) RMC Episode 552: The Move -- 432 segments, ~337min remaining
+[382/572] done #553 (17405969) RMC Episode 553: Holiday Gift Guide -- 564 segments, ~336min remaining
+[383/572] done #554 (17577185) RMC Episode 554: The Macintosh Office -- 954 segments, ~335min remaining
+[384/572] done #555 (17755205) RMC Episode 555: The Adventures of Connectix Guy -- 378 segments, ~333min remaining
+[385/572] done #556 (17849696) RMC Episode 556: Macintosh TV Test -- 288 segments, ~331min remaining
+[386/572] done #557 (17849762) RMC Episode 557: Send in the Clones -- 472 segments, ~330min remaining
+[387/572] done #558 (17849819) RMC Episode 558: Apple VideoPhone Kit -- 644 segments, ~328min remaining
+[388/572] done #559 (17941367) RMC Episode 559: Rule of ThumbDrive -- 873 segments, ~327min remaining
+[389/572] done #560 (18026828) RMC Episode 560: Three Cat Maximum -- 302 segments, ~325min remaining
+[390/572] done #561 (18314264) RMC Episode 561: 1-Bit Wallpaper -- 733 segments, ~324min remaining
+[391/572] done #562 (18314360) RMC Episode 562: Marchintosh -- 482 segments, ~322min remaining
+[392/572] done #563 (18405635) RMC Episode 563: Is that your hand? -- 207 segments, ~320min remaining
+[393/572] done #564 (18495458) RMC Episode 564: It was the plug-in the whole time? -- 705 segments, ~318min remaining
+[394/572] done #565 (18594377) RMC Episode 565: Recreation or Recreation? -- 803 segments, ~317min remaining
+[395/572] done #566 (18678389) RMC Episode 566: Blatantly Bulging -- 375 segments, ~315min remaining
+[396/572] done #567 (18764024) RMC Episode 567: Our Magnificent Obsession -- 321 segments, ~313min remaining
+[397/572] done #568 (18849860) RMC Episode 568: Can you hear me now? -- 683 segments, ~312min remaining
+[398/572] done #569 (18942050) RMC Episode 569: Six Colored iMacs -- 312 segments, ~310min remaining
+[399/572] done #570 (19120853) RMC Episode 570: Jeremy's Retro Bar -- 732 segments, ~308min remaining
+[400/572] done #571 (19204184) RMC Episode 571: Polishing the Apple -- 722 segments, ~307min remaining
+[401/572] done #572 (19368668) RMC Episode 572: That is not a wombat -- 1036 segments, ~305min remaining
+[402/572] done #573 (19454615) RMC Episode 573: We love the Mac! -- 722 segments, ~303min remaining
+[403/572] done #574 (19538075) RMC Episode 574: A Mob of Wombats -- 339 segments, ~301min remaining
+[404/572] done #575 (19618565) RMC Episode 575: Apple Need to Know -- 591 segments, ~299min remaining
+[405/572] done #576 (19770386) RMC Episode 576: Macintosh Gardener -- 717 segments, ~298min remaining
+[406/572] done #577 (19844408) RMC Episode 577: KansasFest 2021 Preview -- 803 segments, ~296min remaining
+[407/572] done #578 (19920278) RMC Episode 578: The Gizmo Clock -- 607 segments, ~294min remaining
+[408/572] done #579 (19937633) RMC Episode 579: Meet the Macintosh Librarian -- 793 segments, ~292min remaining
+[409/572] done #580 (20068145) RMC Episode 580: Kansasfest 2021 Recap -- 806 segments, ~291min remaining
+[410/572] done #581 (20145389) RMC Episode 581: VCF SE 8.0 Preview -- 873 segments, ~289min remaining
+[411/572] done #582 (20218883) RMC Episode 582: Market Share Strategy -- 679 segments, ~288min remaining
+[412/572] done #583 (20296013) RMC Episode 583: Free the Oids! -- 763 segments, ~286min remaining
+[413/572] done #584 (20371298) RMC Episode 584: Applied Engineering -- 821 segments, ~284min remaining
+[414/572] done #585 (20444081) RMC Episode 585: Insanely Great to Simply Insane -- 974 segments, ~283min remaining
+[415/572] done #586 (20522453) RMC Episode 586: Hooked on Latch Hook -- 589 segments, ~281min remaining
+[416/572] done #587 (20600828) RMC Episode 587: Dynamic Raster Distortion -- 295 segments, ~279min remaining
+[417/572] done #588 (20686133) RMC Episode 588: VCF Midwest with Mac84 -- 808 segments, ~277min remaining
+[418/572] done #590 (21155138) RMC Episode 590: Workgroup Server 4822 -- 726 segments, ~276min remaining
+[419/572] done #591 (21233309) RMC Episode 591: Tinker Different -- 581 segments, ~274min remaining
+[420/572] done #592 (21233342) RMC Episode 592: MacVision -- 582 segments, ~272min remaining
+[421/572] done #593 (21233393) RMC Episode 593: MacCatalogWorld -- 422 segments, ~270min remaining
+[422/572] done #594 (21235811) RMC Episode 594: ThrowBoy and Iconic Pillow Collection 2 -- 858 segments, ~269min remaining
+[423/572] done #595 (21455312) RMC Episode 595: Hooked on Latch-Hook Part 2 with Myra Burg -- 924 segments, ~267min remaining
+[424/572] done #596 (21533264) RMC Episode 596: Dave's Vintage Apple Tech -- 656 segments, ~265min remaining
+[425/572] done #597 (21717587) RMC Episode 597: See Different -- 367 segments, ~264min remaining
+[426/572] done #598 (21788240) RMC Episode 598: 2021 Year in Review -- 755 segments, ~262min remaining
+[427/572] done #599 (21861545) RMC Episode 599: RaSCSI -- 795 segments, ~260min remaining
+[428/572] done #600 (21950549) RMC Episode 600: 600th Episode! -- 683 segments, ~258min remaining
+[429/572] done #601 (22114859) RMC Episode 601: Yay for PCMCIA! -- 489 segments, ~256min remaining
+[430/572] done #602 (22192781) RMC Episode 602: It's Time to Switch -- 825 segments, ~255min remaining
+[431/572] done #603 (22192814) RMC Episode 603: Boot Mac mini G4 in OS 9 -- 633 segments, ~253min remaining
+[432/572] done #604 (22281776) RMC Episode 604: It's Always 1992 -- 878 segments, ~251min remaining
+[433/572] done #605 (22270061) RMC Episode 605: MacEffects Apple Iic Keyboard -- 753 segments, ~249min remaining
+[434/572] done #606 (22503968) RMC Episode 606: World's Greatest Computer -- 772 segments, ~248min remaining
+[435/572] done #607 (22581887) RMC Episode 607: Marchintosh 2022 -- 564 segments, ~246min remaining
+[436/572] done #608 (22582025) RMC Episode 608: Created on a Macintosh -- 726 segments, ~244min remaining
+[437/572] done #609 (22741199) RMC Episode 609: Unusual HD Enclosure Suckers -- 571 segments, ~242min remaining
+[438/572] done #610 (22815287) RMC Episode 610: It's as boring as it looks -- 976 segments, ~240min remaining
+[439/572] done #611 (22889321) RMC Episode 611: Ron's Classic Mac Video Adapter -- 792 segments, ~238min remaining
+[440/572] done #612 (23399264) RMC Episode 612: Myth III -- 678 segments, ~237min remaining
+[441/572] done #613 (23399285) RMC Episode 613: The Digital Good Life -- 1068 segments, ~235min remaining
+[442/572] done #614 (23473085) RMC Episode 614: VCFSE 9.0 Preview -- 824 segments, ~233min remaining
+[443/572] done #615 (23540927) RMC Episode 615: Iomega -- 378 segments, ~231min remaining
+[444/572] done #616 (23617136) RMC Episode 616: Giants: Citizen Kabuto -- 238 segments, ~229min remaining
+[445/572] done #617 (23696816) RMC Episode 617: Jimmy's Apple 1 Auction Sale -- 830 segments, ~228min remaining
+[446/572] done #618 (23766260) RMC Episode 618: Billion Dollar Goblets -- 456 segments, ~226min remaining
+[447/572] done #619 (23980527) RMC Episode 619: Macworld July 1992 -- 782 segments, ~224min remaining
+[448/572] done #620 (24046566) RMC Episode 620: Fractal Design's Painter -- 779 segments, ~222min remaining
+[449/572] done #621 (24120288) RMC Episode 621: Mac Attic Additions -- 336 segments, ~220min remaining
+[450/572] done #622 (24185661) RMC Episode 622: Apple Radio Lunchbox -- 575 segments, ~218min remaining
+[451/572] done #623 (24338274) RMC Episode 623: The Apple Uniform -- 779 segments, ~216min remaining
+[452/572] done #624 (24408834) RMC Episode 624: Exploded Mac -- 783 segments, ~215min remaining
+[453/572] done #625 (24480309) RMC Episode 625: Apple Brings Back the 5.25" Floppy -- 725 segments, ~213min remaining
+[454/572] done #626 (24556470) RMC Episode 626: Do You Hear Music? -- 873 segments, ~211min remaining
+[455/572] done #627 (24630348) RMC Episode 627: Icon Garden -- 691 segments, ~209min remaining
+[456/572] done #628 (24699576) RMC Episode 628: Prototype Macintosh 128K -- 1088 segments, ~208min remaining
+[457/572] done #629 (24770994) RMC Episode 629: It's wafer-thin! -- 820 segments, ~206min remaining
+[458/572] done #630 (24843129) RMC Episode 630: Flying Toasters -- 845 segments, ~204min remaining
+[459/572] done #631 (24918777) RMC Episode 631: And He Doesn't Negotiate -- 663 segments, ~202min remaining
+[460/572] done #632 (24918789) RMC Episode 632: Willow Computer Cases -- 396 segments, ~201min remaining
+[461/572] done #633 (25288461) RMC Episode 633: Hot New PowerBooks -- 884 segments, ~199min remaining
+[462/572] done #634 (25361613) RMC Episode 634: Holiday Gift Ideas -- 859 segments, ~197min remaining
+[FAILED] #635 (25535334) RMC Episode 635: Holiday Mac Setup: ffmpegFailed(183)
+[FAILED] #636 (25611225) RMC Episode 636: Updates from Ron: ffmpegFailed(183)
+[463/572] done #637 (25689642) RMC Episode 637: Return this Coupon -- 1101 segments, ~195min remaining
+[464/572] done #638 (25759488) RMC Episode 638: Stuck with my Mug -- 384 segments, ~194min remaining
+[465/572] done #639 (25902234) RMC Episode 639: Apple Display Connector -- 609 segments, ~192min remaining
+[466/572] done #640 (25906758) RMC Episode 640: BlueSCSI v2 -- 582 segments, ~190min remaining
+[467/572] done #641 (25976670) RMC Episode 641: 30 Years of SimCity 2000 -- 666 segments, ~188min remaining
+[468/572] done #642 (26048742) RMC Episode 642: The Apple Catalog -- 1186 segments, ~186min remaining
+[469/572] done #643 (26129730) RMC Episode 643: Outbound Outrigger -- 954 segments, ~185min remaining
+[470/572] done #644 (26270604) RMC Episode 644: RMChatGPT -- 386 segments, ~183min remaining
+[471/572] done #645 (26342187) RMC Episode 645: The Great American Trivia Challenge -- 978 segments, ~181min remaining
+[472/572] done #646 (26416407) RMC Episode 646: Apple PenLite -- 877 segments, ~179min remaining
+[473/572] done #647 (26487273) RMC Episode 647: Mice Bits -- 613 segments, ~178min remaining
+[474/572] done #648 (26489082) RMC Episode 648: MacAddict April 2003 -- 883 segments, ~176min remaining
+[475/572] done #649 (26970441) RMC Episode 649: 25th Anniversary of iMac -- 397 segments, ~174min remaining
+[476/572] done #650 (27037236) RMC Episode 650: Macintosh Programming Library -- 582 segments, ~172min remaining
+[477/572] done #651 (27108762) RMC Episode 651: Historic Apple Announcements -- 465 segments, ~170min remaining
+[478/572] done #652 (27184494) RMC Episode 652: Apple Vision Pro -- 819 segments, ~169min remaining
+[479/572] done #653 (27192195) RMC Episode 653: KansasFest 2023 Preview -- 734 segments, ~167min remaining
+[480/572] done #654 (27540213) RMC Episode 654: Trina's Technobabble -- 624 segments, ~165min remaining
+[481/572] done #655 (27603705) RMC Episode 655: Go to the Source -- 939 segments, ~163min remaining
+[482/572] done #656 (27674877) RMC Episode 656: KansasFest 2023 Report -- 339 segments, ~161min remaining
+[483/572] done #657 (27716376) RMC Episode 657: MacAddict August 2003 -- 778 segments, ~160min remaining
+[484/572] done #658 (27812178) RMC Episode 658: Thunderware LightningScan -- 814 segments, ~158min remaining
+[485/572] done #659 (27861243) RMC Episode 659: Lionel Apple Computer Train Set -- 694 segments, ~156min remaining
+[486/572] done #660 (28005411) RMC Episode 660: A Real Deal -- 619 segments, ~154min remaining
+[487/572] done #661 (28205270) RMC Episode 661: The start of something big? -- 718 segments, ~152min remaining
+[488/572] done #662 (28271339) RMC Episode 662: MacEffects Apple IIc Case Kickstarter -- 755 segments, ~150min remaining
+[489/572] done #663 (28337255) RMC Episode 663: Joe to the rescue! -- 508 segments, ~149min remaining
+[490/572] done #664 (28468718) RMC Episode 664: New In Box In Box -- 832 segments, ~147min remaining
+[491/572] done #665 (28625753) RMC Episode 665: Apple Media Program -- 544 segments, ~145min remaining
+[492/572] done #666 (28731633) RMC Episode 666: Diablo -- 831 segments, ~143min remaining
+[493/572] done #667 (28817008) RMC Episode 667: John's Workplace Mac Setup -- 570 segments, ~141min remaining
+[494/572] done #668 (28906813) RMC Episode 668: Retro Mac Gift Ideas -- 470 segments, ~140min remaining
+[495/572] done #669 (29030588) RMC Episode 669: Siberian Uberhamsters -- 700 segments, ~138min remaining
+[496/572] done #670 (29137583) RMC Episode 670: Mac27 Collection -- 782 segments, ~136min remaining
+[497/572] done #671 (29291608) RMC Episode 671: 17 Year Anniversary -- 669 segments, ~134min remaining
+[498/572] done #672 (29605643) RMC Episode 672: Happy 40th Birthday Macintosh! -- 851 segments, ~132min remaining
+[499/572] done #673 (29923978) RMC Episode 673: Before Macintosh: The Apple Lisa RELEASE! -- 889 segments, ~131min remaining
+[500/572] done #674 (30020013) RMC Episode 674: Macworld Magazine #1 -- 708 segments, ~129min remaining
+[501/572] done #675 (30119828) RMC Episode 675: MacintoshPi -- 568 segments, ~127min remaining
+[502/572] done #676 (30159483) RMC Episode 676: PodBrix -- 573 segments, ~125min remaining
+[503/572] done #677 (30539283) RMC Episode 677: The Fun is Back! -- 602 segments, ~123min remaining
+[504/572] done #678 (30839043) RMC Episode 678: Marchintosh! -- 904 segments, ~121min remaining
+[505/572] done #679 (30943143) RMC Episode 679: John Goes Shopping -- 593 segments, ~120min remaining
+[506/572] done #680 (31006333) RMC Episode 680: John Gifted Stuff -- 677 segments, ~118min remaining
+[507/572] done #681 (31572392) RMC Episode 681: Macintosh Classic Recap -- 663 segments, ~116min remaining
+[508/572] done #682 (31688792) RMC Episode 682: It's What's on the Inside that Counts -- 584 segments, ~114min remaining
+[509/572] done #683 (31780657) RMC Episode 683: Kickstart My Heart! -- 701 segments, ~112min remaining
+[510/572] done #684 (32035852) RMC Episode 684: Mr. Macintosh -- 266 segments, ~110min remaining
+[511/572] done #685 (32127762) RMC Episode 685: Macworld July/August 1984 -- 595 segments, ~109min remaining
+[512/572] done #686 (32325627) RMC Episode 686: Apple Stained Glass -- 620 segments, ~107min remaining
+[513/572] done #687 (32536527) RMC Episode 687: Prison TV -- 696 segments, ~105min remaining
+[514/572] done #688 (32630147) RMC Episode 688: Mac Plus Plus Max -- 1053 segments, ~103min remaining
+[515/572] done #689 (32867977) RMC Episode 689: Man of Many Hats -- 601 segments, ~102min remaining
+[516/572] done #690 (33270847) RMC Episode 690: RR Auction Results -- 745 segments, ~100min remaining
+[517/572] done #691 (33367392) RMC Episode 691: John's G3 iMacs -- 333 segments, ~98min remaining
+[518/572] done #692 (33447707) RMC Episode 692: After Before Macintosh: The Apple Lisa -- 802 segments, ~96min remaining
+[519/572] done #693 (33559062) RMC Episode 693: Mini SE - Desktop Case for Macintosh SE or SE/30 -- 637 segments, ~94min remaining
+[520/572] done #694 (33987322) RMC Episode 694: The MacRecorder Sound System -- 613 segments, ~93min remaining
+[521/572] done #695 (34477610) RMC Episode 695: Emulation on the New Mac Mini -- 935 segments, ~91min remaining
+[522/572] done #696 (34562345) RMC Episode 696: Retro Mac Holiday Shopping List -- 550 segments, ~89min remaining
+[523/572] done #697 (34922145) RMC Episode 697: New Year's Retrolutions -- 587 segments, ~87min remaining
+[524/572] done #698 (35018460) RMC Episode 698: Macworld January 1985 -- 585 segments, ~85min remaining
+[525/572] done #699 (35321085) RMC Episode 699: MAC Museum -- 838 segments, ~84min remaining
+[526/572] done #700 (35520260) RMC Episode 700: John's Midi-Mac -- 517 segments, ~82min remaining
+[527/572] done #701 (35594655) RMC Episode 701: First Mac Tribal Gathering -- 410 segments, ~80min remaining
+[528/572] done #702 (35737900) RMC Episode 702: Prototypes Aplenty -- 879 segments, ~78min remaining
+[529/572] done #703 (35846365) RMC Episode 703: Steve Jobs and The Apple Revolution Auction Lots -- 429 segments, ~76min remaining
+[530/572] done #704 (36044660) RMC Episode 704: Marchintosh! -- 820 segments, ~75min remaining
+[531/572] done #705 (36236830) RMC Episode 705: Even More Marchintosh! -- 515 segments, ~73min remaining
+[532/572] done #706 (36327985) RMC Episode 706: Account Dealer National Support -- 737 segments, ~71min remaining
+[533/572] done #707 (36525195) RMC Episode 707: Framed iPhone Icon Coaster Display -- 650 segments, ~69min remaining
+[534/572] done #708 (36632865) RMC Episode 708: Masters of Media -- 487 segments, ~67min remaining
+[535/572] done #709 (36704510) RMC Episode 709: A Single-Story A -- 483 segments, ~66min remaining
+[536/572] done #710 (37202640) RMC Episode 710: I'm on a Boat -- 744 segments, ~64min remaining
+[537/572] done #711 (37276885) RMC Episode 711: Game of iLife -- 570 segments, ~62min remaining
+[538/572] done #712 (37406570) RMC Episode 712: 20 GOTO 10 -- 480 segments, ~60min remaining
+[539/572] done #713 (37470075) RMC Episode 713: I shall call it Mini Mouse -- 546 segments, ~58min remaining
+[540/572] done #714 (37653190) RMC Episode 714: The Mac's New Face -- 351 segments, ~57min remaining
+[541/572] done #715 (37870960) RMC Episode 715: Unboxing the Collector's Edition Pico-Mac-Nano -- 453 segments, ~55min remaining
+[542/572] done #716 (37930655) RMC Episode 716: Apple Treasure Bin -- 906 segments, ~53min remaining
+[543/572] done #717 (38297980) RMC Episode 717: PowerBook Duo 2300c -- 724 segments, ~51min remaining
+[544/572] done #718 (38564410) RMC Episode 718: Another Apple Treasure Bin -- 781 segments, ~50min remaining
+[545/572] done #719 (38792530) RMC Episode 719: Rip-Off -- 572 segments, ~48min remaining
+[546/572] done #720 (38978620) RMC Episode 720: Maclock Unboxing -- 278 segments, ~46min remaining
+[547/572] done #721 (39229335) RMC Episode 721: What's in the box? -- 573 segments, ~44min remaining
+[548/572] done #722 (39419075) RMC Episode 722: iPhone Pockets and iPod Socks -- 422 segments, ~42min remaining
+[549/572] done #723 (39529280) RMC Episode 723: Holiday Shopping Lists -- 716 segments, ~41min remaining
+[550/572] done #724 (39966070) RMC Episode 724: 2026 New Year's Retrolutions -- 299 segments, ~39min remaining
+[551/572] done #725 (40034220) RMC Episode 725: Bow Ties -- 716 segments, ~37min remaining
+[552/572] done #726 (40125565) RMC Episode 726: Lasers for the Future -- 608 segments, ~35min remaining
+[553/572] done #727 (40289370) RMC Episode 727: Prospecting, Qualifying, Process, and Closing -- 647 segments, ~33min remaining
+[554/572] done #728 (40374265) RMC Episode 728: Marchintosh! -- 615 segments, ~32min remaining
+[555/572] done #729 (40504280) RMC Episode 729: More Marchintosh with Ron -- 713 segments, ~30min remaining
+[556/572] done #730 (40579310) RMC Episode 730: Lil Finder Guy -- 546 segments, ~28min remaining
+[557/572] done #731 (40737670) RMC Episode 731: Marchintosh Favorites -- 457 segments, ~26min remaining
+[558/572] done #732 (40812795) RMC Episode 732: Apple Turns 50! -- 476 segments, ~24min remaining
+[559/572] done #733 (40925610) RMC Episode 733: Mac Like Things PowerCD -- 569 segments, ~23min remaining
+[560/572] done #734 (41127495) RMC Episode 734: Vinegar Syndrome -- 600 segments, ~21min remaining
+[561/572] done #735 (41242975) RMC Episode 735: Make Something Wonderful -- 667 segments, ~19min remaining
+[562/572] done #736 (41326690) RMC Episode 736: Scott's Frog Design MacBook Concept Creation -- 304 segments, ~17min remaining
+[563/572] done #737 (41417470) RMC Episode 737: E-mail is Oversold -- 449 segments, ~16min remaining
+[564/572] done #738 (41578850) RMC Episode 738: Above the Fold! -- 440 segments, ~14min remaining
+[565/572] done #739 (41643325) RMC Episode 739: A Free McIntosh! -- 620 segments, ~12min remaining
+[566/572] done #740 (41843460) RMC Episode 740: Apple 1 Forever! -- 579 segments, ~10min remaining
+[567/572] done #? (1437714) Happy Holidays! -- 18 segments, ~8min remaining
+[568/572] done #? (2167394) Happy Holidays! -- 18 segments, ~7min remaining
+[569/572] done #? (39529425) Happy Holidays from RetroMacCast! -- 18 segments, ~5min remaining
+Batch complete. 569 transcribed, 3 failed.

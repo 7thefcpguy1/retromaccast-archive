@@ -1,5 +1,6 @@
 import ArgumentParser
 import Foundation
+import GRDB
 import RMCCore
 
 let defaultDBPath = "corpus/rmc.sqlite"
@@ -10,7 +11,10 @@ let defaultPrompt = "Macintosh, Apple, RetroMacCast, James, John, Steve Jobs, St
 struct RMCPipeline: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "rmc-pipeline",
-        subcommands: [CrawlIndex.self, ResolveAudio.self, TranscribeBatch.self, Stats.self]
+        subcommands: [
+            CrawlIndex.self, ResolveAudio.self, TranscribeBatch.self, Classify.self,
+            ResetStaleSynthesis.self, Synthesize.self, ExportManifest.self, Stats.self,
+        ]
     )
 }
 
@@ -199,6 +203,255 @@ struct TranscribeBatch: AsyncParsableCommand {
         }
 
         print("Batch complete. \(done) transcribed, \(failed) failed.")
+    }
+}
+
+private struct CollectionDefinition: Codable {
+    let slug: String
+    let title: String
+    let description: String
+    let kind: String
+}
+
+struct Classify: AsyncParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "classify",
+        abstract: "Classify transcribed episodes into curated collections via the Claude API."
+    )
+
+    @Option(name: .long) var db: String = defaultDBPath
+    @Option(name: .long) var collectionsFile: String = "collections.json"
+    @Option(name: .long) var limit: Int = 0 // 0 = no limit
+
+    func run() async throws {
+        let database = try RMCDatabase(path: db)
+        let classifier = try ClaudeClassifier()
+
+        let defsData = try Data(contentsOf: URL(fileURLWithPath: collectionsFile))
+        let defs = try JSONDecoder().decode([CollectionDefinition].self, from: defsData)
+
+        // Upsert by slug -- editing collections.json and re-running updates
+        // titles/descriptions in place rather than duplicating rows.
+        let collections = try await database.dbQueue.write { db -> [EpisodeCollection] in
+            var result: [EpisodeCollection] = []
+            for def in defs {
+                if var existing = try EpisodeCollection.fetchOne(db, sql: "SELECT * FROM collections WHERE slug = ?", arguments: [def.slug]) {
+                    existing.title = def.title
+                    existing.collectionDescription = def.description
+                    existing.kind = def.kind
+                    try existing.save(db)
+                    result.append(existing)
+                } else {
+                    var new = EpisodeCollection(slug: def.slug, title: def.title, collectionDescription: def.description, kind: def.kind)
+                    try new.insert(db)
+                    result.append(new)
+                }
+            }
+            return result
+        }
+        let collectionBySlug = Dictionary(uniqueKeysWithValues: collections.map { ($0.slug, $0) })
+
+        let pending = try await database.dbQueue.read { db in
+            try Episode
+                .filter(sql: "transcriptText IS NOT NULL AND classifiedAt IS NULL")
+                .order(sql: "episodeNumber IS NULL, episodeNumber ASC")
+                .fetchAll(db)
+        }
+        let targets = limit > 0 ? Array(pending.prefix(limit)) : pending
+        print("Classifying \(targets.count) episodes against \(collections.count) collections...")
+
+        var done = 0
+        var matched = 0
+        var failed = 0
+
+        for ep in targets {
+            let label = "#\(ep.episodeNumber.map(String.init) ?? "?") (\(ep.id)) \(ep.title)"
+            guard let transcript = ep.transcriptText else { continue }
+            do {
+                let matches = try await classifier.classify(transcript: transcript, collections: collections)
+
+                try await database.dbQueue.write { db in
+                    for match in matches {
+                        guard let collection = collectionBySlug[match.collectionSlug], let collectionId = collection.id else {
+                            print("  [\(label)] unknown collection slug '\(match.collectionSlug)', skipping")
+                            continue
+                        }
+                        // Same LIKE-based segment lookup the app's search uses to find
+                        // a snippet's timestamp -- if the model paraphrased instead of
+                        // quoting verbatim, no segment is found and the item is stored
+                        // with no timestamp (plays from 0:00), same fallback as a
+                        // title-only search match.
+                        let segment = try TranscriptSegment.fetchOne(db, sql: """
+                            SELECT * FROM transcript_segments
+                            WHERE episodeId = ? AND text LIKE ? COLLATE NOCASE
+                            LIMIT 1
+                            """, arguments: [ep.id, "%\(match.quote)%"])
+                        let item = CollectionItem(
+                            collectionId: collectionId,
+                            episodeId: ep.id,
+                            segmentId: segment?.id,
+                            timestampMs: segment?.startMs,
+                            blurb: match.blurb
+                        )
+                        try item.insert(db)
+                    }
+                    var updated = ep
+                    updated.classifiedAt = ISO8601DateFormatter().string(from: Date())
+                    try updated.save(db)
+                }
+
+                done += 1
+                matched += matches.count
+                print("[\(done)/\(targets.count)] \(label) -- \(matches.count) match(es)")
+            } catch {
+                failed += 1
+                print("[FAILED] \(label): \(error)")
+            }
+            try await Task.sleep(nanoseconds: 200_000_000) // 200ms politeness delay
+        }
+
+        print("Classification complete. \(done) episodes processed, \(matched) matches recorded, \(failed) failed.")
+    }
+}
+
+struct ResetStaleSynthesis: AsyncParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "reset-stale-synthesis",
+        abstract: "Clear the synthesized paragraph for any collection that gained an item from an episode classified since a given timestamp, so the next `synthesize` run regenerates just that paragraph instead of skipping it as already-done."
+    )
+
+    @Option(name: .long) var db: String = defaultDBPath
+    @Option(name: .long) var since: String // ISO8601 timestamp, e.g. captured right before `classify` ran
+
+    func run() async throws {
+        let database = try RMCDatabase(path: db)
+
+        let cleared = try await database.dbQueue.write { db -> Int in
+            let staleCollectionIds = try Int64.fetchAll(db, sql: """
+                SELECT DISTINCT ci.collectionId
+                FROM collection_items ci
+                JOIN episodes e ON e.id = ci.episodeId
+                WHERE e.classifiedAt >= ?
+                """, arguments: [since])
+
+            guard !staleCollectionIds.isEmpty else { return 0 }
+
+            let placeholders = staleCollectionIds.map { _ in "?" }.joined(separator: ",")
+            try db.execute(
+                sql: "UPDATE collections SET synthesizedParagraph = NULL WHERE id IN (\(placeholders))",
+                arguments: StatementArguments(staleCollectionIds)
+            )
+            return staleCollectionIds.count
+        }
+
+        print("Cleared synthesis for \(cleared) collection(s) touched by episodes classified since \(since).")
+    }
+}
+
+struct Synthesize: AsyncParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "synthesize",
+        abstract: "Generate a per-collection \"ON RETROMACCAST\" summary paragraph from recorded collection items."
+    )
+
+    @Option(name: .long) var db: String = defaultDBPath
+    @Option(name: .long) var limit: Int = 0 // 0 = no limit
+
+    func run() async throws {
+        let database = try RMCDatabase(path: db)
+        let classifier = try ClaudeClassifier()
+
+        let collections = try await database.dbQueue.read { db in
+            try EpisodeCollection.fetchAll(db)
+        }
+        let targets = limit > 0 ? Array(collections.prefix(limit)) : collections
+        print("Synthesizing \(targets.count) collections...")
+
+        var done = 0
+        var skipped = 0
+        var failed = 0
+
+        for collection in targets {
+            guard let collectionId = collection.id else { continue }
+            guard collection.synthesizedParagraph == nil else {
+                print("[\(done + skipped)/\(targets.count)] \(collection.title) -- already synthesized, skipping")
+                continue
+            }
+            let moments = try await database.dbQueue.read { db -> [(String, String)] in
+                let items = try CollectionItem.filter(sql: "collectionId = ?", arguments: [collectionId]).fetchAll(db)
+                return try items.compactMap { item -> (String, String)? in
+                    guard let episode = try Episode.fetchOne(db, sql: "SELECT * FROM episodes WHERE id = ?", arguments: [item.episodeId]) else { return nil }
+                    return (episode.title, item.blurb)
+                }
+            }
+
+            guard !moments.isEmpty else {
+                skipped += 1
+                print("[\(done + skipped)/\(targets.count)] \(collection.title) -- no matched episodes, skipping")
+                continue
+            }
+
+            do {
+                let paragraph = try await classifier.synthesize(
+                    productTitle: collection.title,
+                    moments: moments.map { (episodeTitle: $0.0, blurb: $0.1) }
+                )
+                try await database.dbQueue.write { db in
+                    var updated = collection
+                    updated.synthesizedParagraph = paragraph
+                    try updated.save(db)
+                }
+                done += 1
+                print("[\(done + skipped)/\(targets.count)] \(collection.title) -- synthesized from \(moments.count) moment(s)")
+            } catch {
+                failed += 1
+                print("[FAILED] \(collection.title): \(error)")
+            }
+            try await Task.sleep(nanoseconds: 200_000_000) // 200ms politeness delay
+        }
+
+        print("Synthesis complete. \(done) synthesized, \(skipped) skipped (no episodes), \(failed) failed.")
+    }
+}
+
+struct ExportManifest: AsyncParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "export-manifest",
+        abstract: "Write a small JSON summary of the corpus (episode count, latest episode) alongside the database, so a client can sanity-check what it downloaded without opening the DB."
+    )
+
+    @Option(name: .long) var db: String = defaultDBPath
+    @Option(name: .long) var output: String = "corpus/manifest.json"
+
+    private struct Manifest: Codable {
+        let episodeCount: Int
+        let latestEpisodeId: Int?
+        let latestEpisodeTitle: String?
+        let latestEpisodePubDate: String?
+        let generatedAt: String
+    }
+
+    func run() async throws {
+        let database = try RMCDatabase(path: db)
+        let (count, latest) = try await database.dbQueue.read { db -> (Int, Episode?) in
+            let count = try Episode.fetchCount(db)
+            let latest = try Episode.order(sql: "pubDate DESC").fetchOne(db)
+            return (count, latest)
+        }
+
+        let manifest = Manifest(
+            episodeCount: count,
+            latestEpisodeId: latest?.id,
+            latestEpisodeTitle: latest?.title,
+            latestEpisodePubDate: latest?.pubDate,
+            generatedAt: ISO8601DateFormatter().string(from: Date())
+        )
+
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        let data = try encoder.encode(manifest)
+        try data.write(to: URL(fileURLWithPath: output))
+        print("Wrote manifest to \(output): \(count) episodes, latest: \(latest?.title ?? "none")")
     }
 }
 

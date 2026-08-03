@@ -7,41 +7,98 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		072BBF698EC86DB2A583AADF /* FinderWindowChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE49C27B5192FA95F3587724 /* FinderWindowChrome.swift */; };
 		0BABEB5DDD3901B6A3D13BA7 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0FF236AF09CA4446AC9448 /* SearchView.swift */; };
+		0F73DF89A664C2F203778E66 /* PolaroidPhoto.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDF880444B5322136776AC25 /* PolaroidPhoto.swift */; };
 		11899DCD109CBA7B7AA26CFD /* RMCCore in Frameworks */ = {isa = PBXBuildFile; productRef = 1CB0F2EAC0628A1DF7C02692 /* RMCCore */; };
+		12A0B0E0BEF240DD10C08716 /* MuseumView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D2E23B31C6E5A4A49A4B189 /* MuseumView.swift */; };
+		1534AB22F1CD6CB1CEB31983 /* RootTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6121B42C402400EB9DF586A0 /* RootTabView.swift */; };
 		20CBAF69C7A26E49F8EADF68 /* rmc.sqlite in Resources */ = {isa = PBXBuildFile; fileRef = 4D880E4203F33F376FF224EF /* rmc.sqlite */; };
+		2127E417C3B1F31431E0DC93 /* ClassicScrollBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 840994A2A6C09664F49DDC42 /* ClassicScrollBar.swift */; };
+		28359E818D06C6E2216123EA /* MuseumData+iMac.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04CEDDC72E6FF21D19101DBD /* MuseumData+iMac.swift */; };
+		2DBFF66A59A57380C2ED446C /* MuseumData+iPod.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37A3F6BEBF658809D3C63DD7 /* MuseumData+iPod.swift */; };
+		2EA72166D2D0BE230A48F6F5 /* MuseumData+Laptops.swift in Sources */ = {isa = PBXBuildFile; fileRef = B925B2116BF4FB8531E61AAE /* MuseumData+Laptops.swift */; };
 		3344E54CC2D0CD1C9FF1A87D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 79B3A201D8EC52A81373A719 /* Assets.xcassets */; };
+		3670BB266C51D234580201FA /* MuseumView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D2E23B31C6E5A4A49A4B189 /* MuseumView.swift */; };
 		3E3BED2503DF798724EA383B /* Corpus.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1EEC18DF155B41B2DAD729E /* Corpus.swift */; };
 		3EB5864A6362E6E2335FEF72 /* RetroMacCastApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E488D0C57FE63F183ECA87CD /* RetroMacCastApp.swift */; };
+		41F340773E8003A4C36581E3 /* MuseumData+iPod.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37A3F6BEBF658809D3C63DD7 /* MuseumData+iPod.swift */; };
 		46AA4482C3411BE2BBEF2444 /* RetroStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DA8791C8E48BC407348CBB4 /* RetroStyle.swift */; };
+		480F3D09939F139DE1DE28AA /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB96F53A68C85288CF99197F /* SettingsView.swift */; };
 		4A2B7AC9D4344A008BFE762C /* PlayerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16C232C7F9B42B439FF8AC9B /* PlayerViewModel.swift */; };
+		57C2D46D2E6C13213A5F6B31 /* MuseumData+CompactMacintosh.swift in Sources */ = {isa = PBXBuildFile; fileRef = C68B1CA6C86A4205CF451D59 /* MuseumData+CompactMacintosh.swift */; };
 		5F2A42834BD6FA44DB42A021 /* SearchViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8B324DF879F3C9673025E84 /* SearchViewModel.swift */; };
+		62FDD548F241281F8045D7F7 /* MuseumData+MacMiniStudio.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83998AA0DFEB39381162C01 /* MuseumData+MacMiniStudio.swift */; };
+		72C7CD8F71902AE9D169E8A8 /* MuseumModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBD2758CCE721DE484ABD97C /* MuseumModels.swift */; };
+		73725C8848460486A5A49CD9 /* ClassicScrollBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 840994A2A6C09664F49DDC42 /* ClassicScrollBar.swift */; };
+		7840DD4B6C6C824710A89FCA /* PolaroidPhoto.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDF880444B5322136776AC25 /* PolaroidPhoto.swift */; };
+		78E5AEAFFAE3FE36354EBE54 /* MuseumData+PowerMac.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D04099854993668F20B3948 /* MuseumData+PowerMac.swift */; };
 		7A3215095D880E9928F47198 /* ChicagoFLF.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 0CEA19B0565A66C982C2E3B9 /* ChicagoFLF.ttf */; };
 		7D5C4FB35E26C2C1C632EE95 /* PlayerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16C232C7F9B42B439FF8AC9B /* PlayerViewModel.swift */; };
 		81C53071125D0DAAF68DC22D /* ChicagoFLF.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 0CEA19B0565A66C982C2E3B9 /* ChicagoFLF.ttf */; };
 		87178729A5FAD91FF4409876 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 79B3A201D8EC52A81373A719 /* Assets.xcassets */; };
+		8738C74F0DCC99C04037C989 /* FinderWindowChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE49C27B5192FA95F3587724 /* FinderWindowChrome.swift */; };
+		8ABE8B664A65720B37D75890 /* MuseumData+iPad.swift in Sources */ = {isa = PBXBuildFile; fileRef = E954693D01DDC5AF2E74D254 /* MuseumData+iPad.swift */; };
+		8DD4AEFAC1E7372C8A87650A /* CorpusUpdateManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAA9B4A0E366FEB911483280 /* CorpusUpdateManager.swift */; };
+		90BCAF0918C6DBE883456946 /* MuseumData+ModularMacintosh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64175BBFF7709A80C5033103 /* MuseumData+ModularMacintosh.swift */; };
+		92FAA142CA80D38D34547AEC /* MuseumData+Laptops.swift in Sources */ = {isa = PBXBuildFile; fileRef = B925B2116BF4FB8531E61AAE /* MuseumData+Laptops.swift */; };
+		9312202D1ACAB66190C7335C /* MuseumData+Newton.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD28459F6B6F7EF61C8530F3 /* MuseumData+Newton.swift */; };
 		937D40A664273D5810644774 /* RetroStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DA8791C8E48BC407348CBB4 /* RetroStyle.swift */; };
 		96545C3CDED166276548A2DB /* RetroMacCastApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E488D0C57FE63F183ECA87CD /* RetroMacCastApp.swift */; };
+		9A6714804DD49C9FEFCC011A /* MuseumData+Newton.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD28459F6B6F7EF61C8530F3 /* MuseumData+Newton.swift */; };
+		A06ED2B05DC29EA6209C5FBB /* RootTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6121B42C402400EB9DF586A0 /* RootTabView.swift */; };
+		A4012B5E683EC4C1C9A54540 /* CorpusUpdateManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAA9B4A0E366FEB911483280 /* CorpusUpdateManager.swift */; };
 		A50BE1D33F33AD9FD32FD312 /* rmc.sqlite in Resources */ = {isa = PBXBuildFile; fileRef = 4D880E4203F33F376FF224EF /* rmc.sqlite */; };
+		AA7A709339E29E9C5020878F /* MuseumData+iMac.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04CEDDC72E6FF21D19101DBD /* MuseumData+iMac.swift */; };
 		B3694573A7070A839DBC2D77 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0FF236AF09CA4446AC9448 /* SearchView.swift */; };
+		C08FC4D69901AF56505E9762 /* MuseumData+ModularMacintosh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64175BBFF7709A80C5033103 /* MuseumData+ModularMacintosh.swift */; };
 		C2AC122CF234A63666D72A2B /* Corpus.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1EEC18DF155B41B2DAD729E /* Corpus.swift */; };
+		C85A4F96E5B07186C6C06C94 /* MuseumData+CompactMacintosh.swift in Sources */ = {isa = PBXBuildFile; fileRef = C68B1CA6C86A4205CF451D59 /* MuseumData+CompactMacintosh.swift */; };
+		CB645E55B31A1DE031DA523B /* MuseumData+MacMiniStudio.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83998AA0DFEB39381162C01 /* MuseumData+MacMiniStudio.swift */; };
+		DA1EE87882231CAC544B866B /* MuseumData+PowerMac.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D04099854993668F20B3948 /* MuseumData+PowerMac.swift */; };
+		DDD4FE4FF0A33FA02F6EE3BE /* MuseumData+iPhone.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C72BE246D886E8446E4D079 /* MuseumData+iPhone.swift */; };
+		E02ECDA6BAB42E4ECFD1ACD9 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB96F53A68C85288CF99197F /* SettingsView.swift */; };
+		E929FFF9451713CF4BF9F3D3 /* MuseumData+iPhone.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C72BE246D886E8446E4D079 /* MuseumData+iPhone.swift */; };
+		F09B84DE312FC77ED915FB35 /* MuseumData+iPad.swift in Sources */ = {isa = PBXBuildFile; fileRef = E954693D01DDC5AF2E74D254 /* MuseumData+iPad.swift */; };
+		F42C23BD3789C188F03F2458 /* MuseumModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBD2758CCE721DE484ABD97C /* MuseumModels.swift */; };
+		F722D874D89DD8EEFEE24001 /* EmulatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A99CCC41D7AC4B8F75562F3 /* EmulatorView.swift */; };
 		F75BDDCC787B25B2F8E0AAE8 /* RMCCore in Frameworks */ = {isa = PBXBuildFile; productRef = 94186E73C5041162DF799002 /* RMCCore */; };
 		F7E94CD04805399BD8945E30 /* SearchViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8B324DF879F3C9673025E84 /* SearchViewModel.swift */; };
+		FD0CC2AC5FCB291287CA16DB /* EmulatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A99CCC41D7AC4B8F75562F3 /* EmulatorView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		04CEDDC72E6FF21D19101DBD /* MuseumData+iMac.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MuseumData+iMac.swift"; sourceTree = "<group>"; };
 		0CEA19B0565A66C982C2E3B9 /* ChicagoFLF.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = ChicagoFLF.ttf; sourceTree = "<group>"; };
 		0DA8791C8E48BC407348CBB4 /* RetroStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RetroStyle.swift; sourceTree = "<group>"; };
 		16C232C7F9B42B439FF8AC9B /* PlayerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerViewModel.swift; sourceTree = "<group>"; };
 		28EEC16B84989F68A34FEB81 /* RetroMacCast-macOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "RetroMacCast-macOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		2D04099854993668F20B3948 /* MuseumData+PowerMac.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MuseumData+PowerMac.swift"; sourceTree = "<group>"; };
+		37A3F6BEBF658809D3C63DD7 /* MuseumData+iPod.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MuseumData+iPod.swift"; sourceTree = "<group>"; };
 		4D880E4203F33F376FF224EF /* rmc.sqlite */ = {isa = PBXFileReference; lastKnownFileType = file; path = rmc.sqlite; sourceTree = "<group>"; };
+		6121B42C402400EB9DF586A0 /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
+		64175BBFF7709A80C5033103 /* MuseumData+ModularMacintosh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MuseumData+ModularMacintosh.swift"; sourceTree = "<group>"; };
 		6E09EBB2ED6813A7ABC689F0 /* pipeline */ = {isa = PBXFileReference; lastKnownFileType = folder; name = pipeline; path = ../pipeline; sourceTree = SOURCE_ROOT; };
 		79B3A201D8EC52A81373A719 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		7A99CCC41D7AC4B8F75562F3 /* EmulatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmulatorView.swift; sourceTree = "<group>"; };
+		7D2E23B31C6E5A4A49A4B189 /* MuseumView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuseumView.swift; sourceTree = "<group>"; };
+		840994A2A6C09664F49DDC42 /* ClassicScrollBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClassicScrollBar.swift; sourceTree = "<group>"; };
+		9C72BE246D886E8446E4D079 /* MuseumData+iPhone.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MuseumData+iPhone.swift"; sourceTree = "<group>"; };
+		B925B2116BF4FB8531E61AAE /* MuseumData+Laptops.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MuseumData+Laptops.swift"; sourceTree = "<group>"; };
 		BA0FF236AF09CA4446AC9448 /* SearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
+		BB96F53A68C85288CF99197F /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		BBD2758CCE721DE484ABD97C /* MuseumModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuseumModels.swift; sourceTree = "<group>"; };
+		BDF880444B5322136776AC25 /* PolaroidPhoto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PolaroidPhoto.swift; sourceTree = "<group>"; };
+		C68B1CA6C86A4205CF451D59 /* MuseumData+CompactMacintosh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MuseumData+CompactMacintosh.swift"; sourceTree = "<group>"; };
+		CAA9B4A0E366FEB911483280 /* CorpusUpdateManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorpusUpdateManager.swift; sourceTree = "<group>"; };
+		CD28459F6B6F7EF61C8530F3 /* MuseumData+Newton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MuseumData+Newton.swift"; sourceTree = "<group>"; };
+		D83998AA0DFEB39381162C01 /* MuseumData+MacMiniStudio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MuseumData+MacMiniStudio.swift"; sourceTree = "<group>"; };
 		E1EEC18DF155B41B2DAD729E /* Corpus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Corpus.swift; sourceTree = "<group>"; };
 		E488D0C57FE63F183ECA87CD /* RetroMacCastApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RetroMacCastApp.swift; sourceTree = "<group>"; };
+		E954693D01DDC5AF2E74D254 /* MuseumData+iPad.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MuseumData+iPad.swift"; sourceTree = "<group>"; };
 		EB1DCB15115FD8C5F467348E /* RetroMacCast-iOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = "RetroMacCast-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F8B324DF879F3C9673025E84 /* SearchViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchViewModel.swift; sourceTree = "<group>"; };
+		FE49C27B5192FA95F3587724 /* FinderWindowChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderWindowChrome.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -68,8 +125,39 @@
 			isa = PBXGroup;
 			children = (
 				E488D0C57FE63F183ECA87CD /* RetroMacCastApp.swift */,
+				6121B42C402400EB9DF586A0 /* RootTabView.swift */,
 			);
 			path = App;
+			sourceTree = "<group>";
+		};
+		11B3C275A71E501596217AC2 /* Museum */ = {
+			isa = PBXGroup;
+			children = (
+				840994A2A6C09664F49DDC42 /* ClassicScrollBar.swift */,
+				FE49C27B5192FA95F3587724 /* FinderWindowChrome.swift */,
+				C68B1CA6C86A4205CF451D59 /* MuseumData+CompactMacintosh.swift */,
+				04CEDDC72E6FF21D19101DBD /* MuseumData+iMac.swift */,
+				E954693D01DDC5AF2E74D254 /* MuseumData+iPad.swift */,
+				9C72BE246D886E8446E4D079 /* MuseumData+iPhone.swift */,
+				37A3F6BEBF658809D3C63DD7 /* MuseumData+iPod.swift */,
+				B925B2116BF4FB8531E61AAE /* MuseumData+Laptops.swift */,
+				D83998AA0DFEB39381162C01 /* MuseumData+MacMiniStudio.swift */,
+				64175BBFF7709A80C5033103 /* MuseumData+ModularMacintosh.swift */,
+				CD28459F6B6F7EF61C8530F3 /* MuseumData+Newton.swift */,
+				2D04099854993668F20B3948 /* MuseumData+PowerMac.swift */,
+				BBD2758CCE721DE484ABD97C /* MuseumModels.swift */,
+				7D2E23B31C6E5A4A49A4B189 /* MuseumView.swift */,
+				BDF880444B5322136776AC25 /* PolaroidPhoto.swift */,
+			);
+			path = Museum;
+			sourceTree = "<group>";
+		};
+		1FDCE1ADF3C3F3E6AE0DA17A /* Emulator */ = {
+			isa = PBXGroup;
+			children = (
+				7A99CCC41D7AC4B8F75562F3 /* EmulatorView.swift */,
+			);
+			path = Emulator;
 			sourceTree = "<group>";
 		};
 		2C0B59672D0A25CF412EA2E5 /* Resources */ = {
@@ -107,7 +195,10 @@
 			children = (
 				0A0017D61E8F01B99162ED28 /* App */,
 				B9485BDAF5E554403CF76E4E /* Data */,
+				1FDCE1ADF3C3F3E6AE0DA17A /* Emulator */,
+				11B3C275A71E501596217AC2 /* Museum */,
 				4A6E1F007BFC42E96DC0379A /* Search */,
+				8A8D2343831A83B7C8943A0F /* Settings */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -127,6 +218,15 @@
 				28EEC16B84989F68A34FEB81 /* RetroMacCast-macOS.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		8A8D2343831A83B7C8943A0F /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				CAA9B4A0E366FEB911483280 /* CorpusUpdateManager.swift */,
+				BB96F53A68C85288CF99197F /* SettingsView.swift */,
+			);
+			path = Settings;
 			sourceTree = "<group>";
 		};
 		B9485BDAF5E554403CF76E4E /* Data */ = {
@@ -251,12 +351,31 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2127E417C3B1F31431E0DC93 /* ClassicScrollBar.swift in Sources */,
 				3E3BED2503DF798724EA383B /* Corpus.swift in Sources */,
+				A4012B5E683EC4C1C9A54540 /* CorpusUpdateManager.swift in Sources */,
+				FD0CC2AC5FCB291287CA16DB /* EmulatorView.swift in Sources */,
+				8738C74F0DCC99C04037C989 /* FinderWindowChrome.swift in Sources */,
+				57C2D46D2E6C13213A5F6B31 /* MuseumData+CompactMacintosh.swift in Sources */,
+				92FAA142CA80D38D34547AEC /* MuseumData+Laptops.swift in Sources */,
+				62FDD548F241281F8045D7F7 /* MuseumData+MacMiniStudio.swift in Sources */,
+				C08FC4D69901AF56505E9762 /* MuseumData+ModularMacintosh.swift in Sources */,
+				9A6714804DD49C9FEFCC011A /* MuseumData+Newton.swift in Sources */,
+				DA1EE87882231CAC544B866B /* MuseumData+PowerMac.swift in Sources */,
+				AA7A709339E29E9C5020878F /* MuseumData+iMac.swift in Sources */,
+				8ABE8B664A65720B37D75890 /* MuseumData+iPad.swift in Sources */,
+				E929FFF9451713CF4BF9F3D3 /* MuseumData+iPhone.swift in Sources */,
+				41F340773E8003A4C36581E3 /* MuseumData+iPod.swift in Sources */,
+				F42C23BD3789C188F03F2458 /* MuseumModels.swift in Sources */,
+				12A0B0E0BEF240DD10C08716 /* MuseumView.swift in Sources */,
 				7D5C4FB35E26C2C1C632EE95 /* PlayerViewModel.swift in Sources */,
+				0F73DF89A664C2F203778E66 /* PolaroidPhoto.swift in Sources */,
 				96545C3CDED166276548A2DB /* RetroMacCastApp.swift in Sources */,
 				937D40A664273D5810644774 /* RetroStyle.swift in Sources */,
+				A06ED2B05DC29EA6209C5FBB /* RootTabView.swift in Sources */,
 				B3694573A7070A839DBC2D77 /* SearchView.swift in Sources */,
 				5F2A42834BD6FA44DB42A021 /* SearchViewModel.swift in Sources */,
+				480F3D09939F139DE1DE28AA /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -264,12 +383,31 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				73725C8848460486A5A49CD9 /* ClassicScrollBar.swift in Sources */,
 				C2AC122CF234A63666D72A2B /* Corpus.swift in Sources */,
+				8DD4AEFAC1E7372C8A87650A /* CorpusUpdateManager.swift in Sources */,
+				F722D874D89DD8EEFEE24001 /* EmulatorView.swift in Sources */,
+				072BBF698EC86DB2A583AADF /* FinderWindowChrome.swift in Sources */,
+				C85A4F96E5B07186C6C06C94 /* MuseumData+CompactMacintosh.swift in Sources */,
+				2EA72166D2D0BE230A48F6F5 /* MuseumData+Laptops.swift in Sources */,
+				CB645E55B31A1DE031DA523B /* MuseumData+MacMiniStudio.swift in Sources */,
+				90BCAF0918C6DBE883456946 /* MuseumData+ModularMacintosh.swift in Sources */,
+				9312202D1ACAB66190C7335C /* MuseumData+Newton.swift in Sources */,
+				78E5AEAFFAE3FE36354EBE54 /* MuseumData+PowerMac.swift in Sources */,
+				28359E818D06C6E2216123EA /* MuseumData+iMac.swift in Sources */,
+				F09B84DE312FC77ED915FB35 /* MuseumData+iPad.swift in Sources */,
+				DDD4FE4FF0A33FA02F6EE3BE /* MuseumData+iPhone.swift in Sources */,
+				2DBFF66A59A57380C2ED446C /* MuseumData+iPod.swift in Sources */,
+				72C7CD8F71902AE9D169E8A8 /* MuseumModels.swift in Sources */,
+				3670BB266C51D234580201FA /* MuseumView.swift in Sources */,
 				4A2B7AC9D4344A008BFE762C /* PlayerViewModel.swift in Sources */,
+				7840DD4B6C6C824710A89FCA /* PolaroidPhoto.swift in Sources */,
 				3EB5864A6362E6E2335FEF72 /* RetroMacCastApp.swift in Sources */,
 				46AA4482C3411BE2BBEF2444 /* RetroStyle.swift in Sources */,
+				1534AB22F1CD6CB1CEB31983 /* RootTabView.swift in Sources */,
 				0BABEB5DDD3901B6A3D13BA7 /* SearchView.swift in Sources */,
 				F7E94CD04805399BD8945E30 /* SearchViewModel.swift in Sources */,
+				E02ECDA6BAB42E4ECFD1ACD9 /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -344,7 +482,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.retromaccast.mac;
 				PRODUCT_NAME = RetroMacCast;
@@ -362,7 +500,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Generated/Info-iOS.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = RetroMacCast;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -451,7 +589,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.retromaccast.mac;
 				PRODUCT_NAME = RetroMacCast;
@@ -469,7 +607,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Generated/Info-iOS.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = RetroMacCast;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

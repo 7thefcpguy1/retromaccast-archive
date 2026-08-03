@@ -46,6 +46,36 @@ public struct RMCDatabase {
             }
         }
 
+        migrator.registerMigration("createCollections") { db in
+            try db.create(table: "collections") { t in
+                t.autoIncrementedPrimaryKey("id")
+                t.column("slug", .text).notNull().unique()
+                t.column("title", .text).notNull()
+                t.column("collectionDescription", .text).notNull()
+                t.column("kind", .text).notNull()
+            }
+            try db.create(table: "collection_items") { t in
+                t.autoIncrementedPrimaryKey("id")
+                t.column("collectionId", .integer).notNull().indexed().references("collections", onDelete: .cascade)
+                t.column("episodeId", .integer).notNull().indexed().references("episodes", onDelete: .cascade)
+                t.column("segmentId", .integer).references("transcript_segments", onDelete: .setNull)
+                t.column("timestampMs", .integer)
+                t.column("blurb", .text).notNull()
+            }
+        }
+
+        migrator.registerMigration("addEpisodeClassifiedAt") { db in
+            try db.alter(table: "episodes") { t in
+                t.add(column: "classifiedAt", .text)
+            }
+        }
+
+        migrator.registerMigration("addCollectionSynthesizedParagraph") { db in
+            try db.alter(table: "collections") { t in
+                t.add(column: "synthesizedParagraph", .text)
+            }
+        }
+
         return migrator
     }
 }
