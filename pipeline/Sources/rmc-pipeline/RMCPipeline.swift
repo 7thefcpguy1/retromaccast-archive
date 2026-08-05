@@ -46,13 +46,28 @@ struct CrawlIndex: AsyncParsableCommand {
             let episodes = try await crawler.fetchMonthPage(year: year, month: month)
             monthsChecked += 1
             if !episodes.isEmpty {
-                try await database.dbQueue.write { db in
+                // INSERT OR IGNORE, not save() -- `ep` here is freshly built from the crawled
+                // page and only carries the fields the crawler actually knows (title, pubDate,
+                // showNotesHTML, ...). `save()` does a full-row upsert, so re-crawling a month
+                // it already knew about was overwriting every existing episode's
+                // transcriptText/transcriptStatus/classifiedAt back to their fresh-record
+                // defaults -- silently wiping all downstream pipeline progress on every rerun.
+                // `.ignore` makes this genuinely additive: a known episode id is left
+                // completely untouched, only truly new episodes get inserted.
+                let newCount = try await database.dbQueue.write { db -> Int in
+                    var count = 0
                     for ep in episodes {
-                        try ep.save(db)
+                        try ep.insert(db, onConflict: .ignore)
+                        if db.changesCount > 0 {
+                            count += 1
+                        }
                     }
+                    return count
                 }
-                totalFound += episodes.count
-                print("\(year)-\(String(format: "%02d", month)): +\(episodes.count) episodes (total \(totalFound))")
+                totalFound += newCount
+                if newCount > 0 {
+                    print("\(year)-\(String(format: "%02d", month)): +\(newCount) new episodes (total \(totalFound))")
+                }
             }
 
             month += 1

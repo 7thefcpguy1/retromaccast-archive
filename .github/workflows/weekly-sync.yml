@@ -66,7 +66,12 @@ jobs:
         run: .build/release/rmc-pipeline resolve-audio
 
       - name: Transcribe new episodes
-        run: .build/release/rmc-pipeline transcribe-batch --model models/ggml-small.en.bin
+        # --limit 10 is a safety bound, not the expected case -- a normal week has ~1 new
+        # episode. It exists so that if a large backlog ever piles up again for any reason,
+        # one run makes bounded, real progress (and still publishes a release) instead of
+        # risking another multi-hour run that the job timeout kills with nothing saved.
+        # Whatever's left over just gets picked up by the following week's run.
+        run: .build/release/rmc-pipeline transcribe-batch --model models/ggml-small.en.bin --limit 10
 
       - name: Record classify start time
         id: since
