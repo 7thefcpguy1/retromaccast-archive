@@ -6,6 +6,7 @@ struct RetroMacCastApp: App {
     // Owned here, not in RootTabView, so the same instance is shared between the main
     // window and the macOS-only Settings scene below.
     @StateObject private var updateManager = CorpusUpdateManager()
+    @StateObject private var appearanceManager = AppearanceManager()
 
     init() {
         setvbuf(stdout, nil, _IONBF, 0) // stdout is fully buffered when not a tty (and this
@@ -18,6 +19,7 @@ struct RetroMacCastApp: App {
         WindowGroup {
             RootTabView()
                 .environmentObject(updateManager)
+                .environmentObject(appearanceManager)
                 .task {
                     // Weekly-by-default: this only actually hits the network if 7+ days
                     // have passed since the last check, so a normal launch is a no-op.
@@ -29,6 +31,7 @@ struct RetroMacCastApp: App {
         Settings {
             SettingsView()
                 .environmentObject(updateManager)
+                .environmentObject(appearanceManager)
         }
         #endif
     }

@@ -6,6 +6,8 @@ import SwiftUI
 /// MuseumProductDetailView (the full page: photo, synopsis, real synthesized show-history
 /// paragraph, real featured moments).
 struct MuseumView: View {
+    @EnvironmentObject private var appearance: AppearanceManager
+
     // macOS only -- which category "folder" is currently open in a cascaded window on top
     // of the root one. iOS keeps real NavigationLink push instead (see iconGrid below).
     @State private var openCategory: MuseumCategory?
@@ -49,7 +51,7 @@ struct MuseumView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Retro.beige.ignoresSafeArea()
+                appearance.theme.color.ignoresSafeArea()
                 #if os(macOS)
                 // A decorative Finder-window panel floating on the app's beige "desktop" --
                 // not a real window, just the classic System 7 chrome drawn around the grid.
@@ -156,6 +158,8 @@ struct MuseumView: View {
 }
 
 struct MuseumCategoryView: View {
+    @EnvironmentObject private var appearance: AppearanceManager
+
     let category: MuseumCategory
     /// Set only for the macOS cascaded-window presentation, where this view is embedded
     /// directly inside MuseumView's ZStack rather than pushed -- wires the close box to
@@ -180,7 +184,7 @@ struct MuseumCategoryView: View {
         }
         #else
         ZStack {
-            Retro.beige.ignoresSafeArea()
+            appearance.theme.color.ignoresSafeArea()
             ScrollView {
                 productGrid
             }
@@ -190,7 +194,7 @@ struct MuseumCategoryView: View {
     }
 
     private var productGrid: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 16)], spacing: 20) {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 124), spacing: 16)], spacing: 20) {
             ForEach(category.products) { product in
                 #if os(macOS)
                 productCell(product, isSelected: selectedProduct?.id == product.id)
@@ -234,7 +238,13 @@ struct MuseumCategoryView: View {
                 .font(.chicago(11))
                 .foregroundStyle(isSelected ? .white : .black)
                 .multilineTextAlignment(.center)
-                .lineLimit(2)
+                // A handful of names enumerate 3-4 slash-separated model numbers (e.g.
+                // "PowerBook 500/1400/3400/G3 Series") that don't fit in 2 lines even at the
+                // widened cell below -- lineLimit(3) plus a scale-down floor means those spill
+                // to a third line or shrink slightly instead of ever silently truncating with
+                // an ellipsis (which hides which models are actually in the entry).
+                .lineLimit(3)
+                .minimumScaleFactor(0.8)
                 .padding(.horizontal, 4)
                 .padding(.vertical, 1)
                 .background(isSelected ? Color.black : Color.clear)
@@ -242,11 +252,12 @@ struct MuseumCategoryView: View {
                 .font(.system(size: 10))
                 .foregroundStyle(.secondary)
         }
-        .frame(width: 100)
+        .frame(width: 124)
     }
 }
 
 struct MuseumProductDetailView: View {
+    @EnvironmentObject private var appearance: AppearanceManager
     let product: MuseumProduct
     @State private var featuredMoments: [Corpus.CollectionItemResult] = []
     @State private var onShowParagraph: String?
@@ -258,7 +269,7 @@ struct MuseumProductDetailView: View {
 
     var body: some View {
         ZStack {
-            Retro.beige.ignoresSafeArea()
+            appearance.theme.color.ignoresSafeArea()
             #if os(macOS)
             // Same Finder-window chrome as every other window -- the product name is the
             // title bar text instead of a separate inline heading, and the close box goes
@@ -269,7 +280,8 @@ struct MuseumProductDetailView: View {
                 }
                 .frame(minHeight: 480, maxHeight: .infinity)
             }
-            .frame(maxWidth: 700, maxHeight: .infinity)
+            // Capped (see SearchView's matching comment), not .infinity.
+            .frame(maxWidth: 700, maxHeight: 780)
             .padding(24)
             #else
             ScrollView {
@@ -361,16 +373,32 @@ struct MuseumProductDetailView: View {
         }
     }
 
+    // Redesigned from a bare italic gray paragraph floating on the page -- nothing set it apart
+    // as commentary rather than filler text, and italic body copy at this length reads as
+    // muted/apologetic rather than inviting. Now: a warm tinted card (echoing Retro.beige, the
+    // app's own desktop-pattern color) with a quote glyph anchoring it as "what the show said"
+    // -- distinct from the plain-white synopsis above it -- set in the same warm brown as the
+    // header instead of desaturated `.secondary` gray, upright rather than italic.
     private var onShowSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("ON RETROMACCAST")
-                .font(.chicago(11))
-                .foregroundStyle(Retro.amberText)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 6) {
+                Image(systemName: "quote.opening")
+                    .font(.system(size: 11, weight: .semibold))
+                Text("ON RETROMACCAST")
+                    .font(.chicago(11))
+            }
+            .foregroundStyle(Retro.amberText)
+
             Text(onShowParagraph ?? Self.fallbackParagraph)
                 .font(.system(size: 14))
-                .italic()
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Retro.amberText.opacity(0.85))
+                .lineSpacing(5)
         }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Retro.beige.opacity(0.55))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Retro.cardBorder, lineWidth: 1))
     }
 
     @ViewBuilder
@@ -434,4 +462,5 @@ private struct MuseumMomentCard: View {
 
 #Preview {
     MuseumView()
+        .environmentObject(AppearanceManager())
 }

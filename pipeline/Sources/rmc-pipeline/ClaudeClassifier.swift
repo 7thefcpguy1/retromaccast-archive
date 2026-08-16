@@ -182,4 +182,121 @@ struct ClaudeClassifier {
         }
         throw ClaudeClassifierError.unexpectedResponseShape
     }
+
+    /// Mines a batch of episodes' already-extracted collection-item blurbs for standalone
+    /// "trivia" facts -- interesting, specific, surprising details about the show, not a
+    /// product-by-product summary the way `synthesize` is. Grounding reuses the same trick
+    /// `classify` uses for its `quote` field: rather than trust the model to report which
+    /// episode a fact came from (it's seen dozens of episodes in one prompt, easy to misattribute),
+    /// each fact instead returns a `sourceBlurb` that must be copied VERBATIM from one of the
+    /// blurbs given below, or omitted entirely for a genuine cross-episode aggregate fact. The
+    /// caller resolves `sourceBlurb` back to its `CollectionItem` via an exact-string lookup --
+    /// zero hallucinated episode attribution possible, since a mismatched string just fails to
+    /// resolve rather than silently pointing at the wrong episode.
+    func generateTrivia(episodes: [(title: String, pubDate: String, blurbs: [String])]) async throws -> [(factText: String, sourceBlurb: String?)] {
+        // No leading bullet/dash decoration on each blurb line -- an earlier version prefixed
+        // each with "- " and the model would copy that prefix into `sourceBlurb` as if it were
+        // part of the moment text, which then failed the caller's exact-string lookup (the
+        // stored `collection_items.blurb` has no such prefix). Plain indentation avoids giving
+        // the model any extra characters to mistake for part of the quotable span.
+        let episodesText = episodes
+            .filter { !$0.blurbs.isEmpty }
+            .map { episode in
+                let blurbLines = episode.blurbs.map { "    \($0)" }.joined(separator: "\n")
+                return "\(episode.title) (\(episode.pubDate)):\n\(blurbLines)"
+            }
+            .joined(separator: "\n\n")
+
+        let userContent = """
+        You are mining a batch of episode moments from the vintage-Mac podcast RetroMacCast \
+        (hosted by James and John) for standalone trivia facts -- the kind of surprising, \
+        specific, concrete detail a fan would enjoy reading on its own, out of context. This is \
+        NOT a product summary and NOT a recap -- avoid generic observations like "the hosts talk \
+        about Macs a lot" or "they discussed several vintage computers." Favor the odd, the \
+        funny, the specific number, the recurring bit, the surprising opinion.
+
+        Name "James" or "John" specifically when a moment makes clear who said or did something; \
+        otherwise say "the hosts." Never invent a detail the moments below don't support. Do not \
+        mention episode numbers or titles in the fact text itself.
+
+        For each fact, also record `sourceBlurb`: copy ONLY the moment's own text, verbatim and \
+        character-for-character, with no leading indentation and nothing added -- it must be an \
+        exact substring match against one of the moment lines below, not a paraphrase and not \
+        that line plus any extra characters. If a fact instead synthesizes a pattern across \
+        multiple moments below (e.g. a recurring joke or a running count) rather than coming \
+        from one specific moment, leave `sourceBlurb` out entirely -- don't force a single-moment \
+        citation onto a fact that's really an aggregate observation.
+
+        Produce between 5 and 8 facts from this batch.
+
+        Episode moments:
+        \(episodesText)
+        """
+
+        let requestBody: [String: Any] = [
+            "model": model,
+            "max_tokens": 2048,
+            "tools": [[
+                "name": "record_trivia",
+                "description": "Record the trivia facts mined from this batch of episode moments.",
+                "strict": true,
+                "input_schema": [
+                    "type": "object",
+                    "properties": [
+                        "facts": [
+                            "type": "array",
+                            "items": [
+                                "type": "object",
+                                "properties": [
+                                    "factText": [
+                                        "type": "string",
+                                        "description": "A single self-contained trivia fact, 1-2 sentences.",
+                                    ],
+                                    "sourceBlurb": [
+                                        "type": ["string", "null"],
+                                        "description": "The exact moment text this fact was drawn from, copied verbatim, or null for a cross-episode aggregate fact.",
+                                    ],
+                                ],
+                                "required": ["factText", "sourceBlurb"],
+                                "additionalProperties": false,
+                            ],
+                        ]
+                    ],
+                    "required": ["facts"],
+                    "additionalProperties": false,
+                ],
+            ]],
+            "tool_choice": ["type": "tool", "name": "record_trivia"],
+            "messages": [["role": "user", "content": userContent]],
+        ]
+
+        var request = URLRequest(url: URL(string: "https://api.anthropic.com/v1/messages")!)
+        request.httpMethod = "POST"
+        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        request.setValue("application/json", forHTTPHeaderField: "content-type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+            throw ClaudeClassifierError.badStatus(status, String(data: data, encoding: .utf8) ?? "")
+        }
+
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let content = json["content"] as? [[String: Any]] else {
+            throw ClaudeClassifierError.unexpectedResponseShape
+        }
+
+        for block in content where block["type"] as? String == "tool_use" {
+            guard let input = block["input"] as? [String: Any],
+                  let facts = input["facts"] as? [[String: Any]] else { continue }
+            return facts.compactMap { fact in
+                guard let factText = fact["factText"] as? String else { return nil }
+                let sourceBlurb = fact["sourceBlurb"] as? String
+                return (factText: factText, sourceBlurb: sourceBlurb)
+            }
+        }
+        return []
+    }
 }

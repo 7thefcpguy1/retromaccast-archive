@@ -95,13 +95,21 @@ private struct ClassicVerticalScrollBar: View {
                     .frame(width: geo.size.width, height: arrowSize)
 
                 ZStack(alignment: .top) {
-                    DitheredPattern()
-                        .onTapGesture { location in
-                            // Click above/below the thumb to page by a full viewport, like
-                            // clicking a classic Mac scrollbar track.
-                            let page = viewportHeight > 0 ? viewportHeight : 100
-                            scroll(to: offsetY + (location.y < thumbY ? -page : page))
-                        }
+                    if needsScrolling {
+                        DitheredPattern()
+                            .onTapGesture { location in
+                                // Click above/below the thumb to page by a full viewport, like
+                                // clicking a classic Mac scrollbar track.
+                                let page = viewportHeight > 0 ? viewportHeight : 100
+                                scroll(to: offsetY + (location.y < thumbY ? -page : page))
+                            }
+                    } else {
+                        // When there's nothing to scroll, a real System 7 track isn't the busy
+                        // checkerboard -- it goes flat and plain, no thumb at all, confirmed
+                        // against an authentic screenshot of a Finder window whose contents
+                        // fully fit (guidebookgallery.org).
+                        DisabledTrack()
+                    }
                     if needsScrolling {
                         ThumbTexture()
                             .overlay(Rectangle().stroke(ScrollAccent.dark, lineWidth: 2))
@@ -133,12 +141,14 @@ private struct ClassicVerticalScrollBar: View {
     }
 }
 
-/// The periwinkle/indigo tint classic Mac OS used for an active scrollbar's thumb and arrows --
-/// lighter and more pastel than earlier passes assumed. `light` is the fill/ridge tone, `dark`
-/// the edge/border tone.
+/// The color classic Mac OS used for an active scrollbar's thumb and arrows -- pixel-sampled
+/// directly from an authentic System 7.0 screenshot (the Software License dialog's scrollbar,
+/// guidebookgallery.org), not eyeballed: a true navy/sky-blue, not the purple/lavender an
+/// earlier pass here had guessed at. `light` (the fill/ridge tone) sampled as RGB(153,204,255);
+/// `dark` (the edge/border tone) sampled as RGB(0,51,102).
 private enum ScrollAccent {
-    static let light = Color(red: 0.64, green: 0.64, blue: 0.90)
-    static let dark = Color(red: 0.30, green: 0.27, blue: 0.62)
+    static let light = Color(red: 0.60, green: 0.80, blue: 1.00)
+    static let dark = Color(red: 0.0, green: 0.20, blue: 0.40)
 }
 
 /// The thumb's real construction, per a high-resolution close-up of a real System 7 scrollbar:
@@ -180,7 +190,11 @@ private struct RidgedStripes: View {
 /// Built as one filled Path (not one fill call per cell) so it stays cheap to draw.
 private struct DitheredPattern: View {
     var background: Color = .white
-    var tint: Color = .black.opacity(0.4)
+    // Pixel-sampled from the same authentic reference as `ScrollAccent`: the track's dither
+    // cells average out much darker than a 0.4-alpha tint produced (real samples landed as low
+    // as 0.33 gray, averaging close to a true 50% black/white checker) -- so the tint itself is
+    // solid, not translucent.
+    var tint: Color = .black
 
     var body: some View {
         Canvas { context, size in
@@ -208,6 +222,15 @@ private struct DitheredPattern: View {
     }
 }
 
+/// The track's look when the content already fits and there's nothing to scroll -- flat and
+/// plain rather than the checkerboard dither the active track uses, matching a real System 7
+/// Finder window whose items all fit (no thumb rendered there either).
+private struct DisabledTrack: View {
+    var body: some View {
+        Color(white: 0.78)
+    }
+}
+
 private struct ScrollArrowButton: View {
     let rotation: Angle
     let action: () -> Void
@@ -227,22 +250,27 @@ private struct ScrollArrowButton: View {
 }
 
 /// The arrow authored as a coarse pixel grid rather than a smooth vector `Shape` -- a real
-/// System 7 close-up shows the flared arrowhead's diagonal edges as a genuine staircase of
-/// dots, not an anti-aliased line, because it really was a small bitmap sprite. Edge cells
-/// (anything touching an "off" neighbor) get the darker outline tone; fully-surrounded cells
-/// get the lighter fill tone, matching the two-tone look in that close-up.
+/// System 7 close-up shows the diagonal edges as a genuine staircase of dots, not an
+/// anti-aliased line, because it really was a small bitmap sprite. Edge cells (anything
+/// touching an "off" neighbor) get the darker outline tone; fully-surrounded cells get the
+/// lighter fill tone, matching the two-tone look in that close-up.
+///
+/// Plain solid triangle, no flare and no stem below it -- confirmed against two authentic
+/// System 7.0 dialogs (the Open File dialog's file-list scrollbar, and the Software License
+/// dialog's text scrollbar), both of which show a simple wedge, not the flared/stemmed shape
+/// an earlier pass here had guessed at.
 private struct PixelArrowGlyph: View {
     private static let grid: [[Bool]] = [
+        [false, false, false, false, false, false, false, false, false],
+        [false, false, false, false, false, false, false, false, false],
         [false, false, false, false, true, false, false, false, false],
         [false, false, false, true, true, true, false, false, false],
         [false, false, true, true, true, true, true, false, false],
         [false, true, true, true, true, true, true, true, false],
         [true, true, true, true, true, true, true, true, true],
-        [false, false, false, true, true, true, false, false, false],
-        [false, false, false, true, true, true, false, false, false],
-        [false, false, false, true, true, true, false, false, false],
-        [false, false, false, true, true, true, false, false, false],
-        [false, false, false, true, true, true, false, false, false],
+        [false, false, false, false, false, false, false, false, false],
+        [false, false, false, false, false, false, false, false, false],
+        [false, false, false, false, false, false, false, false, false],
     ]
 
     var body: some View {

@@ -13,7 +13,7 @@ struct RMCPipeline: AsyncParsableCommand {
         commandName: "rmc-pipeline",
         subcommands: [
             CrawlIndex.self, ResolveAudio.self, TranscribeBatch.self, Classify.self,
-            ResetStaleSynthesis.self, Synthesize.self, ExportManifest.self, Stats.self,
+            ResetStaleSynthesis.self, Synthesize.self, GenerateTrivia.self, ExportManifest.self, Stats.self,
         ]
     )
 }
@@ -426,6 +426,116 @@ struct Synthesize: AsyncParsableCommand {
         }
 
         print("Synthesis complete. \(done) synthesized, \(skipped) skipped (no episodes), \(failed) failed.")
+    }
+}
+
+struct GenerateTrivia: AsyncParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "generate-trivia",
+        abstract: "Mine collection_items blurbs for standalone trivia facts about the show, in batches, via the Claude API."
+    )
+
+    @Option(name: .long) var db: String = defaultDBPath
+    @Option(name: .long) var batchSize: Int = 50
+    /// Only consider episodes classified since this ISO8601 timestamp -- for a cheap
+    /// incremental top-up after the initial full-corpus bootstrap run. Omit for the bootstrap.
+    @Option(name: .long) var since: String?
+    /// Caps how many batches actually run, for a cheap test call before committing to the
+    /// full (paid) pass. 0 = no limit.
+    @Option(name: .long) var limitBatches: Int = 0
+
+    func run() async throws {
+        let database = try RMCDatabase(path: db)
+        let classifier = try ClaudeClassifier()
+
+        // Only collection_items with a resolved segmentId -- these are the only ones with a
+        // real timestamp, so they're the only ones a trivia fact can actually jump playback to.
+        // Feeding the model blurbs with no anchor produced facts that looked identical in the
+        // UI but silently fell back to playing the episode from 0:00 instead of the moment,
+        // which defeats the point of the play button being there at all.
+        let episodes = try await database.dbQueue.read { db -> [Episode] in
+            var sql = """
+                SELECT DISTINCT episodes.* FROM episodes
+                JOIN collection_items ON collection_items.episodeId = episodes.id
+                WHERE collection_items.segmentId IS NOT NULL
+                """
+            var arguments: [DatabaseValueConvertible] = []
+            if let since {
+                sql += " AND episodes.classifiedAt >= ?"
+                arguments.append(since)
+            }
+            sql += " ORDER BY episodes.episodeNumber IS NULL, episodes.episodeNumber ASC"
+            return try Episode.fetchAll(db, sql: sql, arguments: StatementArguments(arguments))
+        }
+
+        guard !episodes.isEmpty else {
+            print("No episodes with collection items found\(since != nil ? " since \(since!)" : "") -- nothing to do.")
+            return
+        }
+
+        let batches = stride(from: 0, to: episodes.count, by: batchSize).map {
+            Array(episodes[$0..<min($0 + batchSize, episodes.count)])
+        }
+        let targets = limitBatches > 0 ? Array(batches.prefix(limitBatches)) : batches
+        print("Generating trivia from \(episodes.count) episodes across \(targets.count) batch(es) (of \(batches.count) total)...")
+
+        var totalFacts = 0
+        var unresolved = 0
+
+        for (index, batch) in targets.enumerated() {
+            let episodeBlurbs = try await database.dbQueue.read { db in
+                try batch.map { ep -> (title: String, pubDate: String, blurbs: [String]) in
+                    let blurbs = try String.fetchAll(db, sql: "SELECT blurb FROM collection_items WHERE episodeId = ? AND segmentId IS NOT NULL", arguments: [ep.id])
+                    return (title: ep.title, pubDate: ep.pubDate, blurbs: blurbs)
+                }
+            }
+
+            do {
+                let facts = try await classifier.generateTrivia(episodes: episodeBlurbs)
+
+                let batchUnresolved = try await database.dbQueue.write { db -> Int in
+                    var batchUnresolved = 0
+                    for fact in facts {
+                        // Resolve the verbatim sourceBlurb back to the exact collection_item it
+                        // came from -- this is the only source of episodeId/segmentId/timestampMs,
+                        // deliberately not trusted from the model directly (see ClaudeClassifier
+                        // .generateTrivia's doc comment). A nil sourceBlurb (aggregate fact) or one
+                        // that fails to match verbatim both fall through to an unlinked fact rather
+                        // than a guessed episode.
+                        var sourceItem: CollectionItem?
+                        if let rawSourceBlurb = fact.sourceBlurb {
+                            // Defensive trim -- the model occasionally echoes a little
+                            // surrounding whitespace even when told not to; a stray leading
+                            // space shouldn't be the difference between a linked and unlinked
+                            // fact when the actual content matched.
+                            let sourceBlurb = rawSourceBlurb.trimmingCharacters(in: .whitespacesAndNewlines)
+                            sourceItem = try CollectionItem.fetchOne(db, sql: "SELECT * FROM collection_items WHERE blurb = ? LIMIT 1", arguments: [sourceBlurb])
+                            if sourceItem == nil {
+                                batchUnresolved += 1
+                                print("  [batch \(index + 1)] sourceBlurb didn't match verbatim, storing unlinked: \"\(sourceBlurb.prefix(60))...\"")
+                            }
+                        }
+                        var triviaFact = TriviaFact(
+                            factText: fact.factText,
+                            episodeId: sourceItem?.episodeId,
+                            segmentId: sourceItem?.segmentId,
+                            timestampMs: sourceItem?.timestampMs,
+                            createdAt: ISO8601DateFormatter().string(from: Date())
+                        )
+                        try triviaFact.insert(db)
+                    }
+                    return batchUnresolved
+                }
+                unresolved += batchUnresolved
+                totalFacts += facts.count
+                print("[batch \(index + 1)/\(targets.count)] +\(facts.count) facts (\(batch.count) episodes)")
+            } catch {
+                print("[FAILED] batch \(index + 1): \(error)")
+            }
+            try await Task.sleep(nanoseconds: 200_000_000) // 200ms politeness delay
+        }
+
+        print("Trivia generation complete. \(totalFacts) facts recorded (\(unresolved) unlinked from a failed sourceBlurb match).")
     }
 }
 

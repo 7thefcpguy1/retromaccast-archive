@@ -55,6 +55,25 @@ final class Corpus {
         let contextEndMs: Int?
     }
 
+    struct TriviaResult: Identifiable {
+        let id: Int64
+        let factText: String
+        /// nil for a cross-episode aggregate fact that isn't tied to one moment -- the view
+        /// only shows a play button when this is set.
+        let episode: Episode?
+        let timestampMs: Int?
+        let contextStartMs: Int?
+        let contextEndMs: Int?
+    }
+
+    struct TriviaSelection {
+        let featured: TriviaResult
+        /// A small random slice of the rest of the catalog -- deliberately capped (not the
+        /// whole catalog) so it reads as a handful of fun facts at a glance, not a wall of
+        /// text to scroll through.
+        let more: [TriviaResult]
+    }
+
     private init() {
         let path: String
         if FileManager.default.fileExists(atPath: Self.downloadedDBURL.path) {
@@ -178,6 +197,60 @@ final class Corpus {
             print("daysSinceFirstEpisode error: \(error)")
             return nil
         }
+    }
+
+    /// Picks a fresh, genuinely random selection from the trivia catalog -- one featured fact
+    /// plus a small slice of others, capped at `moreCount` rather than the whole catalog so it
+    /// reads as a handful of fun facts at a glance instead of a long list to scroll through.
+    /// Called once when the Trivia tab first appears (so it's different each app launch) and
+    /// again on demand from its Refresh button -- unlike `onThisDay`'s stable-per-day rotation,
+    /// there's no reason for this one to be deterministic, so it's just a true shuffle.
+    func randomTriviaSelection(moreCount: Int = 6) -> TriviaSelection? {
+        do {
+            return try dbQueue.read { db in
+                let facts = try TriviaFact.fetchAll(db, sql: "SELECT * FROM trivia_facts")
+                guard !facts.isEmpty else { return nil }
+
+                let shuffled = facts.shuffled()
+                let picked = Array(shuffled.prefix(1 + moreCount))
+                let results = try picked.map { try Self.triviaResult(db, fact: $0) }
+
+                return TriviaSelection(featured: results[0], more: Array(results.dropFirst()))
+            }
+        } catch {
+            print("randomTriviaSelection error: \(error)")
+            return nil
+        }
+    }
+
+    private static func triviaResult(_ db: Database, fact: TriviaFact) throws -> TriviaResult {
+        guard let episodeId = fact.episodeId else {
+            return TriviaResult(id: fact.id ?? 0, factText: fact.factText, episode: nil, timestampMs: nil, contextStartMs: nil, contextEndMs: nil)
+        }
+
+        if let segmentId = fact.segmentId {
+            let segment = try TranscriptSegment.fetchOne(db, sql: "SELECT * FROM transcript_segments WHERE id = ?", arguments: [segmentId])
+            // segmentId set but no longer resolves -- its transcript_segment row was deleted
+            // out from under it (e.g. a later re-transcription/reclassification pass), even
+            // though episodeId's own onDelete: .setNull left episodeId itself intact. Rather
+            // than fall through to contextWindow(segment: nil) below and silently play from
+            // 0:00 as if that were always the plan, treat the whole fact as unlinked -- we can
+            // no longer verify what moment it was pointing at, so no play button is more honest
+            // than a wrong one.
+            guard let segment else {
+                return TriviaResult(id: fact.id ?? 0, factText: fact.factText, episode: nil, timestampMs: nil, contextStartMs: nil, contextEndMs: nil)
+            }
+            let episode = try Episode.fetchOne(db, sql: "SELECT * FROM episodes WHERE id = ?", arguments: [episodeId])
+            let (contextStartMs, contextEndMs) = try contextWindow(db, episodeId: episodeId, segment: segment)
+            return TriviaResult(id: fact.id ?? 0, factText: fact.factText, episode: episode, timestampMs: fact.timestampMs, contextStartMs: contextStartMs, contextEndMs: contextEndMs)
+        }
+
+        // No segmentId at all -- an aggregate-leaning fact that was always episode-only, never
+        // moment-specific. Playing from 0:00 is the right fallback here, same as elsewhere in
+        // the app (e.g. MuseumMomentCard) when a collection item has no segment.
+        let episode = try Episode.fetchOne(db, sql: "SELECT * FROM episodes WHERE id = ?", arguments: [episodeId])
+        let (contextStartMs, contextEndMs) = try contextWindow(db, episodeId: episodeId, segment: nil)
+        return TriviaResult(id: fact.id ?? 0, factText: fact.factText, episode: episode, timestampMs: fact.timestampMs, contextStartMs: contextStartMs, contextEndMs: contextEndMs)
     }
 
     private static func monthDay(_ pubDate: String) -> String {

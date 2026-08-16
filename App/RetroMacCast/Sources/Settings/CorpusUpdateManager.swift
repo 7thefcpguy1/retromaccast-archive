@@ -50,9 +50,17 @@ final class CorpusUpdateManager: ObservableObject {
 
         do {
             let url = URL(string: "https://api.github.com/repos/\(Self.owner)/\(Self.repo)/releases/latest")!
-            let (data, response) = try await URLSession.shared.data(from: url)
+            // GitHub's REST API 403s any request with no User-Agent header (confirmed via
+            // curl -- this was the actual cause of "Couldn't check for updates right now"
+            // rather than a real connectivity problem). `URLSession.shared.data(from:)` can't
+            // set headers, so this needs to be a proper URLRequest.
+            var request = URLRequest(url: url)
+            request.setValue("RetroMacCast-App", forHTTPHeaderField: "User-Agent")
+            request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+            let (data, response) = try await URLSession.shared.data(for: request)
             guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-                statusMessage = "Couldn't check for updates right now."
+                let code = (response as? HTTPURLResponse)?.statusCode
+                statusMessage = "Couldn't check for updates right now\(code.map { " (HTTP \($0))" } ?? "")."
                 return
             }
             let release = try JSONDecoder().decode(GitHubRelease.self, from: data)

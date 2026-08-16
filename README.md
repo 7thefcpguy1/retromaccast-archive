@@ -105,11 +105,11 @@ New episodes flow into the app automatically, without any manual per-episode dec
 ## Status (as of this writing)
 
 - **Pipeline**: complete and self-sustaining. 741 episodes transcribed, 0 failures, classified into 61 collections across 10 Museum categories; the weekly sync job keeps this current going forward without manual intervention.
-- **App**: Home (search + on-this-day), Museum (full System 7-chrome browsing experience), and Emulator (real classic Mac OS via Infinite Mac) tabs are built and verified on both iOS and macOS. Settings/Updates is built and verified on macOS; the weekly-sync GitHub Actions workflow is written but not yet run for real (see Open Items).
+- **App**: Home (search + on-this-day), Museum (full System 7-chrome browsing experience), and Emulator (real classic Mac OS via Infinite Mac) tabs are built and verified on both iOS and macOS. Settings/Updates is built and verified on macOS.
+- **Weekly sync**: live. Repo is [7thefcpguy1/retromaccast-archive](https://github.com/7thefcpguy1/retromaccast-archive) (public), `ANTHROPIC_API_KEY` is configured as a repo secret, a baseline release (`corpus-2026-08-03`, the current 741-episode corpus) has been published so future runs only ever process new episodes incrementally, and the workflow has been triggered manually to confirm it runs end-to-end.
 
 ## Open items
 
-- **The GitHub repo itself doesn't exist yet.** `CorpusUpdateManager.swift` has placeholder `owner`/`repo` values (`YOUR_GITHUB_USERNAME` / `retromaccast-archive`) that need real values once the repo is created; the `ANTHROPIC_API_KEY` secret then needs to be added in that repo's Settings → Secrets and variables → Actions before `weekly-sync.yml` can run for real.
 - **Reach out to James & John before going much further** — this is being built with the intent to offer it as the show's official app, not just a personal fan project, which raises the stakes on quality/reliability and makes their input on scope worth getting early rather than after the fact. Their own collection photos would also beat any stock/Wikimedia imagery for illustrating specific models.
 - Font licensing check before shipping ChicagoFLF broadly (its embedded license text states public domain, but worth a final look).
 - Trivia & clip-sharing (auto-generated trivia from transcript segments, shareable "quote card" deep links to a moment) is still just an idea, not started.

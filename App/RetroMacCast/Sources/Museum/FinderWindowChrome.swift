@@ -37,6 +37,12 @@ struct FinderWindowChrome<Content: View>: View {
         // the single biggest thing making this read as a modern panel instead of the real
         // thing.
         .overlay(Rectangle().stroke(Color.black, lineWidth: 1.5))
+        // Pinned to light regardless of the app-level scheme (which now flips to dark for the
+        // Space Gray desktop theme, for the native title bar's sake -- see RootTabView). This
+        // window's own content is always a white/cream card either way, so anything inside
+        // using semantic colors (.primary, .secondary) needs to keep resolving against a light
+        // background, not follow the desktop out into dark mode and turn illegible-on-white.
+        .preferredColorScheme(.light)
     }
 
     private var titleBar: some View {

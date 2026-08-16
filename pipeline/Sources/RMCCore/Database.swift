@@ -76,6 +76,21 @@ public struct RMCDatabase {
             }
         }
 
+        migrator.registerMigration("createTriviaFacts") { db in
+            try db.create(table: "trivia_facts") { t in
+                t.autoIncrementedPrimaryKey("id")
+                t.column("factText", .text).notNull()
+                // Nullable, not cascading -- unlike a collection_item (which only exists
+                // because of its episode), a trivia fact stands on its own even with no
+                // episode attached (a cross-episode aggregate fact), so losing the episode
+                // should null the link out rather than delete the fact.
+                t.column("episodeId", .integer).indexed().references("episodes", onDelete: .setNull)
+                t.column("segmentId", .integer).references("transcript_segments", onDelete: .setNull)
+                t.column("timestampMs", .integer)
+                t.column("createdAt", .text).notNull()
+            }
+        }
+
         return migrator
     }
 }

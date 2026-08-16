@@ -36,6 +36,14 @@ final class PlayerViewModel: ObservableObject {
         load(episodeId: item.episode.id, startMs: startMs, stopAtMs: item.contextEndMs)
     }
 
+    /// Only meaningful for a trivia fact that's actually linked to an episode -- callers
+    /// (TriviaHeroCard/TriviaCompactRow) only show a play control when `item.episode != nil`
+    /// in the first place, so a fact with no episode simply can't reach this.
+    func playInContext(_ item: Corpus.TriviaResult) {
+        guard let episode = item.episode, let startMs = item.contextStartMs else { return }
+        load(episodeId: episode.id, startMs: startMs, stopAtMs: item.contextEndMs)
+    }
+
     /// Plays a whole episode from the start -- for entry points like "On This Day" that
     /// surface a full episode rather than a specific transcript-matched moment.
     func playEpisode(_ episode: Episode) {
@@ -86,8 +94,22 @@ final class PlayerViewModel: ObservableObject {
 
         Task {
             do {
-                guard let urlString = try await crawler.resolveAudioURL(itemId: episodeId),
-                      let url = URL(string: urlString) else {
+                guard var urlString = try await crawler.resolveAudioURL(itemId: episodeId) else {
+                    guard loadToken == token else { return }
+                    errorMessage = "Couldn't find audio for this episode."
+                    isLoading = false
+                    return
+                }
+                // Libsyn's embed page hands back the media URL as plain http:// even though it
+                // immediately 301-redirects to https -- App Transport Security blocks that
+                // insecure request before AVURLAsset ever follows the redirect, which failed
+                // silently (duration.load() swallowed via `try?` below, no error surfaced) and
+                // looked like playback just never starting. Upgrading the scheme here avoids
+                // the insecure request entirely rather than relying on an ATS exception.
+                if urlString.hasPrefix("http://") {
+                    urlString = "https://" + urlString.dropFirst("http://".count)
+                }
+                guard let url = URL(string: urlString) else {
                     guard loadToken == token else { return }
                     errorMessage = "Couldn't find audio for this episode."
                     isLoading = false

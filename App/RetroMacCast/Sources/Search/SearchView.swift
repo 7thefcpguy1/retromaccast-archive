@@ -4,11 +4,12 @@ import SwiftUI
 struct SearchView: View {
     @StateObject private var viewModel = SearchViewModel()
     @EnvironmentObject private var player: PlayerViewModel
+    @EnvironmentObject private var appearance: AppearanceManager
 
     var body: some View {
         NavigationStack {
             ZStack {
-                Retro.beige
+                appearance.theme.color
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .ignoresSafeArea()
 
@@ -32,12 +33,15 @@ struct SearchView: View {
                 #if os(macOS)
                 // Same Finder-window chrome as Museum/Emulator -- a fixed min height (rather
                 // than sizing to content, like the Museum icon grid does) since this content
-                // scrolls and would otherwise collapse the window to zero height.
+                // scrolls and would otherwise collapse the window to zero height. Capped, not
+                // .infinity, on the outer frame below -- an unbounded max height stretched this
+                // into an oddly tall, mostly-empty window on a resized-tall app window instead
+                // of just leaving the desktop-colored backdrop visible around a normal-sized one.
                 FinderWindowChrome(title: "Home") {
                     homeContent
                         .frame(minHeight: 480, maxHeight: .infinity)
                 }
-                .frame(maxWidth: 640, maxHeight: .infinity)
+                .frame(maxWidth: 640, maxHeight: 780)
                 .padding(24)
                 #else
                 homeContent
@@ -174,9 +178,13 @@ struct OnThisDayView: View {
 
                 if !rest.isEmpty {
                     VStack(alignment: .leading, spacing: 0) {
-                        Text("ALSO FROM THIS DAY")
+                        // "THIS DAY" only when `rest` really is the same calendar date as the
+                        // hero (an exact match) -- the +/-3-day fallback window (the ~13% of
+                        // days with no exact match) can pull in episodes from other days in the
+                        // week, which "ALSO FROM THIS DAY" would misdescribe.
+                        Text(result.isExactMatch ? "ALSO FROM THIS DAY" : "ALSO FROM THIS WEEK")
                             .font(.chicago(10))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Retro.mutedText)
                             .padding(.bottom, 6)
                         ForEach(Array(rest.enumerated()), id: \.element.id) { index, episode in
                             if index > 0 { Divider() }
@@ -306,13 +314,17 @@ private struct OnThisDayCompactRow: View {
                 }
             } label: {
                 HStack {
+                    // Chicago, not plain system -- every other episode title in the app
+                    // (MuseumMomentCard, the hero cards) renders in Chicago; this row was the
+                    // one inconsistent spot.
                     Text(episode.title)
-                        .font(.system(size: 13))
+                        .font(.chicago(13))
+                        .foregroundStyle(.black)
                         .lineLimit(1)
                     Spacer()
                     Text(yearsAgoLabel(for: episode))
                         .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Retro.mutedText)
                 }
                 .contentShape(Rectangle())
             }
@@ -407,6 +419,7 @@ struct InlinePlayer: View {
                     } label: {
                         Image(systemName: player.isPlaying ? "pause.circle.fill" : "play.circle.fill")
                             .font(.system(size: 22))
+                            .foregroundStyle(Retro.amberText)
                     }
                     .buttonStyle(.plain)
 
@@ -439,7 +452,7 @@ struct InlinePlayer: View {
 
                     Text(timeLabel)
                         .font(.chicago(11))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Retro.mutedText)
                         .monospacedDigit()
                         .frame(minWidth: 84, alignment: .trailing)
                 }
@@ -457,4 +470,5 @@ struct InlinePlayer: View {
 
 #Preview {
     SearchView()
+        .environmentObject(AppearanceManager())
 }

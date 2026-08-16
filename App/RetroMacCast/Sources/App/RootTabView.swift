@@ -8,6 +8,7 @@ struct RootTabView: View {
     // Owned here rather than per-tab so all three tabs share one player -- a moment
     // played from any tab keeps its state if the user switches tabs.
     @StateObject private var player = PlayerViewModel()
+    @EnvironmentObject private var appearance: AppearanceManager
 
     var body: some View {
         TabView {
@@ -17,8 +18,11 @@ struct RootTabView: View {
             Tab("Museum", systemImage: "building.columns") {
                 MuseumView()
             }
-            Tab("Emulator", systemImage: "desktopcomputer") {
+            Tab("Emulators", systemImage: "desktopcomputer") {
                 EmulatorView()
+            }
+            Tab("Trivia", systemImage: "lightbulb") {
+                TriviaView()
             }
         }
         .environmentObject(player)
@@ -26,7 +30,11 @@ struct RootTabView: View {
         .navigationTitle("RetroMacCast") // set once, here, rather than per-tab -- each tab
         // hosts its own NavigationStack, and a per-tab .navigationTitle would override this
         // and change the window title when switching tabs, which is the exact quirk this fixes.
-        .preferredColorScheme(.light)
+        // Drives the native title bar's text/control color, not our own content -- see
+        // FinderWindowChrome's matching .preferredColorScheme(.light) override, which pins
+        // every actual window's content (always a white/cream card, period-authentic
+        // regardless of desktop theme) back to light no matter what this says.
+        .preferredColorScheme(appearance.theme.isDark ? .dark : .light)
         #if os(macOS)
         .frame(minWidth: 420, minHeight: 560)
         #endif
@@ -35,4 +43,5 @@ struct RootTabView: View {
 
 #Preview {
     RootTabView()
+        .environmentObject(AppearanceManager())
 }
