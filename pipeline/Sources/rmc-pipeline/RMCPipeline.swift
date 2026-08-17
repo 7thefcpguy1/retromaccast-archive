@@ -14,6 +14,7 @@ struct RMCPipeline: AsyncParsableCommand {
         subcommands: [
             CrawlIndex.self, ResolveAudio.self, TranscribeBatch.self, Classify.self,
             ResetStaleSynthesis.self, Synthesize.self, GenerateTrivia.self, ExportManifest.self, Stats.self,
+            SyncVideos.self,
         ]
     )
 }
@@ -558,6 +559,65 @@ struct GenerateTrivia: AsyncParsableCommand {
     }
 }
 
+struct SyncVideos: AsyncParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "sync-videos",
+        abstract: "Fetch the show's YouTube channel uploads via the YouTube Data API and upsert them into the corpus DB."
+    )
+
+    @Option(name: .long) var db: String = defaultDBPath
+    @Option(name: .long) var channelHandle: String = "@RetroMacCast"
+    /// Caps how many videos are actually processed (bounds YouTubeClient's pagination too,
+    /// not just the result), for a cheap test call. 0 = no limit.
+    @Option(name: .long) var limit: Int = 0
+
+    func run() async throws {
+        let database = try RMCDatabase(path: db)
+        let client = try YouTubeClient()
+
+        let uploadsPlaylistId = try await client.fetchUploadsPlaylistId(handle: channelHandle)
+        let items = try await client.fetchAllPlaylistItems(playlistId: uploadsPlaylistId, limit: limit)
+        print("Fetched \(items.count) videos from \(channelHandle)'s uploads playlist.")
+
+        let durations = try await client.fetchDurations(videoIds: items.map(\.videoId))
+
+        // episodeNumber -> episode id, loaded once rather than a query per video.
+        let episodesByNumber = try await database.dbQueue.read { db -> [Int: Int] in
+            let episodes = try Episode.fetchAll(db, sql: "SELECT * FROM episodes WHERE episodeNumber IS NOT NULL")
+            var map: [Int: Int] = [:]
+            for episode in episodes {
+                if let number = episode.episodeNumber { map[number] = episode.id }
+            }
+            return map
+        }
+
+        let now = ISO8601DateFormatter().string(from: Date())
+        let matched = try await database.dbQueue.write { db -> Int in
+            var matched = 0
+            for item in items {
+                let episodeNumber = YouTubeClient.extractEpisodeNumber(fromTitle: item.title)
+                let episodeId = episodeNumber.flatMap { episodesByNumber[$0] }
+                if episodeId != nil { matched += 1 }
+                let video = Video(
+                    id: item.videoId,
+                    title: item.title,
+                    publishedAt: item.publishedAt,
+                    thumbnailURL: item.thumbnailURL,
+                    durationSeconds: durations[item.videoId],
+                    episodeId: episodeId,
+                    syncedAt: now
+                )
+                // save() is update-else-insert against the primary key (the video id
+                // itself) -- re-running this command upserts in place, never duplicates.
+                try video.save(db)
+            }
+            return matched
+        }
+
+        print("Synced \(items.count) videos (\(matched) matched to an episode, \(items.count - matched) unlinked).")
+    }
+}
+
 struct ExportManifest: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "export-manifest",
@@ -569,6 +629,7 @@ struct ExportManifest: AsyncParsableCommand {
 
     private struct Manifest: Codable {
         let episodeCount: Int
+        let videoCount: Int
         let latestEpisodeId: Int?
         let latestEpisodeTitle: String?
         let latestEpisodePubDate: String?
@@ -577,14 +638,16 @@ struct ExportManifest: AsyncParsableCommand {
 
     func run() async throws {
         let database = try RMCDatabase(path: db)
-        let (count, latest) = try await database.dbQueue.read { db -> (Int, Episode?) in
+        let (count, latest, videoCount) = try await database.dbQueue.read { db -> (Int, Episode?, Int) in
             let count = try Episode.fetchCount(db)
             let latest = try Episode.order(sql: "pubDate DESC").fetchOne(db)
-            return (count, latest)
+            let videoCount = try Video.fetchCount(db)
+            return (count, latest, videoCount)
         }
 
         let manifest = Manifest(
             episodeCount: count,
+            videoCount: videoCount,
             latestEpisodeId: latest?.id,
             latestEpisodeTitle: latest?.title,
             latestEpisodePubDate: latest?.pubDate,

@@ -108,8 +108,9 @@ struct FinderWindowChrome<Content: View>: View {
 
 /// Draws the X inside the close box only while the mouse is actually held down on it --
 /// a real System 7 close box is a bare square until clicked, which is what gives the click
-/// its "gotcha" feedback.
-private struct CloseBoxButtonStyle: ButtonStyle {
+/// its "gotcha" feedback. Internal, not private -- also reused by QuickTimePlayerChrome.swift
+/// for its own close box, so the interaction can't diverge between the two window styles.
+struct CloseBoxButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .overlay {
@@ -122,8 +123,9 @@ private struct CloseBoxButtonStyle: ButtonStyle {
     }
 }
 
-/// A small X drawn inside the close box, classic Mac close-button style.
-private struct CloseBoxX: Shape {
+/// A small X drawn inside the close box, classic Mac close-button style. Internal, not
+/// private -- reused by QuickTimePlayerChrome.swift alongside CloseBoxButtonStyle above.
+struct CloseBoxX: Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()
         path.move(to: CGPoint(x: rect.minX, y: rect.minY))
@@ -161,8 +163,10 @@ struct CascadeGlyph: View {
     }
 }
 
-/// Thin alternating horizontal bands, the classic Mac OS title-bar texture.
-private struct PinstripeBackground: View {
+/// Thin alternating horizontal bands, the classic Mac OS title-bar texture. Internal, not
+/// private -- reused by QuickTimePlayerChrome.swift's own title bar (fills whatever size
+/// it's given, so it works unchanged at that component's different title-bar height).
+struct PinstripeBackground: View {
     var body: some View {
         Canvas { context, size in
             context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(.white))

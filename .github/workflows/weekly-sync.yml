@@ -56,7 +56,7 @@ jobs:
           if [ -f corpus/rmc.sqlite ]; then
             .build/release/rmc-pipeline export-manifest --output corpus/before-manifest.json
           else
-            echo '{"episodeCount": 0}' > corpus/before-manifest.json
+            echo '{"episodeCount": 0, "videoCount": 0}' > corpus/before-manifest.json
           fi
 
       - name: Crawl index (pick up newly published episodes)
@@ -90,21 +90,29 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: .build/release/rmc-pipeline synthesize
 
+      - name: Sync videos from YouTube
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+        run: .build/release/rmc-pipeline sync-videos
+
       - name: Export manifest
         run: .build/release/rmc-pipeline export-manifest
 
-      - name: Publish a release if the episode count changed
+      - name: Publish a release if the episode or video count changed
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          BEFORE=$(jq '.episodeCount' corpus/before-manifest.json)
-          AFTER=$(jq '.episodeCount' corpus/manifest.json)
-          echo "Episodes before: $BEFORE, after: $AFTER"
-          if [ "$BEFORE" = "$AFTER" ]; then
-            echo "No new episodes -- skipping release."
+          EP_BEFORE=$(jq '.episodeCount' corpus/before-manifest.json)
+          EP_AFTER=$(jq '.episodeCount' corpus/manifest.json)
+          VID_BEFORE=$(jq '.videoCount // 0' corpus/before-manifest.json)
+          VID_AFTER=$(jq '.videoCount // 0' corpus/manifest.json)
+          echo "Episodes before: $EP_BEFORE, after: $EP_AFTER"
+          echo "Videos before: $VID_BEFORE, after: $VID_AFTER"
+          if [ "$EP_BEFORE" = "$EP_AFTER" ] && [ "$VID_BEFORE" = "$VID_AFTER" ]; then
+            echo "No new episodes or videos -- skipping release."
             exit 0
           fi
           TAG="corpus-$(date -u +%Y-%m-%d)"
           gh release create "$TAG" corpus/rmc.sqlite corpus/manifest.json \
             --title "Corpus sync $(date -u +%Y-%m-%d)" \
-            --notes "Automated weekly sync -- $AFTER episodes (was $BEFORE)."
+            --notes "Automated weekly sync -- $EP_AFTER episodes (was $EP_BEFORE), $VID_AFTER videos (was $VID_BEFORE)."

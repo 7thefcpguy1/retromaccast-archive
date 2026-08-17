@@ -21,6 +21,9 @@ struct RootTabView: View {
             Tab("Emulators", systemImage: "desktopcomputer") {
                 EmulatorView()
             }
+            Tab("Videos", systemImage: "play.rectangle") {
+                VideosView()
+            }
             Tab("Trivia", systemImage: "lightbulb") {
                 TriviaView()
             }

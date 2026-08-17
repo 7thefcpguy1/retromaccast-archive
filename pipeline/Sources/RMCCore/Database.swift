@@ -91,6 +91,25 @@ public struct RMCDatabase {
             }
         }
 
+        migrator.registerMigration("createVideos") { db in
+            try db.create(table: "videos") { t in
+                // The YouTube video id itself as the primary key (not autoincrement) --
+                // a video has a stable external identity, so re-running sync-videos can
+                // just upsert against it via GRDB's save() instead of needing a separate
+                // dedup lookup, unlike trivia_facts' pure-append LLM output.
+                t.column("id", .text).primaryKey()
+                t.column("title", .text).notNull()
+                t.column("publishedAt", .text).notNull()
+                t.column("thumbnailURL", .text).notNull()
+                t.column("durationSeconds", .integer)
+                // Nullable, .setNull -- most videos won't regex-match an episode number
+                // (bonus footage, vintage ephemera, live streams), same shape as
+                // trivia_facts.episodeId.
+                t.column("episodeId", .integer).indexed().references("episodes", onDelete: .setNull)
+                t.column("syncedAt", .text).notNull()
+            }
+        }
+
         return migrator
     }
 }

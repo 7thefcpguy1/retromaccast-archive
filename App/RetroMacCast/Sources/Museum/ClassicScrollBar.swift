@@ -188,7 +188,9 @@ private struct RidgedStripes: View {
 /// both the gray track and the blue thumb/arrows, which turned out to share one dither engine
 /// just recolored, per a real System 7.5.3 window rendered in this app's own Emulator tab.
 /// Built as one filled Path (not one fill call per cell) so it stays cheap to draw.
-private struct DitheredPattern: View {
+/// Internal, not private -- also reused by VideosView.swift as the "static" loading/idle
+/// state for the retro video player, same visual idea as poolsuite.net's off-air screen.
+struct DitheredPattern: View {
     var background: Color = .white
     // Pixel-sampled from the same authentic reference as `ScrollAccent`: the track's dither
     // cells average out much darker than a 0.4-alpha tint produced (real samples landed as low

@@ -66,6 +66,17 @@ final class Corpus {
         let contextEndMs: Int?
     }
 
+    struct VideoResult: Identifiable {
+        let id: String // YouTube video id
+        let title: String
+        let publishedAt: String
+        let thumbnailURL: String
+        let durationSeconds: Int?
+        /// nil when the title didn't regex-match a known episode number -- the Videos tab
+        /// uses this to sort a video into "Bonus & Extras" instead of "Episode Recordings".
+        let episode: Episode?
+    }
+
     struct TriviaSelection {
         let featured: TriviaResult
         /// A small random slice of the rest of the catalog -- deliberately capped (not the
@@ -265,6 +276,33 @@ final class Corpus {
             }
         } catch {
             print("listCollections error: \(error)")
+            return []
+        }
+    }
+
+    /// All synced videos, newest first -- ~250 rows, same "just load the whole table" call
+    /// as listCollections()/randomTriviaSelection(), not worth paginating.
+    func listVideos() -> [VideoResult] {
+        do {
+            return try dbQueue.read { db in
+                let videos = try Video.fetchAll(db, sql: "SELECT * FROM videos ORDER BY publishedAt DESC")
+                return try videos.map { video -> VideoResult in
+                    var episode: Episode?
+                    if let episodeId = video.episodeId {
+                        episode = try Episode.fetchOne(db, sql: "SELECT * FROM episodes WHERE id = ?", arguments: [episodeId])
+                    }
+                    return VideoResult(
+                        id: video.id,
+                        title: video.title,
+                        publishedAt: video.publishedAt,
+                        thumbnailURL: video.thumbnailURL,
+                        durationSeconds: video.durationSeconds,
+                        episode: episode
+                    )
+                }
+            }
+        } catch {
+            print("listVideos error: \(error)")
             return []
         }
     }
