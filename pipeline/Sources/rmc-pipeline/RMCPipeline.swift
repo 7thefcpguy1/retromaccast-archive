@@ -41,9 +41,27 @@ struct CrawlIndex: AsyncParsableCommand {
         var month = startMonth
         var totalFound = 0
         var monthsChecked = 0
+        var monthsFailed: [String] = []
 
         while year < currentYear || (year == currentYear && month <= currentMonth) {
-            let episodes = try await crawler.fetchMonthPage(year: year, month: month)
+            // A single month's page failing (even after LibsynCrawler's own internal retries)
+            // used to crash this whole command outright -- confirmed in production, a timeout
+            // on just one month (out of 230+ walked from 2006 to now) took down the entire
+            // `crawl-index` run and, with it, every downstream weekly-sync step (resolve-audio,
+            // transcribe, classify, synthesize, sync-videos, the release) for months that would
+            // otherwise have succeeded fine. Catching per-month and continuing means a bad
+            // Libsyn day costs one missed month, not the whole week's sync.
+            let episodes: [Episode]
+            do {
+                episodes = try await crawler.fetchMonthPage(year: year, month: month)
+            } catch {
+                let label = "\(year)-\(String(format: "%02d", month))"
+                print("Warning: \(label) failed after retries (\(error.localizedDescription)) -- skipping, will retry next run.")
+                monthsFailed.append(label)
+                month += 1
+                if month > 12 { month = 1; year += 1 }
+                continue
+            }
             monthsChecked += 1
             if !episodes.isEmpty {
                 // INSERT OR IGNORE, not save() -- `ep` here is freshly built from the crawled
@@ -78,7 +96,8 @@ struct CrawlIndex: AsyncParsableCommand {
             try await Task.sleep(nanoseconds: 200_000_000) // 200ms politeness delay
         }
 
-        print("Done. Checked \(monthsChecked) months, indexed \(totalFound) episodes into \(db).")
+        let failureNote = monthsFailed.isEmpty ? "" : " (\(monthsFailed.count) months failed and will be retried next run: \(monthsFailed.joined(separator: ", ")))"
+        print("Done. Checked \(monthsChecked) months, indexed \(totalFound) episodes into \(db)\(failureNote).")
     }
 }
 
