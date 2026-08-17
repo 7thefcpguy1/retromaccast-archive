@@ -91,6 +91,15 @@ jobs:
         run: .build/release/rmc-pipeline synthesize
 
       - name: Sync videos from YouTube
+        # continue-on-error -- this step (and YouTubeClient's own network calls) now retry
+        # transient failures internally, but if the YouTube API is having a genuinely bad day
+        # and every retry is exhausted, a failure here shouldn't cost the whole week's episode
+        # sync: crawl-index/transcribe/classify/synthesize have already succeeded by this
+        # point, and export-manifest + the release step below still need to run regardless.
+        # A failed step here still shows red in the Actions history (so it's visible), it just
+        # doesn't fail the overall job -- video data simply doesn't advance that week and gets
+        # picked up on the next run, same self-healing story as a skipped crawl-index month.
+        continue-on-error: true
         env:
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
         run: .build/release/rmc-pipeline sync-videos

@@ -121,7 +121,9 @@ struct YouTubeClient {
     }
 
     private func get(_ url: URL) async throws -> [String: Any] {
-        let (data, response) = try await session.data(from: url)
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 30
+        let (data, response) = try await Self.fetchWithRetry(request, session: session)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
             let status = (response as? HTTPURLResponse)?.statusCode ?? -1
             throw YouTubeClientError.badStatus(status, String(data: data, encoding: .utf8) ?? "")
@@ -130,6 +132,41 @@ struct YouTubeClient {
             throw YouTubeClientError.unexpectedResponseShape
         }
         return json
+    }
+
+    /// Retries transient network failures with a short linear backoff -- same pattern (and
+    /// same rationale) as `LibsynCrawler.fetchWithRetry`: a single YouTube API timeout
+    /// crashing `sync-videos` outright would take down the rest of the weekly-sync job
+    /// (export-manifest, the release) right along with it, even though everything before it
+    /// -- crawl-index, transcribe, classify, synthesize -- had already succeeded. Only retries
+    /// errors that actually look transient (timeout, connection lost/reset, DNS hiccups, host
+    /// unreachable); a real 4xx/5xx from the API itself surfaces as `badStatus` after the
+    /// request succeeds, not as a thrown error here, so it isn't caught by this at all.
+    private static func fetchWithRetry(_ request: URLRequest, session: URLSession, maxAttempts: Int = 3) async throws -> (Data, URLResponse) {
+        var lastError: Error?
+        for attempt in 1...maxAttempts {
+            do {
+                return try await session.data(for: request)
+            } catch {
+                lastError = error
+                guard isTransient(error), attempt < maxAttempts else { throw error }
+                let backoffSeconds = Double(attempt) * 2 // 2s, then 4s
+                try? await Task.sleep(nanoseconds: UInt64(backoffSeconds * 1_000_000_000))
+            }
+        }
+        throw lastError ?? URLError(.unknown)
+    }
+
+    private static func isTransient(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        guard nsError.domain == NSURLErrorDomain else { return false }
+        switch nsError.code {
+        case NSURLErrorTimedOut, NSURLErrorNetworkConnectionLost, NSURLErrorNotConnectedToInternet,
+             NSURLErrorCannotFindHost, NSURLErrorCannotConnectToHost, NSURLErrorDNSLookupFailed:
+            return true
+        default:
+            return false
+        }
     }
 
     /// Foundation's `ISO8601DateFormatter` only parses dates, not durations -- YouTube
