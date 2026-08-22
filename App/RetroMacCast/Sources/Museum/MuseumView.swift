@@ -1,12 +1,34 @@
 import RMCCore
 import SwiftUI
 
+/// The cascade window isn't laid out yet at the moment a double-click fires, so there's no
+/// real frame to anchor against directly. It shares the parent window's measured size
+/// though, just shifted by the fixed cascade offset -- close enough over a window this size,
+/// for an animation this quick, to compute where the clicked icon sits relative to it
+/// without waiting a frame for the cascade window to render. File-scope, not a method on
+/// either view below -- both the Museum root (category cascade) and MuseumCategoryView
+/// (product cascade) need the identical math against their own icon grid and window frame.
+private func museumZoomAnchor(forIcon iconId: String, iconFrames: [String: CGRect], windowFrame: CGRect) -> UnitPoint {
+    guard let iconFrame = iconFrames[iconId], windowFrame.width > 0, windowFrame.height > 0 else { return .topLeading }
+    let cascadeOrigin = CGPoint(x: windowFrame.minX + 28, y: windowFrame.minY + 28)
+    return UnitPoint(
+        x: (iconFrame.midX - cascadeOrigin.x) / windowFrame.width,
+        y: (iconFrame.midY - cascadeOrigin.y) / windowFrame.height
+    )
+}
+
 /// Museum tab root: a list of product categories (Compact Macintosh, iMac, iPhone, ...).
 /// Tapping one pushes MuseumCategoryView (chronological model list), which pushes
 /// MuseumProductDetailView (the full page: photo, synopsis, real synthesized show-history
-/// paragraph, real featured moments).
+/// paragraph, real featured moments). Both steps -- root -> category and category -> product
+/// -- use the same classic Mac OS "zoom rectangles" cascade-open/close transition on macOS,
+/// not just the first one; that used to be where the effect quietly stopped, with the
+/// category -> product step instead falling through to a plain NavigationStack push (a
+/// horizontal slide, not a zoom), the one inconsistency in an otherwise fully cascaded
+/// window hierarchy.
 struct MuseumView: View {
     @EnvironmentObject private var appearance: AppearanceManager
+    @EnvironmentObject private var navigator: AppNavigator
 
     // macOS only -- which category "folder" is currently open in a cascaded window on top
     // of the root one. iOS keeps real NavigationLink push instead (see iconGrid below).
@@ -34,18 +56,19 @@ struct MuseumView: View {
         withAnimation(Self.zoomAnimation) { openCategory = nil }
     }
 
-    /// The cascade window isn't laid out yet at the moment a double-click fires, so there's
-    /// no real frame to anchor against directly. It shares the root window's measured size
-    /// though, just shifted by the fixed cascade offset -- close enough over a window this
-    /// size, for an animation this quick, to compute where the clicked icon sits relative
-    /// to it without waiting a frame for the cascade window to render.
-    private static func zoomAnchor(forIcon iconId: String, iconFrames: [String: CGRect], windowFrame: CGRect) -> UnitPoint {
-        guard let iconFrame = iconFrames[iconId], windowFrame.width > 0, windowFrame.height > 0 else { return .topLeading }
-        let cascadeOrigin = CGPoint(x: windowFrame.minX + 28, y: windowFrame.minY + 28)
-        return UnitPoint(
-            x: (iconFrame.midX - cascadeOrigin.x) / windowFrame.width,
-            y: (iconFrame.midY - cascadeOrigin.y) / windowFrame.height
-        )
+    /// Opens whichever category contains `navigator.pendingMuseumProductId`, if any --
+    /// doesn't clear the pending id itself, since MuseumCategoryView still needs to read it
+    /// to open the actual product once its own window exists. Called from both `.onAppear`
+    /// (the tab's very first mount, before this specific `openCategory` has ever "changed")
+    /// and `.onChange(of: navigator.pendingMuseumProductId)` (every later jump, while the
+    /// tab's already-mounted view sits alive in the background) -- `.onAppear` alone isn't
+    /// enough here, for the exact reason `SearchView.HomeHeaderView`'s doc comment already
+    /// covers: SwiftUI doesn't reliably re-fire it on a tab view that's already mounted.
+    private func openPendingCategoryIfNeeded() {
+        guard let productId = navigator.pendingMuseumProductId,
+              let category = museumCategories.first(where: { cat in cat.products.contains { $0.id == productId } })
+        else { return }
+        withAnimation(Self.zoomAnimation) { openCategory = category }
     }
 
     var body: some View {
@@ -97,6 +120,8 @@ struct MuseumView: View {
             }
             #if os(macOS)
             .coordinateSpace(.named(Self.zoomSpace))
+            .onAppear { openPendingCategoryIfNeeded() }
+            .onChange(of: navigator.pendingMuseumProductId) { _, _ in openPendingCategoryIfNeeded() }
             #endif
             .navigationTitle("Museum")
         }
@@ -117,7 +142,7 @@ struct MuseumView: View {
                     }
                     .onTapGesture(count: 2) {
                         selectedCategory = category
-                        zoomAnchor = Self.zoomAnchor(forIcon: category.id, iconFrames: iconFrames, windowFrame: rootWindowFrame)
+                        zoomAnchor = museumZoomAnchor(forIcon: category.id, iconFrames: iconFrames, windowFrame: rootWindowFrame)
                         withAnimation(Self.zoomAnimation) { openCategory = category }
                     }
                     .onTapGesture(count: 1) {
@@ -159,6 +184,7 @@ struct MuseumView: View {
 
 struct MuseumCategoryView: View {
     @EnvironmentObject private var appearance: AppearanceManager
+    @EnvironmentObject private var navigator: AppNavigator
 
     let category: MuseumCategory
     /// Set only for the macOS cascaded-window presentation, where this view is embedded
@@ -171,17 +197,65 @@ struct MuseumCategoryView: View {
     @State private var selectedProduct: MuseumProduct?
     @State private var openProduct: MuseumProduct?
 
+    // Same zoom-cascade machinery as MuseumView's own root -> category step (window frame,
+    // per-icon frames, a zoom anchor, a quick mechanical animation), scoped to its own
+    // coordinate space so a product zooms open from wherever its icon actually sits inside
+    // THIS category window, not the outer Museum root's grid.
+    @State private var windowFrame: CGRect = .zero
+    @State private var iconFrames: [String: CGRect] = [:]
+    @State private var zoomAnchor: UnitPoint = .topLeading
+    private static let zoomSpace = "museumCategoryZoomSpace"
+    private static let zoomAnimation = Animation.easeInOut(duration: 0.18)
+
+    private func closeProduct() {
+        selectedProduct = nil
+        guard openProduct != nil else { return }
+        withAnimation(Self.zoomAnimation) { openProduct = nil }
+    }
+
+    /// The second half of the Home "Featured Collection" jump -- MuseumView already opened
+    /// THIS category because it contains the pending product; this finishes the job by
+    /// opening the product itself and, unlike MuseumView's own step, actually clearing
+    /// `pendingMuseumProductId` now that it's been fully consumed.
+    private func openPendingProductIfNeeded() {
+        guard let productId = navigator.pendingMuseumProductId,
+              let product = category.products.first(where: { $0.id == productId })
+        else { return }
+        withAnimation(Self.zoomAnimation) { openProduct = product }
+        navigator.pendingMuseumProductId = nil
+    }
+
     var body: some View {
         #if os(macOS)
         // Same Finder-window chrome as the Museum root -- double-click a category "folder"
         // and you land in another Finder window full of icons, cascaded on top of the one
-        // you came from, not a plain system list or a full-screen push.
-        FinderWindowChrome(title: category.title, statusText: "\(category.products.count) models", isActive: true, onClose: onClose) {
-            productGrid
+        // you came from, not a plain system list or a full-screen push. `isActive` dims this
+        // window the same way the Museum root dims behind THIS window when it's open -- one
+        // consistent rule at every cascade depth, not just the first one.
+        ZStack {
+            FinderWindowChrome(title: category.title, statusText: "\(category.products.count) models", isActive: openProduct == nil, onClose: onClose) {
+                productGrid
+            }
+            .onGeometryChange(for: CGRect.self) { proxy in
+                proxy.frame(in: .named(Self.zoomSpace))
+            } action: { newValue in
+                windowFrame = newValue
+            }
+            .onTapGesture {
+                // Clicking this window while a product is open closes it, same "click away
+                // from the window" rule the Museum root uses for an open category.
+                closeProduct()
+            }
+
+            if let openProduct {
+                MuseumProductDetailView(product: openProduct, onClose: closeProduct)
+                    .offset(x: 28, y: 28)
+                    .transition(.scale(scale: 0.05, anchor: zoomAnchor).combined(with: .opacity))
+            }
         }
-        .onTapGesture {
-            selectedProduct = nil
-        }
+        .coordinateSpace(.named(Self.zoomSpace))
+        .onAppear { openPendingProductIfNeeded() }
+        .onChange(of: navigator.pendingMuseumProductId) { _, _ in openPendingProductIfNeeded() }
         #else
         ZStack {
             appearance.theme.color.ignoresSafeArea()
@@ -199,9 +273,15 @@ struct MuseumCategoryView: View {
                 #if os(macOS)
                 productCell(product, isSelected: selectedProduct?.id == product.id)
                     .contentShape(Rectangle())
+                    .onGeometryChange(for: CGRect.self) { proxy in
+                        proxy.frame(in: .named(Self.zoomSpace))
+                    } action: { newValue in
+                        iconFrames[product.id] = newValue
+                    }
                     .onTapGesture(count: 2) {
                         selectedProduct = product
-                        openProduct = product
+                        zoomAnchor = museumZoomAnchor(forIcon: product.id, iconFrames: iconFrames, windowFrame: windowFrame)
+                        withAnimation(Self.zoomAnimation) { openProduct = product }
                     }
                     .onTapGesture(count: 1) {
                         selectedProduct = product
@@ -217,11 +297,6 @@ struct MuseumCategoryView: View {
             }
         }
         .padding(20)
-        #if os(macOS)
-        .navigationDestination(item: $openProduct) { product in
-            MuseumProductDetailView(product: product)
-        }
-        #endif
     }
 
     private func productCell(_ product: MuseumProduct, isSelected: Bool) -> some View {
@@ -261,9 +336,12 @@ struct MuseumProductDetailView: View {
     let product: MuseumProduct
     @State private var featuredMoments: [Corpus.CollectionItemResult] = []
     @State private var onShowParagraph: String?
-    #if os(macOS)
-    @Environment(\.dismiss) private var dismiss
-    #endif
+    /// Set only for the macOS cascaded-window presentation (see MuseumCategoryView's own
+    /// `onClose` for the same pattern) -- wires the close box to shrink the cascade back
+    /// down to the icon it opened from, matching every other window in the Museum's
+    /// zoom-open/zoom-closed hierarchy. iOS always pushes via NavigationLink and relies on
+    /// the system nav bar's own back button instead, so it's nil there and unused.
+    var onClose: (() -> Void)? = nil
 
     private static let fallbackParagraph = "Not enough episodes have covered this one yet -- check back as the archive gets classified further."
 
@@ -272,9 +350,10 @@ struct MuseumProductDetailView: View {
             appearance.theme.color.ignoresSafeArea()
             #if os(macOS)
             // Same Finder-window chrome as every other window -- the product name is the
-            // title bar text instead of a separate inline heading, and the close box goes
-            // back rather than closing a cascade, since this is a real NavigationStack push.
-            FinderWindowChrome(title: product.name, onClose: { dismiss() }) {
+            // title bar text instead of a separate inline heading. The close box zooms the
+            // cascade shut via `onClose` now, not a NavigationStack pop -- this is always
+            // presented as a cascaded window over MuseumCategoryView on macOS, never pushed.
+            FinderWindowChrome(title: product.name, onClose: onClose) {
                 ClassicScrollView {
                     detailContent
                 }

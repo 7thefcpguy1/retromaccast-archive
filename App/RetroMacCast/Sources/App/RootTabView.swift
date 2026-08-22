@@ -8,27 +8,31 @@ struct RootTabView: View {
     // Owned here rather than per-tab so all three tabs share one player -- a moment
     // played from any tab keeps its state if the user switches tabs.
     @StateObject private var player = PlayerViewModel()
+    // Same reasoning -- owned at the root and shared, so Home can switch to the Museum tab
+    // and land on a specific product from its "Featured Collection" card.
+    @StateObject private var navigator = AppNavigator()
     @EnvironmentObject private var appearance: AppearanceManager
 
     var body: some View {
-        TabView {
-            Tab("Home", systemImage: "magnifyingglass") {
+        TabView(selection: $navigator.selectedTab) {
+            Tab("Home", systemImage: "magnifyingglass", value: AppNavigator.Tab.home) {
                 SearchView()
             }
-            Tab("Museum", systemImage: "building.columns") {
+            Tab("Museum", systemImage: "building.columns", value: AppNavigator.Tab.museum) {
                 MuseumView()
             }
-            Tab("Emulators", systemImage: "desktopcomputer") {
+            Tab("Emulators", systemImage: "desktopcomputer", value: AppNavigator.Tab.emulators) {
                 EmulatorView()
             }
-            Tab("Videos", systemImage: "play.rectangle") {
+            Tab("Videos", systemImage: "play.rectangle", value: AppNavigator.Tab.videos) {
                 VideosView()
             }
-            Tab("Trivia", systemImage: "lightbulb") {
+            Tab("Trivia", systemImage: "lightbulb", value: AppNavigator.Tab.trivia) {
                 TriviaView()
             }
         }
         .environmentObject(player)
+        .environmentObject(navigator)
         .tabViewStyle(.sidebarAdaptable)
         .navigationTitle("RetroMacCast") // set once, here, rather than per-tab -- each tab
         // hosts its own NavigationStack, and a per-tab .navigationTitle would override this

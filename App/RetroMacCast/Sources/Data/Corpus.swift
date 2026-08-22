@@ -85,6 +85,13 @@ final class Corpus {
         let more: [TriviaResult]
     }
 
+    struct HomeStats {
+        let episodeCount: Int
+        let videoCount: Int
+        let triviaFactCount: Int
+        let yearsRunning: Int
+    }
+
     private init() {
         let path: String
         if FileManager.default.fileExists(atPath: Self.downloadedDBURL.path) {
@@ -210,6 +217,51 @@ final class Corpus {
         }
     }
 
+    /// The small stat strip on the Home tab (episode/video/fact counts, years running) --
+    /// one cheap read of four `fetchCount`s plus the same earliest-pubDate lookup
+    /// `daysSinceFirstEpisode` already does, just expressed in whole years instead of days.
+    func homeStats(referenceDate: Date = Date()) -> HomeStats? {
+        do {
+            return try dbQueue.read { db in
+                let episodeCount = try Episode.fetchCount(db)
+                let videoCount = try Video.fetchCount(db)
+                let triviaFactCount = try TriviaFact.fetchCount(db)
+
+                var yearsRunning = 0
+                if let earliest = try String.fetchOne(db, sql: "SELECT MIN(pubDate) FROM episodes"), earliest.count == 10 {
+                    let formatter = DateFormatter()
+                    formatter.dateFormat = "yyyy-MM-dd"
+                    formatter.timeZone = TimeZone(identifier: "UTC")
+                    if let earliestDate = formatter.date(from: earliest) {
+                        var calendar = Calendar(identifier: .gregorian)
+                        calendar.timeZone = TimeZone(identifier: "UTC")!
+                        yearsRunning = calendar.dateComponents([.year], from: earliestDate, to: referenceDate).year ?? 0
+                    }
+                }
+
+                return HomeStats(episodeCount: episodeCount, videoCount: videoCount, triviaFactCount: triviaFactCount, yearsRunning: yearsRunning)
+            }
+        } catch {
+            print("homeStats error: \(error)")
+            return nil
+        }
+    }
+
+    /// The most recently aired episodes, newest first -- for Home's "Recently Added" strip.
+    /// Distinct from `onThisDay`: that's about a past date matching *today's* calendar date
+    /// (history), this is genuinely "what's new," which the history spotlight alone can't
+    /// answer since most days of the year have no on-this-day match at all.
+    func recentEpisodes(limit: Int = 5) -> [Episode] {
+        do {
+            return try dbQueue.read { db in
+                try Episode.fetchAll(db, sql: "SELECT * FROM episodes ORDER BY pubDate DESC LIMIT ?", arguments: [limit])
+            }
+        } catch {
+            print("recentEpisodes error: \(error)")
+            return []
+        }
+    }
+
     /// Picks a fresh, genuinely random selection from the trivia catalog -- one featured fact
     /// plus a small slice of others, capped at `moreCount` rather than the whole catalog so it
     /// reads as a handful of fun facts at a glance instead of a long list to scroll through.
@@ -267,6 +319,35 @@ final class Corpus {
     private static func monthDay(_ pubDate: String) -> String {
         guard pubDate.count == 10 else { return "" }
         return String(pubDate.dropFirst(5).prefix(5))
+    }
+
+    /// One random collection for Home's "Featured Collection" card -- restricted to
+    /// collections that actually have a synthesized paragraph (all 61 do as of this writing,
+    /// but a newly-added collection before the next `synthesize` pass wouldn't), same
+    /// "prefer real content over a bare stub" rule `OnThisDayView`'s hero-episode selection
+    /// already follows.
+    /// Restricted to `kind = 'product_timeline'` -- a `recurring_segment` collection (e.g.
+    /// "eBay Finds") has no corresponding `MuseumProduct.collectionSlug` anywhere in
+    /// `museumCategories`, so it has nowhere for the Home card's tap-through to actually
+    /// land. Museum only ever shows physical products in the first place, so scoping this
+    /// card the same way is the right call thematically too, not just a navigation
+    /// workaround.
+    func randomFeaturedCollection() -> EpisodeCollection? {
+        do {
+            return try dbQueue.read { db in
+                let candidates = try EpisodeCollection.fetchAll(
+                    db, sql: """
+                    SELECT * FROM collections
+                    WHERE kind = 'product_timeline'
+                      AND synthesizedParagraph IS NOT NULL AND length(synthesizedParagraph) > 0
+                    """
+                )
+                return candidates.randomElement()
+            }
+        } catch {
+            print("randomFeaturedCollection error: \(error)")
+            return nil
+        }
     }
 
     func listCollections() -> [EpisodeCollection] {

@@ -124,6 +124,21 @@ private struct VideoJukeboxView: View {
     private var availableYears: [String] {
         videosByYear.keys.sorted(by: >)
     }
+    private static let monthNames = [
+        "", "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December",
+    ]
+
+    /// "Month YYYY" from the same raw ISO8601 `publishedAt` string `videosByYear` already
+    /// slices for its year -- same reasoning: the format is fixed and known, so a couple of
+    /// character-range reads are enough without reaching for DateFormatter/Calendar.
+    private func monthYearLabel(for publishedAt: String) -> String {
+        guard publishedAt.count >= 7 else { return "" }
+        let year = publishedAt.prefix(4)
+        guard let monthIndex = Int(publishedAt.dropFirst(5).prefix(2)), (1...12).contains(monthIndex) else { return "" }
+        return "\(Self.monthNames[monthIndex]) \(year)"
+    }
+
     private var videosForSelectedYear: [Corpus.VideoResult] {
         guard let selectedYear else { return [] }
         return videosByYear[selectedYear] ?? []
@@ -353,7 +368,7 @@ private struct VideoJukeboxView: View {
                     if !episodeVideos.isEmpty {
                         dropdownSectionHeader("EPISODE RECORDINGS")
                         ForEach(episodeVideos) { video in
-                            dropdownRow(title: video.title, key: video.id) {
+                            dropdownRow(title: "\(video.title) — \(monthYearLabel(for: video.publishedAt))", key: video.id) {
                                 selectedVideoId = video.id
                                 videoMenuOpen = false
                             }
@@ -362,7 +377,7 @@ private struct VideoJukeboxView: View {
                     if !bonusVideos.isEmpty {
                         dropdownSectionHeader("BONUS & EXTRAS")
                         ForEach(bonusVideos) { video in
-                            dropdownRow(title: video.title, key: video.id) {
+                            dropdownRow(title: "\(video.title) — \(monthYearLabel(for: video.publishedAt))", key: video.id) {
                                 selectedVideoId = video.id
                                 videoMenuOpen = false
                             }

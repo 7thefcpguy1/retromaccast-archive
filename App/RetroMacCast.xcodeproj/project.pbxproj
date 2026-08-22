@@ -10,6 +10,7 @@
 		06D9DE7267DBCB64E653B50D /* DesktopTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = DED53650BB89C212752BD7F6 /* DesktopTheme.swift */; };
 		072BBF698EC86DB2A583AADF /* FinderWindowChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE49C27B5192FA95F3587724 /* FinderWindowChrome.swift */; };
 		0BABEB5DDD3901B6A3D13BA7 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0FF236AF09CA4446AC9448 /* SearchView.swift */; };
+		0E7B9CA54D8093D00BC73F40 /* AppNavigator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74262E30667C2CAFAAFA08E8 /* AppNavigator.swift */; };
 		0F73DF89A664C2F203778E66 /* PolaroidPhoto.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDF880444B5322136776AC25 /* PolaroidPhoto.swift */; };
 		11899DCD109CBA7B7AA26CFD /* RMCCore in Frameworks */ = {isa = PBXBuildFile; productRef = 1CB0F2EAC0628A1DF7C02692 /* RMCCore */; };
 		12A0B0E0BEF240DD10C08716 /* MuseumView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D2E23B31C6E5A4A49A4B189 /* MuseumView.swift */; };
@@ -36,6 +37,7 @@
 		56FE2500CF7F1369B4B3E0B4 /* VideosView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DCEE9E02B2231A85C26DD4F /* VideosView.swift */; };
 		57C2D46D2E6C13213A5F6B31 /* MuseumData+CompactMacintosh.swift in Sources */ = {isa = PBXBuildFile; fileRef = C68B1CA6C86A4205CF451D59 /* MuseumData+CompactMacintosh.swift */; };
 		5F2A42834BD6FA44DB42A021 /* SearchViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8B324DF879F3C9673025E84 /* SearchViewModel.swift */; };
+		5F4DD1F7F3B2F2092B286BA5 /* AppNavigator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74262E30667C2CAFAAFA08E8 /* AppNavigator.swift */; };
 		62FDD548F241281F8045D7F7 /* MuseumData+MacMiniStudio.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83998AA0DFEB39381162C01 /* MuseumData+MacMiniStudio.swift */; };
 		68EF56652525EE302202EA81 /* YouTubePlayerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3ABAD308F4B4DB7513CBADA /* YouTubePlayerModel.swift */; };
 		6C62201F61E4948D94EC96DC /* AppearanceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DFCB9AFAED78AFC47FA166F /* AppearanceManager.swift */; };
@@ -93,6 +95,7 @@
 		6121B42C402400EB9DF586A0 /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
 		64175BBFF7709A80C5033103 /* MuseumData+ModularMacintosh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MuseumData+ModularMacintosh.swift"; sourceTree = "<group>"; };
 		6E09EBB2ED6813A7ABC689F0 /* pipeline */ = {isa = PBXFileReference; lastKnownFileType = folder; name = pipeline; path = ../pipeline; sourceTree = SOURCE_ROOT; };
+		74262E30667C2CAFAAFA08E8 /* AppNavigator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppNavigator.swift; sourceTree = "<group>"; };
 		79B3A201D8EC52A81373A719 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		7A99CCC41D7AC4B8F75562F3 /* EmulatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmulatorView.swift; sourceTree = "<group>"; };
 		7D2E23B31C6E5A4A49A4B189 /* MuseumView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuseumView.swift; sourceTree = "<group>"; };
@@ -142,6 +145,7 @@
 		0A0017D61E8F01B99162ED28 /* App */ = {
 			isa = PBXGroup;
 			children = (
+				74262E30667C2CAFAAFA08E8 /* AppNavigator.swift */,
 				E488D0C57FE63F183ECA87CD /* RetroMacCastApp.swift */,
 				6121B42C402400EB9DF586A0 /* RootTabView.swift */,
 			);
@@ -391,6 +395,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0E7B9CA54D8093D00BC73F40 /* AppNavigator.swift in Sources */,
 				27767FCDF9D5CA4046091741 /* AppearanceManager.swift in Sources */,
 				2127E417C3B1F31431E0DC93 /* ClassicScrollBar.swift in Sources */,
 				3E3BED2503DF798724EA383B /* Corpus.swift in Sources */,
@@ -429,6 +434,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5F4DD1F7F3B2F2092B286BA5 /* AppNavigator.swift in Sources */,
 				6C62201F61E4948D94EC96DC /* AppearanceManager.swift in Sources */,
 				73725C8848460486A5A49CD9 /* ClassicScrollBar.swift in Sources */,
 				C2AC122CF234A63666D72A2B /* Corpus.swift in Sources */,
