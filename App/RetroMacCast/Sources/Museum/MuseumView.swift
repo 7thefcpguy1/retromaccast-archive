@@ -100,8 +100,18 @@ struct MuseumView: View {
                 if let openCategory {
                     // Cascaded on top and offset, like double-clicking a folder in real
                     // Finder -- the parent window stays put (now dimmed/inactive) behind it.
+                    //
+                    // No .frame(maxWidth: 640) here anymore -- MuseumCategoryView can now
+                    // itself nest a nested MuseumProductDetailView cascade, which wants up to
+                    // 700pt for itself. Capping the WHOLE subtree at 640 from out here forced
+                    // that wider product window (and, visibly, its category-window sibling
+                    // too) into a losing width negotiation inside one ZStack, which is what
+                    // produced the collapsed/sliver rendering. MuseumCategoryView now sets its
+                    // own 640 cap internally, on just its own FinderWindowChrome, the same way
+                    // MuseumProductDetailView already governs its own 700 -- each window
+                    // manages its own width instead of one constraint trying to cover a
+                    // subtree with two different natural sizes.
                     MuseumCategoryView(category: openCategory, onClose: closeCategory)
-                        .frame(maxWidth: 640)
                         .padding(24)
                         .offset(x: 28, y: 28)
                         // Classic Mac OS "zoom rectangles" close/open effect: the window
@@ -236,6 +246,10 @@ struct MuseumCategoryView: View {
             FinderWindowChrome(title: category.title, statusText: "\(category.products.count) models", isActive: openProduct == nil, onClose: onClose) {
                 productGrid
             }
+            // This window's own width cap, not an external one applied to the whole
+            // MuseumCategoryView subtree -- see MuseumView's matching comment on why that
+            // used to conflict with a nested MuseumProductDetailView wanting up to 700pt.
+            .frame(maxWidth: 640)
             .onGeometryChange(for: CGRect.self) { proxy in
                 proxy.frame(in: .named(Self.zoomSpace))
             } action: { newValue in
