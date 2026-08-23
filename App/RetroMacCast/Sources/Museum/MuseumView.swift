@@ -119,6 +119,15 @@ struct MuseumView: View {
                         // it cascades from (see zoomAnchor(forIcon:)), rather than a fixed
                         // corner.
                         .transition(.scale(scale: 0.05, anchor: zoomAnchor).combined(with: .opacity))
+                        // Pins this view on top of the root window for the FULL duration of
+                        // both the open AND close animation, not just steady state -- without
+                        // an explicit zIndex, SwiftUI's default declaration-order stacking can
+                        // waver mid-transition (confirmed: reported as "closing has no
+                        // animation" and, one level deeper, "briefly appears behind the
+                        // underlying window" -- both are the same z-order issue, just more or
+                        // less visually obvious depending on how much of the departing window
+                        // is still on screen when it flips behind its sibling).
+                        .zIndex(1)
                 }
                 #else
                 // No fake title bar on iOS -- the real nav bar already reads "Museum" on a
@@ -265,6 +274,11 @@ struct MuseumCategoryView: View {
                 MuseumProductDetailView(product: openProduct, onClose: closeProduct)
                     .offset(x: 28, y: 28)
                     .transition(.scale(scale: 0.05, anchor: zoomAnchor).combined(with: .opacity))
+                    // Same fix, same reasoning as MuseumView's matching zIndex on its own
+                    // category overlay -- keeps this window pinned on top of its category
+                    // sibling for the whole open/close animation instead of the two
+                    // occasionally trading places mid-transition.
+                    .zIndex(1)
             }
         }
         .coordinateSpace(.named(Self.zoomSpace))
@@ -373,8 +387,14 @@ struct MuseumProductDetailView: View {
                 }
                 .frame(minHeight: 480, maxHeight: .infinity)
             }
-            // Capped (see SearchView's matching comment), not .infinity.
-            .frame(maxWidth: 700, maxHeight: 780)
+            // Capped (see SearchView's matching comment), not .infinity. 780 -> 600: this
+            // window is cascaded two levels deep now (root -> category -> product, +28pt
+            // offset at each step), not just pushed full-screen the way it used to be before
+            // the category -> product zoom animation was added -- reported extending off the
+            // bottom of the screen at the old, taller cap on ordinary window sizes. Content
+            // that doesn't fit still scrolls fine via the ClassicScrollView above; nothing is
+            // hidden, the window is just shorter.
+            .frame(maxWidth: 700, maxHeight: 600)
             .padding(24)
             #else
             ScrollView {
