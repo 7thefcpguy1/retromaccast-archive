@@ -2,6 +2,14 @@ import Foundation
 import GRDB
 import RMCCore
 
+extension Notification.Name {
+    /// Posted by `Corpus.reloadFromDisk()` once `Corpus.shared` has been reassigned to a
+    /// freshly-downloaded database -- see that method's doc comment for why this exists
+    /// (views that cache their own query result in `@State`, loaded once, need a way to know
+    /// to refresh rather than only ever loading once per app launch).
+    static let corpusDidReload = Notification.Name("corpusDidReload")
+}
+
 enum SearchSortOrder: String, CaseIterable, Identifiable {
     case relevance = "Relevance"
     case date = "Date"
@@ -111,9 +119,19 @@ final class Corpus {
     }
 
     /// Called after `CorpusUpdateManager` finishes downloading and validating a newer
-    /// database.
+    /// database. Posts `.corpusDidReload` afterward -- `Corpus.shared` being reassigned is
+    /// enough on its own for any *fresh* `Corpus.shared.foo()` call to pick up the new data,
+    /// but several tabs (VideosView confirmed; likely others) cache their own query result in
+    /// `@State`, loaded once via an `.onAppear` guarded by "if empty" so a persistent tab
+    /// doesn't needlessly re-query every time it's revisited. That guard means a tab that was
+    /// already visited (and got back e.g. zero videos, before this corpus had any) never
+    /// re-queries again on its own -- confirmed live: the Videos tab's Year menu stayed blank
+    /// after a real "Check Now" update actually landed 253 videos, because VideosView had
+    /// already cached its own empty result from before the update. Broadcasting this lets
+    /// those views react and refresh instead of only ever loading once per app launch.
     static func reloadFromDisk() {
         shared = Corpus()
+        NotificationCenter.default.post(name: .corpusDidReload, object: nil)
     }
 
     func search(_ query: String, sortBy: SearchSortOrder = .relevance) -> [SearchResult] {

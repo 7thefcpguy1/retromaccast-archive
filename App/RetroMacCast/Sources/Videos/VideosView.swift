@@ -173,6 +173,15 @@ private struct VideoJukeboxView: View {
                 videos = Corpus.shared.listVideos()
             }
         }
+        // Unconditional refresh (not "if empty" -- that guard is exactly what left this
+        // stale) whenever the corpus is swapped for a freshly-downloaded one. See
+        // Corpus.reloadFromDisk()'s doc comment: confirmed live, a real "Check Now" update
+        // that added video data for the first time didn't reach an already-visited Videos
+        // tab without this, since its `videos` array had already cached an empty result from
+        // before the update.
+        .onReceive(NotificationCenter.default.publisher(for: .corpusDidReload)) { _ in
+            videos = Corpus.shared.listVideos()
+        }
         .onDisappear {
             // YouTubePlayerModel's script-message-handler registration creates a reference
             // cycle that deinit alone can never break (see its teardown() doc comment) --
