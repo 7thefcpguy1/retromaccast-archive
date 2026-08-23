@@ -47,11 +47,19 @@ struct FinderWindowChrome<Content: View>: View {
 
     private var titleBar: some View {
         ZStack {
-            if isActive {
-                PinstripeBackground()
-            } else {
-                Color.white
-            }
+            // Both layers always present, cross-fading via opacity -- not an `if/else`
+            // swapping which one exists. `isActive` here is a derived value (e.g.
+            // `openProduct == nil` in the Museum cascade) that flips as a side effect of
+            // some OTHER state change already wrapped in `withAnimation` elsewhere (closing
+            // a cascaded window). An `if/else` conditional-content swap doesn't pick up that
+            // ambient animation at all -- SwiftUI just swaps the two branches instantly,
+            // which read as the title bar flickering/snapping mid-transition while the
+            // window on top of it was still visibly animating. A plain `.opacity()` change,
+            // by contrast, *is* an animatable property, so it smoothly interpolates along
+            // with whatever animation is already in effect when `isActive` changes.
+            Color.white
+            PinstripeBackground()
+                .opacity(isActive ? 1 : 0)
             HStack(spacing: 0) {
                 closeBox
                     .padding(.leading, 8)
