@@ -18,6 +18,9 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>Created by Bill Davis
+for James and John</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 </dict>
