@@ -1,0 +1,65 @@
+name: Backfill Museum Segment Matching
+
+# One-off backfill for the tolerant transcript-segment matching added to `classify` --
+# re-classifies only the episodes that currently have at least one collection_item with no
+# resolved segmentId (clearing that episode's items first), so Museum's "jump to moment"
+# playback stops silently falling back to 0:00 for those. Doesn't touch already-resolved
+# episodes, and doesn't need whisper-cpp/transcription at all -- every affected episode is
+# already transcribed, this only re-runs classification against the existing transcript.
+# Manual-only (no schedule) -- meant to be run once, not on a recurring basis.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write # needed to create a Release and upload the updated corpus
+
+jobs:
+  backfill:
+    runs-on: macos-latest
+    timeout-minutes: 180
+    defaults:
+      run:
+        working-directory: pipeline
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build pipeline
+        run: swift build -c release
+
+      - name: Download latest published corpus
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p corpus
+          gh release download --pattern 'rmc.sqlite' --dir corpus --clobber
+
+      - name: Record backfill start time
+        id: since
+        run: echo "timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+      - name: Re-classify episodes with an unresolved segment
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: .build/release/rmc-pipeline classify --only-unresolved
+
+      - name: Reset synthesis for collections touched by the backfill
+        run: .build/release/rmc-pipeline reset-stale-synthesis --since "${{ steps.since.outputs.timestamp }}"
+
+      - name: Re-synthesize touched collections
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: .build/release/rmc-pipeline synthesize
+
+      - name: Export manifest
+        run: .build/release/rmc-pipeline export-manifest
+
+      - name: Publish updated corpus as a release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="corpus-$(date -u +%Y-%m-%d)-museum-backfill"
+          EP_COUNT=$(jq '.episodeCount' corpus/manifest.json)
+          gh release create "$TAG" corpus/rmc.sqlite corpus/manifest.json \
+            --title "Museum segment backfill $(date -u +%Y-%m-%d)" \
+            --notes "One-off backfill: re-classified episodes with an unresolved Museum segment match. $EP_COUNT episodes total."
