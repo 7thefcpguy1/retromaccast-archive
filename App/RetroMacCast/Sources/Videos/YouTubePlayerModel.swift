@@ -70,7 +70,9 @@ final class YouTubePlayerModel: NSObject, ObservableObject {
         isPlaying = false
         currentTime = 0
         duration = 0
-        stopPolling()
+        // Started unconditionally, not gated behind the 'ready' message arriving -- see
+        // startPolling's doc comment.
+        startPolling()
 
         let html = """
         <!DOCTYPE html>
@@ -183,18 +185,42 @@ final class YouTubePlayerModel: NSObject, ObservableObject {
         webView.evaluateJavaScript("document.documentElement.style.filter = '\(value)';")
     }
 
-    /// Polls `getCurrentTime()` on a timer, since the IFrame API has no push-based time-update
-    /// event (unlike AVPlayer's addPeriodicTimeObserver, used for the app's own audio player in
-    /// PlayerViewModel.setupTimeObserver) -- the closest equivalent available for a JS-hosted
-    /// player.
+    /// Polls time/duration/play-state together on a timer -- the IFrame API has no push-based
+    /// time-update event (unlike AVPlayer's addPeriodicTimeObserver, used for the app's own
+    /// audio player in PlayerViewModel.setupTimeObserver), and this is also the actual source
+    /// of truth for `isReady`/`isPlaying`/`duration` now, not just `currentTime`: confirmed
+    /// this session that the one-shot 'ready'/'stateChange' postMessage calls (see
+    /// WKScriptMessageHandler below) can be delayed by a real, if uncommon, race on a
+    /// freshly-loaded page -- the underlying YouTube player was demonstrably already playing
+    /// while those messages hadn't arrived yet, leaving the play/pause icon and scrubber stuck
+    /// at their initial state for 15+ seconds. Called unconditionally from `loadVideo` (not
+    /// gated behind 'ready' first), and the guarded `player &&` checks below make it safe to
+    /// start polling before the JS `player` var even exists yet -- so a dropped message can no
+    /// longer strand the UI the way it did before.
     private func startPolling() {
         stopPolling()
         pollTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
             guard let self else { return }
             Task { @MainActor in
-                let result = try? await self.webView.evaluateJavaScript("player.getCurrentTime();")
-                if let seconds = result as? Double {
+                if let seconds = try? await self.webView.evaluateJavaScript(
+                    "player && player.getCurrentTime ? player.getCurrentTime() : null;"
+                ) as? Double {
                     self.currentTime = seconds
+                }
+                if let newDuration = try? await self.webView.evaluateJavaScript(
+                    "player && player.getDuration ? player.getDuration() : null;"
+                ) as? Double, newDuration > 0 {
+                    self.duration = newDuration
+                }
+                if let state = try? await self.webView.evaluateJavaScript(
+                    "player && player.getPlayerState ? player.getPlayerState() : null;"
+                ) as? Int {
+                    // YT.PlayerState: -1 unstarted, 0 ended, 1 playing, 2 paused, 3 buffering, 5 cued.
+                    self.isPlaying = (state == 1)
+                    if !self.isReady {
+                        self.isReady = true
+                        self.applyCaptionsState()
+                    }
                 }
             }
         }
@@ -207,23 +233,23 @@ final class YouTubePlayerModel: NSObject, ObservableObject {
 }
 
 extension YouTubePlayerModel: WKScriptMessageHandler {
+    /// A best-effort *fast path* only now -- `startPolling()` (see its doc comment) is the
+    /// actual source of truth, so a message arriving late or not at all just costs up to one
+    /// 0.25s poll interval of latency rather than stranding the UI.
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         guard let body = message.body as? [String: Any], let type = body["type"] as? String else { return }
         if let newDuration = body["duration"] as? Double, newDuration > 0 {
-            // Re-read on every message, not just "ready" -- getDuration() can return 0 before
-            // metadata is fully loaded for some videos, so onReady alone isn't always enough.
             duration = newDuration
         }
         switch type {
         case "ready":
             isReady = true
-            startPolling()
             applyCaptionsState()
         case "stateChange":
             guard let state = body["state"] as? Int else { return }
             // YT.PlayerState: -1 unstarted, 0 ended, 1 playing, 2 paused, 3 buffering, 5 cued.
             isPlaying = (state == 1)
-            if isReady == false { isReady = true; startPolling(); applyCaptionsState() }
+            if isReady == false { isReady = true; applyCaptionsState() }
         case "error":
             // Confirmed this session: YouTube error 101/150 (embedding disabled by the
             // uploader) fires here for many of this channel's videos -- YouTube renders its
