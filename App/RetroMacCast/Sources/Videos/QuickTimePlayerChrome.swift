@@ -227,12 +227,17 @@ private struct MovieControllerBar: View {
         Button {
             volumePopupOpen.toggle()
         } label: {
+            // The button's full visible box (size + chrome) is built INSIDE the label, with
+            // `.contentShape` applied last -- see playPauseButton's doc comment for why that
+            // ordering, not an outer `.frame()`/`.buttonBoxBorder()` tacked onto the Button
+            // afterward, is what's actually required for the whole box to be tappable.
             SpeakerGlyph()
                 .frame(width: 14, height: 12)
+                .frame(width: 32, height: Self.barHeight)
+                .buttonBoxBorder()
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .frame(width: 32)
-        .buttonBoxBorder()
         .overlay(alignment: .top) {
             if volumePopupOpen {
                 VolumeSlider(volume: Binding(get: { model.volume }, set: { model.setVolume($0) }))
@@ -245,6 +250,16 @@ private struct MovieControllerBar: View {
         Button {
             model.togglePlayPause()
         } label: {
+            // PlayGlyph/PauseGlyph are raw Shapes (a filled Path, and two filled Rectangles
+            // with a gap between them) -- SwiftUI hit-tests a Shape against its own filled
+            // geometry by default, not its bounding frame, so without a contentShape here only
+            // the glyph's own black pixels registered a click, not the button's full white box.
+            // Confirmed live that a `.contentShape` and sizing frame added AFTER the Button
+            // (on the whole `Button {}.buttonStyle(.plain)`) does NOT expand what's actually
+            // tappable -- `.buttonStyle(.plain)` on macOS determines its hit region from the
+            // label's OWN reported size, computed before any outer `.frame()`/`.background()`
+            // applied to the button afterward. Building the full box (size + chrome) here,
+            // inside the label, with `.contentShape` applied last, is what actually works.
             Group {
                 if model.isPlaying {
                     PauseGlyph()
@@ -253,10 +268,11 @@ private struct MovieControllerBar: View {
                 }
             }
             .frame(width: 10, height: 12)
+            .frame(width: 28, height: Self.barHeight)
+            .buttonBoxBorder()
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .frame(width: 28)
-        .buttonBoxBorder()
     }
 
     private var scrubber: some View {
@@ -328,18 +344,22 @@ private struct MovieControllerBar: View {
     private var frameStepButtons: some View {
         HStack(spacing: 0) {
             Button { model.stepFrame(forward: false) } label: {
-                StepGlyph(forward: false).frame(width: 10, height: 10)
+                StepGlyph(forward: false)
+                    .frame(width: 10, height: 10)
+                    .frame(width: 22, height: Self.barHeight)
+                    .buttonBoxBorder()
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .frame(width: 22)
-            .buttonBoxBorder()
 
             Button { model.stepFrame(forward: true) } label: {
-                StepGlyph(forward: true).frame(width: 10, height: 10)
+                StepGlyph(forward: true)
+                    .frame(width: 10, height: 10)
+                    .frame(width: 22, height: Self.barHeight)
+                    .buttonBoxBorder()
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .frame(width: 22)
-            .buttonBoxBorder()
         }
     }
 
