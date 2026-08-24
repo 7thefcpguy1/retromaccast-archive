@@ -257,6 +257,12 @@ struct Classify: AsyncParsableCommand {
     @Option(name: .long) var db: String = defaultDBPath
     @Option(name: .long) var collectionsFile: String = "collections.json"
     @Option(name: .long) var limit: Int = 0 // 0 = no limit
+    // Backfill mode: re-classify only episodes that already have a collection_item with no
+    // resolved segmentId (clearing that episode's existing items first), rather than the
+    // normal classifiedAt-IS-NULL pass over never-classified episodes. Meant to be run once
+    // after a matching-logic improvement, to recover moments that fell back to 0:00 under
+    // the old resolver without re-paying to reclassify episodes that already matched fine.
+    @Flag(name: .long) var onlyUnresolved: Bool = false
 
     func run() async throws {
         let database = try RMCDatabase(path: db)
@@ -287,7 +293,17 @@ struct Classify: AsyncParsableCommand {
         let collectionBySlug = Dictionary(uniqueKeysWithValues: collections.map { ($0.slug, $0) })
 
         let pending = try await database.dbQueue.read { db in
-            try Episode
+            if onlyUnresolved {
+                return try Episode
+                    .filter(sql: """
+                        transcriptText IS NOT NULL AND id IN (
+                            SELECT DISTINCT episodeId FROM collection_items WHERE segmentId IS NULL
+                        )
+                        """)
+                    .order(sql: "episodeNumber IS NULL, episodeNumber ASC")
+                    .fetchAll(db)
+            }
+            return try Episode
                 .filter(sql: "transcriptText IS NOT NULL AND classifiedAt IS NULL")
                 .order(sql: "episodeNumber IS NULL, episodeNumber ASC")
                 .fetchAll(db)
@@ -306,21 +322,19 @@ struct Classify: AsyncParsableCommand {
                 let matches = try await classifier.classify(transcript: transcript, collections: collections)
 
                 try await database.dbQueue.write { db in
+                    if onlyUnresolved {
+                        try db.execute(sql: "DELETE FROM collection_items WHERE episodeId = ?", arguments: [ep.id])
+                    }
                     for match in matches {
                         guard let collection = collectionBySlug[match.collectionSlug], let collectionId = collection.id else {
                             print("  [\(label)] unknown collection slug '\(match.collectionSlug)', skipping")
                             continue
                         }
-                        // Same LIKE-based segment lookup the app's search uses to find
-                        // a snippet's timestamp -- if the model paraphrased instead of
-                        // quoting verbatim, no segment is found and the item is stored
-                        // with no timestamp (plays from 0:00), same fallback as a
-                        // title-only search match.
-                        let segment = try TranscriptSegment.fetchOne(db, sql: """
-                            SELECT * FROM transcript_segments
-                            WHERE episodeId = ? AND text LIKE ? COLLATE NOCASE
-                            LIMIT 1
-                            """, arguments: [ep.id, "%\(match.quote)%"])
+                        // Tiered lookup, loosest last -- the model is asked for a verbatim
+                        // quote but doesn't reliably deliver one, so an exact match alone
+                        // left ~35% of items with no resolved segment (silently falling
+                        // back to 0:00 in the app). See resolveSegment's doc comment.
+                        let segment = try resolveSegment(quote: match.quote, episodeId: ep.id, db: db)
                         let item = CollectionItem(
                             collectionId: collectionId,
                             episodeId: ep.id,
@@ -347,6 +361,96 @@ struct Classify: AsyncParsableCommand {
 
         print("Classification complete. \(done) episodes processed, \(matched) matches recorded, \(failed) failed.")
     }
+}
+
+/// Resolves which transcript segment a classifier-reported quote actually came from, so a
+/// Museum moment card can jump to the right timestamp instead of falling back to 0:00.
+/// Claude is asked for a short verbatim substring but doesn't reliably deliver one -- ASR
+/// punctuation/casing quirks, or outright light paraphrasing -- so this tries progressively
+/// looser tiers before giving up:
+///   1. Exact substring match (fast path, handles the common case where the quote really is
+///      verbatim -- same lookup this used to do unconditionally).
+///   2. Punctuation/case/whitespace-normalized substring match across the whole episode's
+///      transcript, so a quote that only differs by formatting (or straddles a segment
+///      boundary) still resolves. The match's character offset in the concatenated,
+///      normalized transcript is mapped back to whichever segment it falls inside.
+///   3. Fuzzy word-overlap match against individual segments, for light paraphrasing --
+///      scores each segment by the fraction of the quote's distinctive (length > 2) words
+///      it contains, and only accepts a segment at 60%+ overlap so a few common words
+///      scattered across the episode can't produce a false match.
+/// Returns nil (falls back to 0:00, same as before) only when none of the three finds
+/// anything -- e.g. the model invented a quote that isn't actually in the transcript.
+private func resolveSegment(quote: String, episodeId: Int, db: Database) throws -> TranscriptSegment? {
+    if let exact = try TranscriptSegment.fetchOne(db, sql: """
+        SELECT * FROM transcript_segments
+        WHERE episodeId = ? AND text LIKE ? COLLATE NOCASE
+        LIMIT 1
+        """, arguments: [episodeId, "%\(quote)%"]) {
+        return exact
+    }
+
+    let segments = try TranscriptSegment
+        .filter(sql: "episodeId = ?", arguments: [episodeId])
+        .order(sql: "startMs ASC")
+        .fetchAll(db)
+    guard !segments.isEmpty else { return nil }
+
+    let normalizedQuote = normalizeForMatching(quote)
+    guard !normalizedQuote.isEmpty else { return nil }
+
+    // Tier 2.
+    var combined = ""
+    var offsets: [(segment: TranscriptSegment, start: Int)] = []
+    for segment in segments {
+        offsets.append((segment, combined.count))
+        combined += normalizeForMatching(segment.text) + " "
+    }
+    if let range = combined.range(of: normalizedQuote) {
+        let matchStart = combined.distance(from: combined.startIndex, to: range.lowerBound)
+        var best = offsets[0].segment
+        for entry in offsets {
+            guard entry.start <= matchStart else { break }
+            best = entry.segment
+        }
+        return best
+    }
+
+    // Tier 3.
+    let quoteWords = Set(normalizedQuote.split(separator: " ").map(String.init).filter { $0.count > 2 })
+    guard quoteWords.count >= 3 else { return nil }
+
+    var bestSegment: TranscriptSegment?
+    var bestScore = 0.0
+    for segment in segments {
+        let segmentWords = Set(normalizeForMatching(segment.text).split(separator: " ").map(String.init))
+        let score = Double(quoteWords.intersection(segmentWords).count) / Double(quoteWords.count)
+        if score > bestScore {
+            bestScore = score
+            bestSegment = segment
+        }
+    }
+    return bestScore >= 0.6 ? bestSegment : nil
+}
+
+/// Lowercases and strips everything but letters/digits/whitespace, collapsing runs of
+/// whitespace to single spaces -- puts a classifier-reported quote and the raw ASR
+/// transcript text on equal footing so formatting differences (curly vs. straight quotes,
+/// "don't" vs "dont", stray commas) don't defeat a substring match that's otherwise exact.
+private func normalizeForMatching(_ s: String) -> String {
+    var result = ""
+    result.reserveCapacity(s.count)
+    var lastWasSpace = true // suppresses a leading space and collapses repeats
+    for scalar in s.lowercased().unicodeScalars {
+        if CharacterSet.alphanumerics.contains(scalar) {
+            result.unicodeScalars.append(scalar)
+            lastWasSpace = false
+        } else if !lastWasSpace {
+            result.append(" ")
+            lastWasSpace = true
+        }
+    }
+    if result.hasSuffix(" ") { result.removeLast() }
+    return result
 }
 
 struct ResetStaleSynthesis: AsyncParsableCommand {
