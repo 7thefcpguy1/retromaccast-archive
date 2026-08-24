@@ -141,6 +141,25 @@ final class YouTubePlayerModel: NSObject, ObservableObject {
     func pause() { webView.evaluateJavaScript("player.pauseVideo();") }
     func togglePlayPause() { isPlaying ? pause() : play() }
 
+    /// Unloads whatever video is currently playing and resets to the idle state -- called
+    /// when the selection is cleared (year changed, "-- Select a video --" picked, or the
+    /// window's close box clicked). `loadVideo`'s own reset only ever ran on the way INTO a
+    /// new video; clearing the selection back to nil skipped it entirely, so the previously
+    /// loaded video (and its polling timer) just kept running -- invisibly, behind the idle
+    /// placeholder image, since the webview itself isn't torn down just because SwiftUI
+    /// stops rendering it. Confirmed live: play/pause and the scrubber kept driving that
+    /// stale video's real playback (including audible sound) with no video selected at all.
+    /// Reloading a blank page (not just calling `pause()`) actually discards the YT player
+    /// instance, rather than leaving it paused-but-loaded and quietly consuming resources.
+    func stop() {
+        stopPolling()
+        isReady = false
+        isPlaying = false
+        currentTime = 0
+        duration = 0
+        webView.loadHTMLString("<!DOCTYPE html><html><body style=\"margin:0;background:#000;\"></body></html>", baseURL: nil)
+    }
+
     func seek(to seconds: Double) {
         currentTime = max(0, seconds) // reflect immediately -- polling would otherwise lag
         webView.evaluateJavaScript("player.seekTo(\(max(0, seconds)), true);")

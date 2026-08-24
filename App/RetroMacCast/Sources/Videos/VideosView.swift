@@ -195,7 +195,13 @@ private struct VideoJukeboxView: View {
             selectedVideoId = nil
         }
         .onChange(of: selectedVideoId) { _, newValue in
-            guard let newValue, let video = videos.first(where: { $0.id == newValue }) else { return }
+            guard let newValue, let video = videos.first(where: { $0.id == newValue }) else {
+                // Selection cleared (year changed, "-- Select a video --" picked, or the
+                // window's close box) -- stop whatever was playing rather than leaving it
+                // running invisibly behind the idle placeholder. See YouTubePlayerModel.stop().
+                playerModel.stop()
+                return
+            }
             playerModel.loadVideo(id: video.id)
         }
         .onChange(of: oneBit) { _, isOn in
