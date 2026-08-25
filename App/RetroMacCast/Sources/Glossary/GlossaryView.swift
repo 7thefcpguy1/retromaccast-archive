@@ -14,7 +14,7 @@ struct GlossaryView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                appearance.theme.color
+                DesktopBackgroundView(theme: appearance.theme)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .ignoresSafeArea()
 

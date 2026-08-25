@@ -74,7 +74,7 @@ struct MuseumView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                appearance.theme.color.ignoresSafeArea()
+                DesktopBackgroundView(theme: appearance.theme).ignoresSafeArea()
                 #if os(macOS)
                 // A decorative Finder-window panel floating on the app's beige "desktop" --
                 // not a real window, just the classic System 7 chrome drawn around the grid.
@@ -286,7 +286,7 @@ struct MuseumCategoryView: View {
         .onChange(of: navigator.pendingMuseumProductId) { _, _ in openPendingProductIfNeeded() }
         #else
         ZStack {
-            appearance.theme.color.ignoresSafeArea()
+            DesktopBackgroundView(theme: appearance.theme).ignoresSafeArea()
             ScrollView {
                 productGrid
             }
@@ -375,7 +375,7 @@ struct MuseumProductDetailView: View {
 
     var body: some View {
         ZStack {
-            appearance.theme.color.ignoresSafeArea()
+            DesktopBackgroundView(theme: appearance.theme).ignoresSafeArea()
             #if os(macOS)
             // Same Finder-window chrome as every other window -- the product name is the
             // title bar text instead of a separate inline heading. The close box zooms the

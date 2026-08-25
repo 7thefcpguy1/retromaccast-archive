@@ -176,9 +176,9 @@ private struct ThemeSwatch: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            RoundedRectangle(cornerRadius: 8)
-                .fill(theme.color)
+            DesktopBackgroundView(theme: theme)
                 .frame(width: 64, height: 64)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(isSelected ? Color.accentColor : Color.black.opacity(0.2), lineWidth: isSelected ? 3 : 1)

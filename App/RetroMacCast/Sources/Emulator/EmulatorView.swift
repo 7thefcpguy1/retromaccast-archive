@@ -15,7 +15,7 @@ struct EmulatorView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                appearance.theme.color.ignoresSafeArea()
+                DesktopBackgroundView(theme: appearance.theme).ignoresSafeArea()
                 #if os(macOS)
                 // Capped, not unlimited (an earlier version had no cap at all, which left an
                 // awkward dead zone on the right once the app window was resized wide, since
