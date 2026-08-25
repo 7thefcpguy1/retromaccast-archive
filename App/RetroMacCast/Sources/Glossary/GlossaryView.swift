@@ -260,21 +260,32 @@ private struct AZIndexStrip: View {
     private static let allLetters = ["#"] + (UInt8(ascii: "A")...UInt8(ascii: "Z")).map { String(UnicodeScalar($0)) }
 
     var body: some View {
+        // maxHeight: .infinity here, not just on each label below -- without it this VStack
+        // just hugs its content's natural (tiny, font-size-9) height regardless of how much
+        // vertical room its parent actually offers, leaving the letters compressed into a
+        // short strip with lots of dead space below rather than spread across the full rail.
         VStack(spacing: 0) {
             ForEach(Self.allLetters, id: \.self) { letter in
                 let isAvailable = availableLetters.contains(letter)
                 Button {
                     onSelect(letter)
                 } label: {
+                    // `.frame(maxWidth: .infinity, maxHeight: .infinity)` alone still left only
+                    // the tiny Text glyph itself tappable, same root cause (and same fix)
+                    // confirmed for the Videos controller bar's buttons earlier this session --
+                    // a `Text`'s default hit-test region doesn't automatically expand to match
+                    // its declared frame; `.contentShape` has to say so explicitly.
                     Text(letter)
                         .font(.system(size: 9, weight: .semibold, design: .rounded))
                         .foregroundStyle(isAvailable ? Retro.amberText : Retro.mutedText.opacity(0.3))
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .disabled(!isAvailable)
             }
         }
+        .frame(maxHeight: .infinity)
     }
 }
 
