@@ -145,12 +145,12 @@ private struct AboutSettingsTab: View {
 private struct BackgroundSettingsTab: View {
     @EnvironmentObject private var appearance: AppearanceManager
 
-    private static let columns = [GridItem(.adaptive(minimum: 88), spacing: 16)]
+    private static let columns = [GridItem(.adaptive(minimum: 72), spacing: 16)]
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Pick a desktop background evoking a different era of Apple hardware -- the window chrome stays the same, just the backdrop changes.")
+                Text("Pick a desktop background pattern -- the window chrome stays the same, just the backdrop changes.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
 
@@ -170,38 +170,32 @@ private struct BackgroundSettingsTab: View {
     }
 }
 
+/// No name/era caption -- real classic Mac OS's own Desktop Patterns control panel was just a
+/// bare grid of pattern swatches with nothing written under them, so this follows that same
+/// period-authentic shape rather than labeling each option. `accessibilityName` still gives
+/// VoiceOver something to read; it's just never rendered as visible text.
 private struct ThemeSwatch: View {
     let theme: DesktopTheme
     let isSelected: Bool
 
     var body: some View {
-        VStack(spacing: 6) {
-            DesktopBackgroundView(theme: theme)
-                .frame(width: 64, height: 64)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(isSelected ? Color.accentColor : Color.black.opacity(0.2), lineWidth: isSelected ? 3 : 1)
-                )
-                .overlay(alignment: .topTrailing) {
-                    if isSelected {
-                        Image(systemName: "checkmark.circle.fill")
-                            .symbolRenderingMode(.palette)
-                            .foregroundStyle(.white, Color.accentColor)
-                            .background(Circle().fill(.white))
-                            .offset(x: 5, y: -5)
-                    }
+        DesktopBackgroundView(theme: theme)
+            .frame(width: 64, height: 64)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(isSelected ? Color.accentColor : Color.black.opacity(0.2), lineWidth: isSelected ? 3 : 1)
+            )
+            .overlay(alignment: .topTrailing) {
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(.white, Color.accentColor)
+                        .background(Circle().fill(.white))
+                        .offset(x: 5, y: -5)
                 }
-
-            Text(theme.name)
-                .font(.caption)
-                .fontWeight(isSelected ? .semibold : .regular)
-                .lineLimit(1)
-            Text(theme.era)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-        }
-        .frame(width: 88)
+            }
+            .accessibilityLabel(theme.accessibilityName)
     }
 }
 
