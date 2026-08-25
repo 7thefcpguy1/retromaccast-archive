@@ -15,11 +15,18 @@ import SwiftUI
 /// (like the window frame itself) everything is sharp-cornered -- no rounding anywhere.
 struct ClassicScrollView<Content: View>: View {
     @ViewBuilder let content: Content
+    /// Lets a caller drive this scroll view programmatically (e.g. Glossary's A-Z jump index
+    /// calling `.scrollTo(id:)`) -- optional so the other three call sites (Home, Trivia,
+    /// Museum) that just need the retro scrollbar visual don't have to own a `ScrollPosition`
+    /// of their own.
+    var externalPosition: Binding<ScrollPosition>? = nil
 
     @State private var contentHeight: CGFloat = 0
     @State private var viewportHeight: CGFloat = 0
     @State private var offsetY: CGFloat = 0
-    @State private var scrollPosition = ScrollPosition()
+    @State private var internalPosition = ScrollPosition()
+
+    private var scrollPosition: Binding<ScrollPosition> { externalPosition ?? $internalPosition }
 
     private let barThickness: CGFloat = 16
 
@@ -28,7 +35,7 @@ struct ClassicScrollView<Content: View>: View {
             ScrollView {
                 content
             }
-            .scrollPosition($scrollPosition)
+            .scrollPosition(scrollPosition)
             .scrollIndicators(.hidden)
             .onScrollGeometryChange(for: CGFloat.self) { geometry in
                 geometry.contentSize.height
@@ -50,7 +57,7 @@ struct ClassicScrollView<Content: View>: View {
                 contentHeight: contentHeight,
                 viewportHeight: viewportHeight,
                 offsetY: offsetY,
-                scrollPosition: $scrollPosition
+                scrollPosition: scrollPosition
             )
             .frame(width: barThickness)
         }

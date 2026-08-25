@@ -84,6 +84,10 @@ private struct GlossaryContent: View {
     @State private var allTerms: [Corpus.GlossaryTermResult] = []
     @State private var query = ""
     @State private var expandedTerm: String?
+    // Owned here (not left as ClassicScrollView's own internal @State) so the A-Z index strip
+    // can drive it directly via `.scrollTo(id:)` -- see ClassicScrollView's `externalPosition`
+    // doc comment.
+    @State private var scrollPosition = ScrollPosition()
 
     private var groups: [GlossaryGroup] {
         GlossaryGroup.grouped(from: allTerms)
@@ -119,17 +123,36 @@ private struct GlossaryContent: View {
         return result
     }
 
+    /// Jumping to "W" in a 1,101-term list by scrolling would be tedious -- this drives
+    /// `scrollPosition` to whichever letter section's `.id()` was tapped (see the ForEach
+    /// below). Only letters that actually have entries under the current search filter are
+    /// tappable, matching `lettered`'s own live-filtered set.
+    private func jumpTo(_ letter: String) {
+        withAnimation(.snappy) {
+            scrollPosition.scrollTo(id: letter)
+        }
+    }
+
     var body: some View {
         #if os(macOS)
-        ClassicScrollView {
-            innerContent
+        HStack(spacing: 2) {
+            ClassicScrollView(externalPosition: $scrollPosition) {
+                innerContent
+            }
+            AZIndexStrip(availableLetters: Set(lettered.map(\.letter)), onSelect: jumpTo)
+                .frame(width: 18)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         #else
         ScrollView {
             innerContent
         }
+        .scrollPosition($scrollPosition)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .overlay(alignment: .trailing) {
+            AZIndexStrip(availableLetters: Set(lettered.map(\.letter)), onSelect: jumpTo)
+                .frame(width: 22)
+        }
         #endif
     }
 
@@ -183,6 +206,7 @@ private struct GlossaryContent: View {
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                         .overlay(RoundedRectangle(cornerRadius: 8).stroke(Retro.cardBorder, lineWidth: 1))
                     }
+                    .id(section.letter)
                 }
             }
         }
@@ -221,6 +245,36 @@ private struct GlossaryContent: View {
         .frame(height: 26)
         .background(Color.white)
         .overlay(Rectangle().stroke(Color.black, lineWidth: 1))
+    }
+}
+
+/// A vertical A-Z rail (plus "#" for digit-led terms) -- tap a letter to jump straight to its
+/// section instead of scrolling through 1,000+ entries to find it. Matches the shape of
+/// Contacts' own side index, adapted to this app's Chicago/amber chrome. Letters with no
+/// entries under the current search filter are dimmed and inert rather than hidden, so the
+/// rail's shape stays a stable, familiar A-Z ruler instead of shifting around as you type.
+private struct AZIndexStrip: View {
+    let availableLetters: Set<String>
+    let onSelect: (String) -> Void
+
+    private static let allLetters = ["#"] + (UInt8(ascii: "A")...UInt8(ascii: "Z")).map { String(UnicodeScalar($0)) }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(Self.allLetters, id: \.self) { letter in
+                let isAvailable = availableLetters.contains(letter)
+                Button {
+                    onSelect(letter)
+                } label: {
+                    Text(letter)
+                        .font(.system(size: 9, weight: .semibold, design: .rounded))
+                        .foregroundStyle(isAvailable ? Retro.amberText : Retro.mutedText.opacity(0.3))
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                .buttonStyle(.plain)
+                .disabled(!isAvailable)
+            }
+        }
     }
 }
 
