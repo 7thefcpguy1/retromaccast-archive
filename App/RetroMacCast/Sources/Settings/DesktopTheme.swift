@@ -67,6 +67,16 @@ struct DesktopTheme: Identifiable, Equatable {
             background: .tiledImage(name: "TileGranite"),
             color: Color(red: 0.15, green: 0.20, blue: 0.55), isDark: true
         ),
+        DesktopTheme(
+            id: "bubbles", accessibilityName: "Purple bubbles pattern",
+            background: .tiledImage(name: "TileBubbles"),
+            color: Color(red: 0.30, green: 0.10, blue: 0.65), isDark: true
+        ),
+        DesktopTheme(
+            id: "confetti", accessibilityName: "Confetti shapes pattern",
+            background: .tiledImage(name: "TileConfetti"),
+            color: Color(red: 0.95, green: 0.95, blue: 0.85)
+        ),
     ]
 
     static let `default` = all[0]
