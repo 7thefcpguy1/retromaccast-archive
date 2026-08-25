@@ -27,6 +27,10 @@ enum DesktopBackgroundStyle {
     /// Fine horizontal banding at varying opacity -- a brushed-aluminum grain, for the
     /// PowerBook G4 titanium era.
     case brushed(base: Color, lineColor: Color)
+    /// Scattered flecks in a mix of colors over a base tone -- Mac OS 8's real default
+    /// "Granite" desktop pattern (per the spec doc: "specks of charcoal, quartz, and mid-tone
+    /// grey"), which reads as organic stone speckle rather than a regular repeating motif.
+    case speckled(base: Color, speckColors: [Color])
 }
 
 /// Renders any `DesktopBackgroundStyle` -- shared by both the app's real full-screen
@@ -57,6 +61,8 @@ struct DesktopBackgroundView: View {
             WovenCanvas(fg: fg, bg: bg)
         case .brushed(let base, let lineColor):
             BrushedCanvas(base: base, lineColor: lineColor)
+        case .speckled(let base, let speckColors):
+            SpeckledCanvas(base: base, speckColors: speckColors)
         }
     }
 }
@@ -134,6 +140,49 @@ private struct WovenCanvas: View {
 /// Fine horizontal lines at a deterministically-varying opacity -- reads as brushed-aluminum
 /// grain rather than uniform ruling. `sin` of a scaled index is just a cheap, seeded way to get
 /// pseudo-random-looking variation without an actual RNG (which would re-roll every redraw).
+/// Scatters small flecks of `speckColors` over `base` at deterministic (not truly random,
+/// same reasoning as `BrushedCanvas`) positions -- a coarse grid of candidate spots, each
+/// either skipped or given a jittered, colored fleck based on a cheap hash of its own
+/// coordinates, so the result looks like natural stone grain rather than a regular motif.
+private struct SpeckledCanvas: View {
+    let base: Color
+    let speckColors: [Color]
+    private let cellSize: CGFloat = 7
+
+    private func hash(_ x: Int, _ y: Int) -> Double {
+        let raw = sin(Double(x) * 12.9898 + Double(y) * 78.233) * 43758.5453
+        return raw - raw.rounded(.down) // fractional part, always in [0, 1)
+    }
+
+    var body: some View {
+        Canvas { context, size in
+            context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(base))
+            var row = 0
+            var y: CGFloat = 0
+            while y < size.height {
+                var col = 0
+                var x: CGFloat = 0
+                while x < size.width {
+                    let h = hash(col, row)
+                    if h > 0.62 { // ~38% of cells get a fleck -- dense enough to read as
+                        // texture, sparse enough that individual specks stay distinguishable.
+                        let jitterX = hash(col * 3 + 1, row) * cellSize
+                        let jitterY = hash(col, row * 3 + 1) * cellSize
+                        let speckSize = 1 + hash(col * 5, row * 5) * 1.5
+                        let colorIndex = Int(hash(col * 7, row * 11) * Double(speckColors.count)) % max(speckColors.count, 1)
+                        let rect = CGRect(x: x + jitterX, y: y + jitterY, width: speckSize, height: speckSize)
+                        context.fill(Path(ellipseIn: rect), with: .color(speckColors[colorIndex]))
+                    }
+                    x += cellSize
+                    col += 1
+                }
+                y += cellSize
+                row += 1
+            }
+        }
+    }
+}
+
 private struct BrushedCanvas: View {
     let base: Color
     let lineColor: Color
