@@ -82,6 +82,14 @@ private struct VideoJukeboxView: View {
     // never race with or clobber the other's.
     @State private var yearButtonHeight: CGFloat = 20
     @State private var videoButtonHeight: CGFloat = 20
+    // Measured the same way as videoButtonHeight, just below -- the popover was previously a
+    // hardcoded 320pt regardless of how much room the button itself actually has (which
+    // stretches via `.frame(maxWidth: .infinity)` to fill the available width), so titles like
+    // "RetroMacCast Episode 597: See Different — August 2023" truncated hard even on a wide
+    // window with plenty of room to spare. Matching the popover's width to the button's own
+    // measured width fixes that on any window size without risking overflow at the app's
+    // minimum width either.
+    @State private var videoButtonWidth: CGFloat = 320
     // Measured via .onGeometryChange below, not a GeometryReader wrapping the whole body --
     // a root-level GeometryReader inside a ScrollView reports the viewport's size in a way
     // that disrupts normal content-driven layout (same pitfall MuseumView.swift's cascade
@@ -368,14 +376,15 @@ private struct VideoJukeboxView: View {
         .disabled(selectedYear == nil)
         .opacity(selectedYear == nil ? 0.4 : 1)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .onGeometryChange(for: CGFloat.self) { proxy in
-            proxy.size.height
-        } action: { newHeight in
-            videoButtonHeight = newHeight
+        .onGeometryChange(for: CGSize.self) { proxy in
+            proxy.size
+        } action: { newSize in
+            videoButtonHeight = newSize.height
+            videoButtonWidth = newSize.width
         }
         .overlay(alignment: .bottomLeading) {
             if videoMenuOpen {
-                dropdownPopover(width: 320, height: 220) {
+                dropdownPopover(width: videoButtonWidth, height: 220) {
                     dropdownRow(title: "— Select a video —", key: "none") {
                         selectedVideoId = nil
                         videoMenuOpen = false
