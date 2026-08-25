@@ -694,7 +694,25 @@ struct GenerateGlossary: AsyncParsableCommand {
             let label = "#\(ep.episodeNumber.map(String.init) ?? "?") (\(ep.id)) \(ep.title)"
             guard let transcript = ep.transcriptText else { continue }
             do {
-                let matches = try await classifier.generateGlossaryTerms(transcript: transcript)
+                let rawMatches = try await classifier.generateGlossaryTerms(transcript: transcript)
+                // Defensive backstop, not the primary fix (that's the prompt's now-explicit
+                // "return [] rather than inventing a filler entry" instruction) -- confirmed
+                // live that even with that instruction, a strict-mode tool call can still
+                // occasionally hallucinate a single junk entry (literally "term": "placeholder")
+                // for an episode with nothing real to report, rather than truly returning an
+                // empty array. Filters anything that looks like that pattern before it ever
+                // reaches the database.
+                let matches = rawMatches.filter { match in
+                    let placeholderWords: Set<String> = ["placeholder", "x", "n/a", "none", "example"]
+                    let term = match.term.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let definition = match.definition.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !term.isEmpty, !definition.isEmpty, definition.count >= 15 else { return false }
+                    return !placeholderWords.contains(term.lowercased())
+                }
+                let skipped = rawMatches.count - matches.count
+                if skipped > 0 {
+                    print("  [\(label)] filtered \(skipped) placeholder-looking term(s)")
+                }
 
                 let episodeResolved = try await database.dbQueue.write { db -> Int in
                     var episodeResolved = 0
