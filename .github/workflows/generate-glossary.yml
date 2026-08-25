@@ -1,0 +1,55 @@
+name: Generate Glossary Terms
+
+# Mines each episode's transcript for vintage Mac/Apple terminology the hosts actually explain
+# (`generate-glossary`), for the Glossary tab prototype. Manual-only (no schedule) -- `limit`
+# defaults to a small test batch so a first run's content/cost can be sanity-checked before
+# re-dispatching with limit=0 for the full corpus.
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Max episodes to mine (0 = no limit, i.e. the full corpus)"
+        required: true
+        default: "20"
+
+permissions:
+  contents: write # needed to create a Release and upload the updated corpus
+
+jobs:
+  generate:
+    runs-on: macos-latest
+    timeout-minutes: 180
+    defaults:
+      run:
+        working-directory: pipeline
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build pipeline
+        run: swift build -c release
+
+      - name: Download latest published corpus
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p corpus
+          gh release download --pattern 'rmc.sqlite' --dir corpus --clobber
+
+      - name: Mine glossary terms
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: .build/release/rmc-pipeline generate-glossary --limit "${{ github.event.inputs.limit }}"
+
+      - name: Export manifest
+        run: .build/release/rmc-pipeline export-manifest
+
+      - name: Publish updated corpus as a release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="corpus-$(date -u +%Y-%m-%d)-glossary-$(date -u +%H%M%S)"
+          EP_COUNT=$(jq '.episodeCount' corpus/manifest.json)
+          gh release create "$TAG" corpus/rmc.sqlite corpus/manifest.json \
+            --title "Glossary terms $(date -u +%Y-%m-%d)" \
+            --notes "generate-glossary run (limit=${{ github.event.inputs.limit }}). $EP_COUNT episodes total."

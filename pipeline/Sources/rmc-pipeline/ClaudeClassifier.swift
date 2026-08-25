@@ -299,4 +299,116 @@ struct ClaudeClassifier {
         }
         return []
     }
+
+    /// Mines ONE episode's full transcript (not pre-extracted blurbs, unlike `generateTrivia`
+    /// -- a glossary term is often explained in passing, not necessarily inside a moment that
+    /// already got matched to a product/collection) for moments where the hosts actually
+    /// explain, define, or clarify a specific piece of vintage Mac/Apple jargon for the
+    /// listener -- not just say the word in passing. Same verbatim-`quote` anchoring `classify`
+    /// uses, resolved back to a real segment/timestamp by the caller via `resolveSegment`.
+    func generateGlossaryTerms(transcript: String) async throws -> [GlossaryMatch] {
+        let userContent = """
+        You are mining a RetroMacCast (hosted by James and John) episode transcript for moments \
+        where a host actually EXPLAINS, DEFINES, or CLARIFIES a specific piece of vintage \
+        Macintosh/Apple terminology, jargon, or acronym for the listener -- not just mentions the \
+        word in passing while assuming the listener already knows it. Skip anything not \
+        genuinely explained here; it's fine to return zero terms for an episode with no such \
+        moment.
+
+        For each term found, record:
+        - term: the word or acronym itself, as it would appear as a dictionary headword (e.g. \
+        "SCSI", "HyperCard", "Happy Mac").
+        - expansion: if `term` is an acronym, its spelled-out full name (e.g. "Small Computer \
+        System Interface"); null if `term` already is the full name.
+        - definition: a clear, standalone 1-2 sentence dictionary-style definition IN YOUR OWN \
+        WORDS -- not a paraphrase of exactly what was said, a genuine definition someone could \
+        read with no other context and understand. Never invent detail the transcript doesn't \
+        support.
+        - quote: a short (5-15 word) VERBATIM substring copied exactly from the transcript, \
+        anchoring where this explanation occurs.
+
+        Transcript:
+        \(transcript)
+        """
+
+        let requestBody: [String: Any] = [
+            "model": model,
+            "max_tokens": 1024,
+            "tools": [[
+                "name": "record_glossary_terms",
+                "description": "Record the vintage-Mac terminology explained in this episode transcript.",
+                "strict": true,
+                "input_schema": [
+                    "type": "object",
+                    "properties": [
+                        "terms": [
+                            "type": "array",
+                            "items": [
+                                "type": "object",
+                                "properties": [
+                                    "term": ["type": "string"],
+                                    "expansion": [
+                                        "type": ["string", "null"],
+                                        "description": "The spelled-out acronym, or null if `term` already is the full name.",
+                                    ],
+                                    "definition": [
+                                        "type": "string",
+                                        "description": "A standalone 1-2 sentence dictionary-style definition, in the model's own words.",
+                                    ],
+                                    "quote": [
+                                        "type": "string",
+                                        "description": "A short (5-15 word) VERBATIM substring copied exactly from the transcript, anchoring where this explanation occurs.",
+                                    ],
+                                ],
+                                "required": ["term", "expansion", "definition", "quote"],
+                                "additionalProperties": false,
+                            ],
+                        ]
+                    ],
+                    "required": ["terms"],
+                    "additionalProperties": false,
+                ],
+            ]],
+            "tool_choice": ["type": "tool", "name": "record_glossary_terms"],
+            "messages": [["role": "user", "content": userContent]],
+        ]
+
+        var request = URLRequest(url: URL(string: "https://api.anthropic.com/v1/messages")!)
+        request.httpMethod = "POST"
+        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        request.setValue("application/json", forHTTPHeaderField: "content-type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+            throw ClaudeClassifierError.badStatus(status, String(data: data, encoding: .utf8) ?? "")
+        }
+
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let content = json["content"] as? [[String: Any]] else {
+            throw ClaudeClassifierError.unexpectedResponseShape
+        }
+
+        for block in content where block["type"] as? String == "tool_use" {
+            guard let input = block["input"] as? [String: Any],
+                  let terms = input["terms"] as? [[String: Any]] else { continue }
+            return terms.compactMap { entry in
+                guard let term = entry["term"] as? String,
+                      let definition = entry["definition"] as? String,
+                      let quote = entry["quote"] as? String else { return nil }
+                let expansion = entry["expansion"] as? String
+                return GlossaryMatch(term: term, expansion: expansion, definition: definition, quote: quote)
+            }
+        }
+        return []
+    }
+}
+
+struct GlossaryMatch {
+    let term: String
+    let expansion: String?
+    let definition: String
+    let quote: String
 }

@@ -36,6 +36,13 @@ final class PlayerViewModel: ObservableObject {
         load(episodeId: item.episode.id, startMs: startMs, stopAtMs: item.contextEndMs)
     }
 
+    /// Only meaningful for a mention with a resolved moment -- callers (GlossaryRow) only
+    /// show a play control when `item.contextStartMs != nil` in the first place.
+    func playInContext(_ item: Corpus.GlossaryTermResult) {
+        guard let startMs = item.contextStartMs else { return }
+        load(episodeId: item.episode.id, startMs: startMs, stopAtMs: item.contextEndMs)
+    }
+
     /// Only meaningful for a trivia fact that's actually linked to an episode -- callers
     /// (TriviaHeroCard/TriviaCompactRow) only show a play control when `item.episode != nil`
     /// in the first place, so a fact with no episode simply can't reach this.

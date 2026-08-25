@@ -10,7 +10,7 @@ import SwiftUI
 @MainActor
 final class AppNavigator: ObservableObject {
     enum Tab: Hashable {
-        case home, museum, emulators, videos, trivia
+        case home, museum, emulators, videos, trivia, glossary
     }
 
     @Published var selectedTab: Tab = .home

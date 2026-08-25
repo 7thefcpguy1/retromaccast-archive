@@ -30,6 +30,9 @@ struct RootTabView: View {
             Tab("Trivia", systemImage: "lightbulb", value: AppNavigator.Tab.trivia) {
                 TriviaView()
             }
+            Tab("Glossary", systemImage: "character.book.closed", value: AppNavigator.Tab.glossary) {
+                GlossaryView()
+            }
         }
         .environmentObject(player)
         .environmentObject(navigator)

@@ -110,6 +110,31 @@ public struct RMCDatabase {
             }
         }
 
+        migrator.registerMigration("addEpisodeGlossaryMinedAt") { db in
+            try db.alter(table: "episodes") { t in
+                t.add(column: "glossaryMinedAt", .text)
+            }
+        }
+
+        migrator.registerMigration("createGlossaryTerms") { db in
+            try db.create(table: "glossary_terms") { t in
+                t.autoIncrementedPrimaryKey("id")
+                // Indexed, not unique -- the same term legitimately gets its own row per
+                // episode it was explained in (see GlossaryTerm's doc comment); lookups group
+                // by this client-side, not at the DB level.
+                t.column("term", .text).notNull().indexed()
+                t.column("expansion", .text)
+                t.column("definition", .text).notNull()
+                // Cascading, unlike trivia_facts.episodeId -- a glossary entry only exists
+                // because of the specific episode moment it was mined from, so it has nothing
+                // left to stand on if that episode goes away.
+                t.column("episodeId", .integer).notNull().indexed().references("episodes", onDelete: .cascade)
+                t.column("segmentId", .integer).references("transcript_segments", onDelete: .setNull)
+                t.column("timestampMs", .integer)
+                t.column("createdAt", .text).notNull()
+            }
+        }
+
         return migrator
     }
 }

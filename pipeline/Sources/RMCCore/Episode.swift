@@ -14,6 +14,7 @@ public struct Episode: Codable, FetchableRecord, PersistableRecord, Identifiable
     public var transcriptStatus: String // pending | downloaded | transcribed | failed
     public var transcriptText: String?
     public var classifiedAt: String? // ISO date; nil = not yet run through collection classification
+    public var glossaryMinedAt: String? // ISO date; nil = not yet run through generate-glossary
 
     public init(
         id: Int,
@@ -26,7 +27,8 @@ public struct Episode: Codable, FetchableRecord, PersistableRecord, Identifiable
         audioLocalPath: String? = nil,
         transcriptStatus: String = "pending",
         transcriptText: String? = nil,
-        classifiedAt: String? = nil
+        classifiedAt: String? = nil,
+        glossaryMinedAt: String? = nil
     ) {
         self.id = id
         self.episodeNumber = episodeNumber
@@ -39,5 +41,6 @@ public struct Episode: Codable, FetchableRecord, PersistableRecord, Identifiable
         self.transcriptStatus = transcriptStatus
         self.transcriptText = transcriptText
         self.classifiedAt = classifiedAt
+        self.glossaryMinedAt = glossaryMinedAt
     }
 }

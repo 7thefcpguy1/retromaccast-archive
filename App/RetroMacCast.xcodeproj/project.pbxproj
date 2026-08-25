@@ -68,6 +68,7 @@
 		C2AC122CF234A63666D72A2B /* Corpus.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1EEC18DF155B41B2DAD729E /* Corpus.swift */; };
 		C85A4F96E5B07186C6C06C94 /* MuseumData+CompactMacintosh.swift in Sources */ = {isa = PBXBuildFile; fileRef = C68B1CA6C86A4205CF451D59 /* MuseumData+CompactMacintosh.swift */; };
 		CB645E55B31A1DE031DA523B /* MuseumData+MacMiniStudio.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83998AA0DFEB39381162C01 /* MuseumData+MacMiniStudio.swift */; };
+		D609CCF6240D12914DB4DC77 /* GlossaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DA6B452BDCB2B3EE340B095 /* GlossaryView.swift */; };
 		DA1EE87882231CAC544B866B /* MuseumData+PowerMac.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D04099854993668F20B3948 /* MuseumData+PowerMac.swift */; };
 		DDD4FE4FF0A33FA02F6EE3BE /* MuseumData+iPhone.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C72BE246D886E8446E4D079 /* MuseumData+iPhone.swift */; };
 		E02ECDA6BAB42E4ECFD1ACD9 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB96F53A68C85288CF99197F /* SettingsView.swift */; };
@@ -78,6 +79,7 @@
 		F722D874D89DD8EEFEE24001 /* EmulatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A99CCC41D7AC4B8F75562F3 /* EmulatorView.swift */; };
 		F75BDDCC787B25B2F8E0AAE8 /* RMCCore in Frameworks */ = {isa = PBXBuildFile; productRef = 94186E73C5041162DF799002 /* RMCCore */; };
 		F7E94CD04805399BD8945E30 /* SearchViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8B324DF879F3C9673025E84 /* SearchViewModel.swift */; };
+		FA7E070DB72EBD0DA51D4063 /* GlossaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DA6B452BDCB2B3EE340B095 /* GlossaryView.swift */; };
 		FD0CC2AC5FCB291287CA16DB /* EmulatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A99CCC41D7AC4B8F75562F3 /* EmulatorView.swift */; };
 /* End PBXBuildFile section */
 
@@ -90,6 +92,7 @@
 		2D04099854993668F20B3948 /* MuseumData+PowerMac.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MuseumData+PowerMac.swift"; sourceTree = "<group>"; };
 		2DFCB9AFAED78AFC47FA166F /* AppearanceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceManager.swift; sourceTree = "<group>"; };
 		37A3F6BEBF658809D3C63DD7 /* MuseumData+iPod.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MuseumData+iPod.swift"; sourceTree = "<group>"; };
+		3DA6B452BDCB2B3EE340B095 /* GlossaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlossaryView.swift; sourceTree = "<group>"; };
 		4D880E4203F33F376FF224EF /* rmc.sqlite */ = {isa = PBXFileReference; lastKnownFileType = file; path = rmc.sqlite; sourceTree = "<group>"; };
 		4DCEE9E02B2231A85C26DD4F /* VideosView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideosView.swift; sourceTree = "<group>"; };
 		6121B42C402400EB9DF586A0 /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
@@ -218,6 +221,7 @@
 				0A0017D61E8F01B99162ED28 /* App */,
 				B9485BDAF5E554403CF76E4E /* Data */,
 				1FDCE1ADF3C3F3E6AE0DA17A /* Emulator */,
+				C33B832E88C89C281A2792CF /* Glossary */,
 				11B3C275A71E501596217AC2 /* Museum */,
 				4A6E1F007BFC42E96DC0379A /* Search */,
 				8A8D2343831A83B7C8943A0F /* Settings */,
@@ -269,6 +273,14 @@
 				E1EEC18DF155B41B2DAD729E /* Corpus.swift */,
 			);
 			path = Data;
+			sourceTree = "<group>";
+		};
+		C33B832E88C89C281A2792CF /* Glossary */ = {
+			isa = PBXGroup;
+			children = (
+				3DA6B452BDCB2B3EE340B095 /* GlossaryView.swift */,
+			);
+			path = Glossary;
 			sourceTree = "<group>";
 		};
 		DCED43D2B040A00023925C17 = {
@@ -403,6 +415,7 @@
 				06D9DE7267DBCB64E653B50D /* DesktopTheme.swift in Sources */,
 				FD0CC2AC5FCB291287CA16DB /* EmulatorView.swift in Sources */,
 				8738C74F0DCC99C04037C989 /* FinderWindowChrome.swift in Sources */,
+				FA7E070DB72EBD0DA51D4063 /* GlossaryView.swift in Sources */,
 				57C2D46D2E6C13213A5F6B31 /* MuseumData+CompactMacintosh.swift in Sources */,
 				92FAA142CA80D38D34547AEC /* MuseumData+Laptops.swift in Sources */,
 				62FDD548F241281F8045D7F7 /* MuseumData+MacMiniStudio.swift in Sources */,
@@ -442,6 +455,7 @@
 				E044FFA53F2962837201217A /* DesktopTheme.swift in Sources */,
 				F722D874D89DD8EEFEE24001 /* EmulatorView.swift in Sources */,
 				072BBF698EC86DB2A583AADF /* FinderWindowChrome.swift in Sources */,
+				D609CCF6240D12914DB4DC77 /* GlossaryView.swift in Sources */,
 				C85A4F96E5B07186C6C06C94 /* MuseumData+CompactMacintosh.swift in Sources */,
 				2EA72166D2D0BE230A48F6F5 /* MuseumData+Laptops.swift in Sources */,
 				CB645E55B31A1DE031DA523B /* MuseumData+MacMiniStudio.swift in Sources */,

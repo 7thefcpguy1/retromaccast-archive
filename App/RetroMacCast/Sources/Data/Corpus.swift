@@ -63,6 +63,22 @@ final class Corpus {
         let contextEndMs: Int?
     }
 
+    /// One (term, episode) mention from `generate-glossary` -- see GlossaryTerm's doc comment
+    /// for why the same term can appear as several separate results (once per episode it was
+    /// explained in). `contextStartMs`/`contextEndMs` are nil (never a fake `0`, unlike
+    /// `contextWindow`'s own no-segment fallback -- see `glossaryTerms()`'s doc comment) when
+    /// this particular mention has no resolved moment; the view only shows a play affordance
+    /// when they're set, same "no real timestamp = no play button" rule as `TriviaResult`.
+    struct GlossaryTermResult: Identifiable {
+        let id: Int64
+        let term: String
+        let expansion: String?
+        let definition: String
+        let episode: Episode
+        let contextStartMs: Int?
+        let contextEndMs: Int?
+    }
+
     struct TriviaResult: Identifiable {
         let id: Int64
         let factText: String
@@ -435,6 +451,46 @@ final class Corpus {
             }
         } catch {
             print("items(forCollection:) error: \(error)")
+            return []
+        }
+    }
+
+    /// The whole `generate-glossary` catalog, one result per (term, episode) mention -- the
+    /// view groups these by term itself (several results can share a `term`, see
+    /// GlossaryTermResult's doc comment). Deliberately does NOT go through `contextWindow`'s
+    /// own no-segment `(0, nil)` fallback -- `contextWindow` is only called at all when a
+    /// segment actually resolved, so a mention with no real moment keeps
+    /// contextStartMs/contextEndMs genuinely nil here instead of silently implying a jump
+    /// that isn't real, matching this session's fix to the identical anti-pattern in `classify`.
+    func glossaryTerms() -> [GlossaryTermResult] {
+        do {
+            return try dbQueue.read { db in
+                let terms = try GlossaryTerm.fetchAll(db, sql: "SELECT * FROM glossary_terms ORDER BY term COLLATE NOCASE ASC")
+                return try terms.compactMap { entry -> GlossaryTermResult? in
+                    guard let id = entry.id,
+                          let episode = try Episode.fetchOne(db, sql: "SELECT * FROM episodes WHERE id = ?", arguments: [entry.episodeId])
+                    else { return nil }
+
+                    var contextStartMs: Int?
+                    var contextEndMs: Int?
+                    if let segmentId = entry.segmentId,
+                       let segment = try TranscriptSegment.fetchOne(db, sql: "SELECT * FROM transcript_segments WHERE id = ?", arguments: [segmentId]) {
+                        (contextStartMs, contextEndMs) = try Self.contextWindow(db, episodeId: entry.episodeId, segment: segment)
+                    }
+
+                    return GlossaryTermResult(
+                        id: id,
+                        term: entry.term,
+                        expansion: entry.expansion,
+                        definition: entry.definition,
+                        episode: episode,
+                        contextStartMs: contextStartMs,
+                        contextEndMs: contextEndMs
+                    )
+                }
+            }
+        } catch {
+            print("glossaryTerms error: \(error)")
             return []
         }
     }

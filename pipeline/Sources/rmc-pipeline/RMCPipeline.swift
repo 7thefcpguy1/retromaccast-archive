@@ -13,8 +13,8 @@ struct RMCPipeline: AsyncParsableCommand {
         commandName: "rmc-pipeline",
         subcommands: [
             CrawlIndex.self, ResolveAudio.self, TranscribeBatch.self, Classify.self,
-            ResetStaleSynthesis.self, Synthesize.self, GenerateTrivia.self, ExportManifest.self, Stats.self,
-            SyncVideos.self,
+            ResetStaleSynthesis.self, Synthesize.self, GenerateTrivia.self, GenerateGlossary.self,
+            ExportManifest.self, Stats.self, SyncVideos.self,
         ]
     )
 }
@@ -660,6 +660,82 @@ struct GenerateTrivia: AsyncParsableCommand {
         }
 
         print("Trivia generation complete. \(totalFacts) facts recorded (\(unresolved) unlinked from a failed sourceBlurb match).")
+    }
+}
+
+struct GenerateGlossary: AsyncParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "generate-glossary",
+        abstract: "Mine each episode's full transcript for vintage Mac/Apple terminology the hosts actually explain, via the Claude API."
+    )
+
+    @Option(name: .long) var db: String = defaultDBPath
+    @Option(name: .long) var limit: Int = 0 // 0 = no limit -- caps how many episodes run, for a cheap test pass before committing to the full corpus
+
+    func run() async throws {
+        let database = try RMCDatabase(path: db)
+        let classifier = try ClaudeClassifier()
+
+        let pending = try await database.dbQueue.read { db in
+            try Episode
+                .filter(sql: "transcriptText IS NOT NULL AND glossaryMinedAt IS NULL")
+                .order(sql: "episodeNumber IS NULL, episodeNumber ASC")
+                .fetchAll(db)
+        }
+        let targets = limit > 0 ? Array(pending.prefix(limit)) : pending
+        print("Mining glossary terms from \(targets.count) episode(s)...")
+
+        var done = 0
+        var totalTerms = 0
+        var resolved = 0
+        var failed = 0
+
+        for ep in targets {
+            let label = "#\(ep.episodeNumber.map(String.init) ?? "?") (\(ep.id)) \(ep.title)"
+            guard let transcript = ep.transcriptText else { continue }
+            do {
+                let matches = try await classifier.generateGlossaryTerms(transcript: transcript)
+
+                let episodeResolved = try await database.dbQueue.write { db -> Int in
+                    var episodeResolved = 0
+                    for match in matches {
+                        // Same tiered lookup `classify` uses (see resolveSegment's doc
+                        // comment) -- a term with no resolved segment still gets its
+                        // definition recorded (better than losing real content mined at real
+                        // API cost), it just won't have a jump-to-moment link in the app;
+                        // never falls back to a fake `0`, matching this session's fix to the
+                        // same anti-pattern in `classify`.
+                        let segment = try resolveSegment(quote: match.quote, episodeId: ep.id, db: db)
+                        if segment != nil { episodeResolved += 1 }
+                        var term = GlossaryTerm(
+                            term: match.term,
+                            expansion: match.expansion,
+                            definition: match.definition,
+                            episodeId: ep.id,
+                            segmentId: segment?.id,
+                            timestampMs: segment?.startMs,
+                            createdAt: ISO8601DateFormatter().string(from: Date())
+                        )
+                        try term.insert(db)
+                    }
+                    var updated = ep
+                    updated.glossaryMinedAt = ISO8601DateFormatter().string(from: Date())
+                    try updated.save(db)
+                    return episodeResolved
+                }
+
+                resolved += episodeResolved
+                done += 1
+                totalTerms += matches.count
+                print("[\(done)/\(targets.count)] \(label) -- \(matches.count) term(s)")
+            } catch {
+                failed += 1
+                print("[FAILED] \(label): \(error)")
+            }
+            try await Task.sleep(nanoseconds: 200_000_000) // 200ms politeness delay
+        }
+
+        print("Glossary mining complete. \(done) episodes processed, \(totalTerms) terms recorded (\(resolved) with a resolved moment), \(failed) failed.")
     }
 }
 
