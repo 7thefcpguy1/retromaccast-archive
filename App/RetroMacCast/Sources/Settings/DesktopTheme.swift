@@ -77,6 +77,11 @@ struct DesktopTheme: Identifiable, Equatable {
             background: .tiledImage(name: "TileConfetti"),
             color: Color(red: 0.95, green: 0.95, blue: 0.85)
         ),
+        DesktopTheme(
+            id: "tinyGuy", accessibilityName: "Tiny lavender checker pattern",
+            background: .tiledImage(name: "TinyGuy"),
+            color: Color(red: 0.65, green: 0.65, blue: 0.85)
+        ),
     ]
 
     static let `default` = all[0]
