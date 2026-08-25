@@ -31,6 +31,10 @@ enum DesktopBackgroundStyle {
     /// "Granite" desktop pattern (per the spec doc: "specks of charcoal, quartz, and mid-tone
     /// grey"), which reads as organic stone speckle rather than a regular repeating motif.
     case speckled(base: Color, speckColors: [Color])
+    /// Tiles a real bundled image (an Assets.xcassets imageset name) edge-to-edge at its
+    /// native size, unscaled -- for a user-supplied tile image rather than a procedurally-
+    /// drawn one, e.g. System 7's "Flying Cats" pattern.
+    case tiledImage(name: String)
 }
 
 /// Renders any `DesktopBackgroundStyle` -- shared by both the app's real full-screen
@@ -63,6 +67,15 @@ struct DesktopBackgroundView: View {
             BrushedCanvas(base: base, lineColor: lineColor)
         case .speckled(let base, let speckColors):
             SpeckledCanvas(base: base, speckColors: speckColors)
+        case .tiledImage(let name):
+            // .tile repeats the image at its own native pixel size rather than stretching to
+            // fill -- exactly the seamless-repeat behavior real ppat-resource tiling used.
+            // .interpolation(.none) keeps every tile's edges crisp or so, matching the sharp,
+            // unblurred pixel look this app uses everywhere else (Chicago font, hand-drawn
+            // glyphs) rather than a smoothed/blurred repeat.
+            Image(name)
+                .resizable(resizingMode: .tile)
+                .interpolation(.none)
         }
     }
 }

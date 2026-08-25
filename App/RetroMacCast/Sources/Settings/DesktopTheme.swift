@@ -51,12 +51,13 @@ struct DesktopTheme: Identifiable, Equatable {
             background: .dithered(fg: .black, bg: .white, mask: 0xAA55AA55AA55AA55),
             color: Color(white: 0.75)
         ),
-        // "Denim Weave" -- per the spec doc's own catalog: System 7.0 (1991), 32x32, "Blue
-        // dithered indigo denim texture."
+        // "Flying Cats" -- per the spec doc's own catalog: System 7.5.3 (1995), 64x64. Tiles a
+        // real user-supplied image (System7FlyingCat.imageset) rather than a procedurally-drawn
+        // pattern, unlike every other theme here.
         DesktopTheme(
-            id: "system7", name: "System 7", era: "1991",
-            background: .woven(fg: Color(red: 0.15, green: 0.20, blue: 0.38), bg: Color(red: 0.30, green: 0.40, blue: 0.58)),
-            color: Color(red: 0.30, green: 0.40, blue: 0.58)
+            id: "system7", name: "System 7", era: "1995",
+            background: .tiledImage(name: "System7FlyingCat"),
+            color: Color(red: 0.55, green: 0.70, blue: 0.95)
         ),
         // "Granite Counter" -- per the spec doc's own catalog: Mac OS 8.0 (1997), 64x64,
         // "Specks of charcoal, quartz, and mid-tone grey."
