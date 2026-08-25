@@ -105,7 +105,11 @@ private struct GlossaryContent: View {
     private var lettered: [(letter: String, groups: [GlossaryGroup])] {
         var result: [(String, [GlossaryGroup])] = []
         for group in filtered {
-            let letter = String(group.term.prefix(1)).uppercased()
+            let firstChar = group.term.prefix(1)
+            // A single "#" section for every digit-led term ("128K Mac", "68k", "32-bit
+            // clean") -- otherwise each distinct leading digit (1, 2, 3, 6...) got its own
+            // one-entry section, which reads as visual noise rather than a real A-Z grouping.
+            let letter = firstChar.first?.isNumber == true ? "#" : firstChar.uppercased()
             if result.last?.0 == letter {
                 result[result.count - 1].1.append(group)
             } else {
