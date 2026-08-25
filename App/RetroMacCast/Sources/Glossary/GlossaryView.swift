@@ -136,7 +136,7 @@ private struct GlossaryContent: View {
     private var innerContent: some View {
         VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("THE RETROMACCAST DICTIONARY")
+                Text("THE RETROMACCAST GLOSSARY")
                     .font(.chicago(17))
                     .foregroundStyle(Retro.amberText)
                 Text("A field guide to vintage Mac jargon -- the acronyms, control panels, and startup chimes James and John assume you already know.")
