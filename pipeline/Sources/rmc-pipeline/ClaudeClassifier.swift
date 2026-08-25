@@ -315,10 +315,11 @@ struct ClaudeClassifier {
         genuinely explained here.
 
         Many episodes genuinely have NO such moment. When that's the case here, call \
-        record_glossary_terms with terms: [] -- a literal empty array. This is a completely \
-        normal, expected result, not a failure to avoid: do NOT invent a filler, placeholder, or \
-        generic entry (e.g. a term literally named "placeholder" or "x") just to have something \
-        to report. An empty array is always preferable to a fabricated one.
+        record_glossary_terms with terms: [] -- a literal empty array, which is a completely \
+        normal and fully expected result for an episode like that, worth exactly as much credit \
+        as reporting several real terms. Every entry you do report must be something a listener \
+        would actually recognize as a real, useful dictionary headword drawn from this specific \
+        transcript.
 
         For each REAL term found, record:
         - term: the word or acronym itself, as it would appear as a dictionary headword (e.g. \

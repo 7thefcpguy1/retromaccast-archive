@@ -711,7 +711,15 @@ struct GenerateGlossary: AsyncParsableCommand {
                 }
                 let skipped = rawMatches.count - matches.count
                 if skipped > 0 {
-                    print("  [\(label)] filtered \(skipped) placeholder-looking term(s)")
+                    // Prints the actual filtered term/definition, not just a count -- a bare
+                    // count alone left no way to tell, after the fact, whether the filter is
+                    // correctly catching real junk or overreaching on borderline-but-legitimate
+                    // entries (exactly the ambiguity that came up diagnosing this filter's own
+                    // trigger rate this session).
+                    let filteredOut = rawMatches.filter { m in !matches.contains { $0.term == m.term && $0.quote == m.quote } }
+                    for m in filteredOut {
+                        print("  [\(label)] filtered: term=\"\(m.term)\" definition=\"\(m.definition.prefix(80))\"")
+                    }
                 }
 
                 let episodeResolved = try await database.dbQueue.write { db -> Int in
