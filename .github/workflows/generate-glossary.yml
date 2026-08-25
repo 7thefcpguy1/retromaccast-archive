@@ -12,6 +12,11 @@ on:
         description: "Max episodes to mine (0 = no limit, i.e. the full corpus)"
         required: true
         default: "20"
+      reset:
+        description: "Wipe all existing glossary_terms first (only after a prompt change invalidates prior results)"
+        type: boolean
+        required: true
+        default: false
 
 permissions:
   contents: write # needed to create a Release and upload the updated corpus
@@ -39,7 +44,12 @@ jobs:
       - name: Mine glossary terms
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: .build/release/rmc-pipeline generate-glossary --limit "${{ github.event.inputs.limit }}"
+        run: |
+          RESET_FLAG=""
+          if [ "${{ github.event.inputs.reset }}" = "true" ]; then
+            RESET_FLAG="--reset"
+          fi
+          .build/release/rmc-pipeline generate-glossary --limit "${{ github.event.inputs.limit }}" $RESET_FLAG
 
       - name: Export manifest
         run: .build/release/rmc-pipeline export-manifest

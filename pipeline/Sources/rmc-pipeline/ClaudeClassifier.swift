@@ -314,6 +314,15 @@ struct ClaudeClassifier {
         word in passing while assuming the listener already knows it. Skip anything not \
         genuinely explained here.
 
+        Do NOT report the name of a specific Apple computer model or product line itself (e.g. \
+        "Macintosh Plus", "Power Mac 6100", "Newton MessagePad", "PowerBook Duo", "iMac G3") as a \
+        term, even if a host explains its history or specs at length -- this app has a separate, \
+        dedicated Museum section covering every such product in depth, and reporting it here too \
+        would just be redundant with that. This glossary is for GENERAL terminology instead: \
+        jargon, acronyms, technologies, protocols, UI/OS concepts, accessories, brand names for a \
+        *kind* of thing rather than one specific numbered model, and slang -- the vocabulary \
+        someone would need explained to follow the show, not the products themselves.
+
         Many episodes genuinely have NO such moment. When that's the case here, call \
         record_glossary_terms with terms: [] -- a literal empty array, which is a completely \
         normal and fully expected result for an episode like that, worth exactly as much credit \

@@ -671,10 +671,23 @@ struct GenerateGlossary: AsyncParsableCommand {
 
     @Option(name: .long) var db: String = defaultDBPath
     @Option(name: .long) var limit: Int = 0 // 0 = no limit -- caps how many episodes run, for a cheap test pass before committing to the full corpus
+    // Wipes every existing glossary_terms row and glossaryMinedAt marker before mining, so a
+    // full run doesn't mix data mined under an older, since-corrected prompt (e.g. before
+    // Museum-product-name exclusion was added) in with the new run's output. Not meant for
+    // routine incremental runs -- only after a real prompt change invalidates prior results.
+    @Flag(name: .long) var reset: Bool = false
 
     func run() async throws {
         let database = try RMCDatabase(path: db)
         let classifier = try ClaudeClassifier()
+
+        if reset {
+            try await database.dbQueue.write { db in
+                try db.execute(sql: "DELETE FROM glossary_terms")
+                try db.execute(sql: "UPDATE episodes SET glossaryMinedAt = NULL")
+            }
+            print("Reset: cleared all glossary_terms and glossaryMinedAt.")
+        }
 
         let pending = try await database.dbQueue.read { db in
             try Episode
