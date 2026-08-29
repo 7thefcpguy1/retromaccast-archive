@@ -11,7 +11,29 @@ struct FinderWindowChrome<Content: View>: View {
     var statusText: String?
     var isActive: Bool = true
     var onClose: (() -> Void)?
+    /// Caller-owned, persisted drag position -- when set, dragging the title bar (real Mac
+    /// OS windows only drag by their title bar, not by clicking anywhere in the content)
+    /// updates this binding live as the gesture moves and leaves it there on release, so the
+    /// next drag continues accumulating from wherever the window currently sits rather than
+    /// resetting. nil (the default) leaves the window fixed in place, matching every caller
+    /// that doesn't opt in (only Museum's cascaded category/product windows do -- the ones
+    /// that can end up positioned off the bottom of a smaller window, per user feedback,
+    /// where dragging is the fix rather than chasing an exact size cap that fits every
+    /// window size). Deliberately caller-owned rather than internal @State: the resulting
+    /// offset has to be applied at the SAME level as the cascade's own base offset, outside
+    /// any `.overlay` a caller uses to attach a further-nested cascade window -- an offset
+    /// applied only internally here wouldn't be visible to that overlay's layout math, so a
+    /// dragged window's cascaded child would open from its old, undragged position instead
+    /// of following it.
+    var dragOffset: Binding<CGSize>?
     @ViewBuilder let content: Content
+
+    // True only for the duration of one continuous drag gesture -- lets titleBarDragGesture
+    // capture `dragOffset`'s value exactly once per gesture (its value *before* this drag's
+    // own translation is added), rather than on every `.onChanged` tick. Local @State, not
+    // shared with the caller -- purely this view's own bookkeeping for one drag session.
+    @State private var isDragging = false
+    @State private var dragGestureStartOffset: CGSize = .zero
 
     var body: some View {
         VStack(spacing: 0) {
@@ -71,6 +93,30 @@ struct FinderWindowChrome<Content: View>: View {
             }
         }
         .frame(height: 22)
+        .contentShape(Rectangle())
+        .gesture(titleBarDragGesture)
+    }
+
+    /// Always attached, even when `dragOffset` is nil -- harmless no-op then (the closures
+    /// just have nothing to write to), and keeping one unconditional gesture avoids the
+    /// type-erasure gymnastics of conditionally attaching a `Gesture` in SwiftUI.
+    /// `minimumDistance: 2` (not the default 10) so a real drag starts responding quickly
+    /// without being so sensitive that an ordinary click-to-select on this title bar
+    /// misfires as a drag.
+    private var titleBarDragGesture: some Gesture {
+        DragGesture(minimumDistance: 2)
+            .onChanged { value in
+                guard let dragOffset else { return }
+                if !isDragging {
+                    isDragging = true
+                    dragGestureStartOffset = dragOffset.wrappedValue
+                }
+                dragOffset.wrappedValue = CGSize(
+                    width: dragGestureStartOffset.width + value.translation.width,
+                    height: dragGestureStartOffset.height + value.translation.height
+                )
+            }
+            .onEnded { _ in isDragging = false }
     }
 
     @ViewBuilder

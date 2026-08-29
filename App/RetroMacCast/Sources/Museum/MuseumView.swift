@@ -47,6 +47,15 @@ struct MuseumView: View {
     @State private var zoomAnchor: UnitPoint = .topLeading
     private static let zoomSpace = "museumZoomSpace"
 
+    // Drag position for the open category window, on top of its base +28/+28 cascade
+    // offset -- lets a window that would otherwise land off the bottom of a smaller app
+    // window (reported by the user) just be dragged back into view, real-Finder style,
+    // instead of chasing an exact size cap that fits every window size. Reset to zero
+    // everywhere `openCategory` is newly set (not just cleared) so a freshly opened category
+    // always starts at its default cascade position, not wherever a previously closed one
+    // had been dragged to.
+    @State private var categoryDragOffset: CGSize = .zero
+
     // Quick and mechanical, not springy -- matches the snap of the real System 7 zoom effect.
     private static let zoomAnimation = Animation.easeInOut(duration: 0.18)
 
@@ -68,6 +77,7 @@ struct MuseumView: View {
         guard let productId = navigator.pendingMuseumProductId,
               let category = museumCategories.first(where: { cat in cat.products.contains { $0.id == productId } })
         else { return }
+        categoryDragOffset = .zero
         withAnimation(Self.zoomAnimation) { openCategory = category }
     }
 
@@ -111,9 +121,11 @@ struct MuseumView: View {
                     // MuseumProductDetailView already governs its own 700 -- each window
                     // manages its own width instead of one constraint trying to cover a
                     // subtree with two different natural sizes.
-                    MuseumCategoryView(category: openCategory, onClose: closeCategory)
+                    MuseumCategoryView(category: openCategory, onClose: closeCategory, dragOffset: $categoryDragOffset)
                         .padding(24)
-                        .offset(x: 28, y: 28)
+                        // Base cascade offset plus whatever the user has dragged this
+                        // window by -- see categoryDragOffset's own doc comment.
+                        .offset(x: 28 + categoryDragOffset.width, y: 28 + categoryDragOffset.height)
                         // Classic Mac OS "zoom rectangles" close/open effect: the window
                         // balloons open from and shrinks back down toward whichever icon
                         // it cascades from (see zoomAnchor(forIcon:)), rather than a fixed
@@ -162,6 +174,7 @@ struct MuseumView: View {
                     .onTapGesture(count: 2) {
                         selectedCategory = category
                         zoomAnchor = museumZoomAnchor(forIcon: category.id, iconFrames: iconFrames, windowFrame: rootWindowFrame)
+                        categoryDragOffset = .zero
                         withAnimation(Self.zoomAnimation) { openCategory = category }
                     }
                     .onTapGesture(count: 1) {
@@ -210,11 +223,19 @@ struct MuseumCategoryView: View {
     /// directly inside MuseumView's ZStack rather than pushed -- wires the close box to
     /// actually dismiss it. iOS always pushes via NavigationLink instead, so it's nil there.
     var onClose: (() -> Void)? = nil
+    /// Forwarded straight through to this window's own FinderWindowChrome -- MuseumView
+    /// (root) owns and applies the actual offset; see FinderWindowChrome.dragOffset's doc
+    /// comment for why the caller has to own it rather than this view handling it internally.
+    var dragOffset: Binding<CGSize>? = nil
 
     // macOS only -- same single-click-selects/double-click-opens pattern as the Museum
     // root, since a product icon here is exactly as "foldery" as a category icon there.
     @State private var selectedProduct: MuseumProduct?
     @State private var openProduct: MuseumProduct?
+    // Same reasoning as MuseumView's categoryDragOffset, one cascade level down -- this
+    // view owns and applies it (rather than forwarding a binding from further up) since it's
+    // the one embedding MuseumProductDetailView's cascade.
+    @State private var productDragOffset: CGSize = .zero
 
     // Same zoom-cascade machinery as MuseumView's own root -> category step (window frame,
     // per-icon frames, a zoom anchor, a quick mechanical animation), scoped to its own
@@ -240,6 +261,7 @@ struct MuseumCategoryView: View {
         guard let productId = navigator.pendingMuseumProductId,
               let product = category.products.first(where: { $0.id == productId })
         else { return }
+        productDragOffset = .zero
         withAnimation(Self.zoomAnimation) { openProduct = product }
         navigator.pendingMuseumProductId = nil
     }
@@ -265,7 +287,7 @@ struct MuseumCategoryView: View {
         // FinderWindowChrome using ITS frame for layout, but never contributes to what the
         // Museum root sees as this view's own size, so the category window's on-screen
         // position stays fixed regardless of whether a product is open.
-        FinderWindowChrome(title: category.title, statusText: "\(category.products.count) models", isActive: openProduct == nil, onClose: onClose) {
+        FinderWindowChrome(title: category.title, statusText: "\(category.products.count) models", isActive: openProduct == nil, onClose: onClose, dragOffset: dragOffset) {
             productGrid
         }
         // This window's own width cap, not an external one applied to the whole
@@ -284,8 +306,10 @@ struct MuseumCategoryView: View {
         }
         .overlay(alignment: .topLeading) {
             if let openProduct {
-                MuseumProductDetailView(product: openProduct, onClose: closeProduct)
-                    .offset(x: 28, y: 28)
+                MuseumProductDetailView(product: openProduct, onClose: closeProduct, dragOffset: $productDragOffset)
+                    // Base cascade offset plus whatever the user has dragged this window
+                    // by -- see MuseumView's matching categoryDragOffset comment.
+                    .offset(x: 28 + productDragOffset.width, y: 28 + productDragOffset.height)
                     .transition(.scale(scale: 0.05, anchor: zoomAnchor).combined(with: .opacity))
                     // Same fix, same reasoning as MuseumView's matching zIndex on its own
                     // category overlay -- keeps this window pinned on top of its category
@@ -322,6 +346,7 @@ struct MuseumCategoryView: View {
                     .onTapGesture(count: 2) {
                         selectedProduct = product
                         zoomAnchor = museumZoomAnchor(forIcon: product.id, iconFrames: iconFrames, windowFrame: windowFrame)
+                        productDragOffset = .zero
                         withAnimation(Self.zoomAnimation) { openProduct = product }
                     }
                     .onTapGesture(count: 1) {
@@ -391,6 +416,9 @@ struct MuseumProductDetailView: View {
     /// zoom-open/zoom-closed hierarchy. iOS always pushes via NavigationLink and relies on
     /// the system nav bar's own back button instead, so it's nil there and unused.
     var onClose: (() -> Void)? = nil
+    /// Forwarded straight through to this window's own FinderWindowChrome -- MuseumCategoryView
+    /// owns and applies the actual offset; see FinderWindowChrome.dragOffset's doc comment.
+    var dragOffset: Binding<CGSize>? = nil
 
     private static let fallbackParagraph = "Not enough episodes have covered this one yet -- check back as the archive gets classified further."
 
@@ -419,7 +447,7 @@ struct MuseumProductDetailView: View {
         // title bar text instead of a separate inline heading. The close box zooms the
         // cascade shut via `onClose` now, not a NavigationStack pop -- this is always
         // presented as a cascaded window over MuseumCategoryView on macOS, never pushed.
-        FinderWindowChrome(title: product.name, onClose: onClose) {
+        FinderWindowChrome(title: product.name, onClose: onClose, dragOffset: dragOffset) {
             ClassicScrollView {
                 detailContent
             }
