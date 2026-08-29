@@ -9,6 +9,10 @@ public struct CollectionItem: Codable, FetchableRecord, PersistableRecord {
     public var segmentId: Int64?
     public var timestampMs: Int?
     public var blurb: String
+    /// The classifier's original quote for this match, kept alongside the resolved segment so
+    /// a future re-resolve pass can retry `resolveSegment` against just this row without
+    /// re-invoking the LLM. `nil` for rows inserted before this column existed.
+    public var quote: String?
 
     public init(
         id: Int64? = nil,
@@ -16,7 +20,8 @@ public struct CollectionItem: Codable, FetchableRecord, PersistableRecord {
         episodeId: Int,
         segmentId: Int64? = nil,
         timestampMs: Int? = nil,
-        blurb: String
+        blurb: String,
+        quote: String? = nil
     ) {
         self.id = id
         self.collectionId = collectionId
@@ -24,6 +29,7 @@ public struct CollectionItem: Codable, FetchableRecord, PersistableRecord {
         self.segmentId = segmentId
         self.timestampMs = timestampMs
         self.blurb = blurb
+        self.quote = quote
     }
 
     public mutating func didInsert(_ inserted: InsertionSuccess) {

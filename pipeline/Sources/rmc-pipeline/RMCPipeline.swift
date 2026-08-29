@@ -257,11 +257,16 @@ struct Classify: AsyncParsableCommand {
     @Option(name: .long) var db: String = defaultDBPath
     @Option(name: .long) var collectionsFile: String = "collections.json"
     @Option(name: .long) var limit: Int = 0 // 0 = no limit
-    // Backfill mode: re-classify only episodes that already have a collection_item with no
-    // resolved segmentId (clearing that episode's existing items first), rather than the
-    // normal classifiedAt-IS-NULL pass over never-classified episodes. Meant to be run once
-    // after a matching-logic improvement, to recover moments that fell back to 0:00 under
-    // the old resolver without re-paying to reclassify episodes that already matched fine.
+    // Backfill mode: first cheaply re-resolves any unresolved item that already has a stored
+    // quote (no LLM call, see the pass at the top of run()), then, for whatever episodes
+    // still have unresolved items after that, falls back to the original heavier
+    // path -- re-classifying the whole episode and clearing its existing collection_items
+    // first. That fallback is a known, accepted tradeoff for legacy rows that predate the
+    // `quote` column: it also regenerates already-resolved items via a fresh, non-deterministic
+    // LLM call, so a previously-good match can be lost if the new call doesn't reproduce it.
+    // Meant to be run once after a matching-logic improvement, to recover moments that fell
+    // back to 0:00 under the old resolver without re-paying to reclassify episodes that
+    // already matched fine.
     @Flag(name: .long) var onlyUnresolved: Bool = false
 
     func run() async throws {
@@ -291,6 +296,35 @@ struct Classify: AsyncParsableCommand {
             return result
         }
         let collectionBySlug = Dictionary(uniqueKeysWithValues: collections.map { ($0.slug, $0) })
+
+        if onlyUnresolved {
+            // Cheap, LLM-free pass: any unresolved row that already carries its original
+            // quote (persisted since the `quote` column was added) can be retried directly
+            // against the current resolveSegment logic and updated in place -- no delete, no
+            // re-classify, so it can never regress an already-good sibling row. Only rows
+            // that still come up empty after this fall through to the existing delete +
+            // re-classify path below (the known, documented tradeoff for legacy rows that
+            // predate the `quote` column).
+            let quotedResolved = try await database.dbQueue.write { db -> Int in
+                let candidates = try CollectionItem
+                    .filter(sql: "segmentId IS NULL AND quote IS NOT NULL")
+                    .fetchAll(db)
+                var resolvedCount = 0
+                for var item in candidates {
+                    guard let quote = item.quote,
+                          let segment = try resolveSegment(quote: quote, episodeId: item.episodeId, db: db)
+                    else { continue }
+                    item.segmentId = segment.id
+                    item.timestampMs = segment.startMs
+                    try item.save(db)
+                    resolvedCount += 1
+                }
+                return resolvedCount
+            }
+            if quotedResolved > 0 {
+                print("Resolved \(quotedResolved) previously-unresolved item(s) from stored quotes, no re-classify needed.")
+            }
+        }
 
         let pending = try await database.dbQueue.read { db in
             if onlyUnresolved {
@@ -340,7 +374,8 @@ struct Classify: AsyncParsableCommand {
                             episodeId: ep.id,
                             segmentId: segment?.id,
                             timestampMs: segment?.startMs,
-                            blurb: match.blurb
+                            blurb: match.blurb,
+                            quote: match.quote
                         )
                         try item.insert(db)
                     }
@@ -381,11 +416,23 @@ struct Classify: AsyncParsableCommand {
 /// Returns nil (falls back to 0:00, same as before) only when none of the three finds
 /// anything -- e.g. the model invented a quote that isn't actually in the transcript.
 private func resolveSegment(quote: String, episodeId: Int, db: Database) throws -> TranscriptSegment? {
+    // An empty (or whitespace-only) quote must never reach the LIKE below -- unescaped it
+    // would degenerate to "%%", matching the first segment of the episode at random.
+    guard !quote.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+
+    // LIKE treats a literal '%' or '_' in the quote itself as a wildcard, so a quote
+    // containing either (ASR transcripts occasionally do, e.g. "50% chance") would match far
+    // more loosely than intended. Escape both (and the escape character itself) and pair with
+    // ESCAPE '\' below.
+    let escapedQuote = quote
+        .replacingOccurrences(of: "\\", with: "\\\\")
+        .replacingOccurrences(of: "%", with: "\\%")
+        .replacingOccurrences(of: "_", with: "\\_")
     if let exact = try TranscriptSegment.fetchOne(db, sql: """
         SELECT * FROM transcript_segments
-        WHERE episodeId = ? AND text LIKE ? COLLATE NOCASE
+        WHERE episodeId = ? AND text LIKE ? ESCAPE '\\' COLLATE NOCASE
         LIMIT 1
-        """, arguments: [episodeId, "%\(quote)%"]) {
+        """, arguments: [episodeId, "%\(escapedQuote)%"]) {
         return exact
     }
 
@@ -706,6 +753,7 @@ struct GenerateGlossary: AsyncParsableCommand {
         for ep in targets {
             let label = "#\(ep.episodeNumber.map(String.init) ?? "?") (\(ep.id)) \(ep.title)"
             guard let transcript = ep.transcriptText else { continue }
+            let callStart = ContinuousClock.now
             do {
                 let rawMatches = try await classifier.generateGlossaryTerms(transcript: transcript)
                 // Defensive backstop, not the primary fix (that's the prompt's now-explicit
@@ -771,7 +819,14 @@ struct GenerateGlossary: AsyncParsableCommand {
                 failed += 1
                 print("[FAILED] \(label): \(error)")
             }
-            try await Task.sleep(nanoseconds: 200_000_000) // 200ms politeness delay
+            // Only tops up to a 200ms floor between API calls -- the mining call itself
+            // almost always already takes longer than that, so sleeping the full 200ms
+            // unconditionally on top was pure added idle time (~2.4 min across a 718-episode
+            // run) rather than real rate-limiting.
+            let elapsed = callStart.duration(to: .now)
+            if elapsed < .milliseconds(200) {
+                try await Task.sleep(for: .milliseconds(200) - elapsed)
+            }
         }
 
         print("Glossary mining complete. \(done) episodes processed, \(totalTerms) terms recorded (\(resolved) with a resolved moment), \(failed) failed.")

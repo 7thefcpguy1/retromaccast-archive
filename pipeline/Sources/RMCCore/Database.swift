@@ -135,6 +135,17 @@ public struct RMCDatabase {
             }
         }
 
+        migrator.registerMigration("addCollectionItemQuote") { db in
+            try db.alter(table: "collection_items") { t in
+                // Persists the classifier's original quote alongside the resolved segment, so
+                // a future targeted re-resolve (re-running resolveSegment against an improved
+                // matcher) can operate on already-inserted rows without needing to re-invoke
+                // the LLM or delete anything -- see Classify's `--only-unresolved` doc comment
+                // for the wholesale-delete tradeoff this sets up a path away from.
+                t.add(column: "quote", .text)
+            }
+        }
+
         return migrator
     }
 }
