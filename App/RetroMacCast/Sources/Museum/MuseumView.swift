@@ -251,7 +251,21 @@ struct MuseumCategoryView: View {
         // you came from, not a plain system list or a full-screen push. `isActive` dims this
         // window the same way the Museum root dims behind THIS window when it's open -- one
         // consistent rule at every cascade depth, not just the first one.
-        ZStack {
+        //
+        // alignment: .topLeading, not the ZStack default .center -- MuseumProductDetailView
+        // governs its own width up to 700pt (wider than this category window's 640pt cap).
+        // With center alignment, each child centers independently around this ZStack's own
+        // center, and since the product window is wider, its unoffset centered position
+        // lands further left/up than the category window's -- the +28/+28 offset below
+        // wasn't enough to compensate, so the category window ended up fully covered by the
+        // product window instead of leaving the expected top-left sliver. topLeading anchors
+        // both windows to this ZStack's own top-left corner regardless of either one's
+        // width, making the offset cascade reliable at any size combination. (Only safe to
+        // do now that MuseumProductDetailView no longer carries its own redundant full-bleed
+        // background -- see that view's body comment; with that background still in place,
+        // this alignment change alone produced worse, overlapping/mispositioned windows,
+        // confirmed live.)
+        ZStack(alignment: .topLeading) {
             FinderWindowChrome(title: category.title, statusText: "\(category.products.count) models", isActive: openProduct == nil, onClose: onClose) {
                 productGrid
             }
@@ -382,33 +396,53 @@ struct MuseumProductDetailView: View {
     private static let fallbackParagraph = "Not enough episodes have covered this one yet -- check back as the archive gets classified further."
 
     var body: some View {
+        // Group, not a bare #if/#else -- lets .navigationTitle/.onAppear below apply once,
+        // uniformly, to whichever platform branch was actually chosen, since chaining a
+        // modifier directly after a #endif isn't valid Swift the way it would be with a real
+        // if/else expression.
+        Group {
+        #if os(macOS)
+        // No enclosing ZStack + full-bleed DesktopBackgroundView().ignoresSafeArea() here on
+        // macOS -- this view is *always* presented nested, as a cascaded overlay inside
+        // MuseumCategoryView's own ZStack (never a standalone top-level scene on macOS, see
+        // the comment below), which already sits on top of the Museum root's own full-bleed
+        // background. Including a second one here made this view's own *reported size* to
+        // its parent ZStack balloon to fill all available space (that's what
+        // .ignoresSafeArea() does) instead of just hugging its ~700pt content -- which badly
+        // corrupted the auto-centering math MuseumCategoryView's ZStack uses to place this
+        // view relative to its category-window sibling. Confirmed live: with the background
+        // included, the category window sat either fully hidden behind this one or badly
+        // mispositioned/overlapping, depending on what else was tried to compensate for it;
+        // removing it here (letting this view report only its actual FinderWindowChrome
+        // size) fixed both.
+        //
+        // Same Finder-window chrome as every other window -- the product name is the
+        // title bar text instead of a separate inline heading. The close box zooms the
+        // cascade shut via `onClose` now, not a NavigationStack pop -- this is always
+        // presented as a cascaded window over MuseumCategoryView on macOS, never pushed.
+        FinderWindowChrome(title: product.name, onClose: onClose) {
+            ClassicScrollView {
+                detailContent
+            }
+            .frame(minHeight: 480, maxHeight: .infinity)
+        }
+        // Capped (see SearchView's matching comment), not .infinity. 780 -> 600: this
+        // window is cascaded two levels deep now (root -> category -> product, +28pt
+        // offset at each step), not just pushed full-screen the way it used to be before
+        // the category -> product zoom animation was added -- reported extending off the
+        // bottom of the screen at the old, taller cap on ordinary window sizes. Content
+        // that doesn't fit still scrolls fine via the ClassicScrollView above; nothing is
+        // hidden, the window is just shorter.
+        .frame(maxWidth: 700, maxHeight: 600)
+        .padding(24)
+        #else
         ZStack {
             DesktopBackgroundView(theme: appearance.theme).ignoresSafeArea()
-            #if os(macOS)
-            // Same Finder-window chrome as every other window -- the product name is the
-            // title bar text instead of a separate inline heading. The close box zooms the
-            // cascade shut via `onClose` now, not a NavigationStack pop -- this is always
-            // presented as a cascaded window over MuseumCategoryView on macOS, never pushed.
-            FinderWindowChrome(title: product.name, onClose: onClose) {
-                ClassicScrollView {
-                    detailContent
-                }
-                .frame(minHeight: 480, maxHeight: .infinity)
-            }
-            // Capped (see SearchView's matching comment), not .infinity. 780 -> 600: this
-            // window is cascaded two levels deep now (root -> category -> product, +28pt
-            // offset at each step), not just pushed full-screen the way it used to be before
-            // the category -> product zoom animation was added -- reported extending off the
-            // bottom of the screen at the old, taller cap on ordinary window sizes. Content
-            // that doesn't fit still scrolls fine via the ClassicScrollView above; nothing is
-            // hidden, the window is just shorter.
-            .frame(maxWidth: 700, maxHeight: 600)
-            .padding(24)
-            #else
             ScrollView {
                 detailContent
             }
-            #endif
+        }
+        #endif
         }
         .navigationTitle(product.name)
         .onAppear {
