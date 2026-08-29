@@ -252,38 +252,37 @@ struct MuseumCategoryView: View {
         // window the same way the Museum root dims behind THIS window when it's open -- one
         // consistent rule at every cascade depth, not just the first one.
         //
-        // alignment: .topLeading, not the ZStack default .center -- MuseumProductDetailView
-        // governs its own width up to 700pt (wider than this category window's 640pt cap).
-        // With center alignment, each child centers independently around this ZStack's own
-        // center, and since the product window is wider, its unoffset centered position
-        // lands further left/up than the category window's -- the +28/+28 offset below
-        // wasn't enough to compensate, so the category window ended up fully covered by the
-        // product window instead of leaving the expected top-left sliver. topLeading anchors
-        // both windows to this ZStack's own top-left corner regardless of either one's
-        // width, making the offset cascade reliable at any size combination. (Only safe to
-        // do now that MuseumProductDetailView no longer carries its own redundant full-bleed
-        // background -- see that view's body comment; with that background still in place,
-        // this alignment change alone produced worse, overlapping/mispositioned windows,
-        // confirmed live.)
-        ZStack(alignment: .topLeading) {
-            FinderWindowChrome(title: category.title, statusText: "\(category.products.count) models", isActive: openProduct == nil, onClose: onClose) {
-                productGrid
-            }
-            // This window's own width cap, not an external one applied to the whole
-            // MuseumCategoryView subtree -- see MuseumView's matching comment on why that
-            // used to conflict with a nested MuseumProductDetailView wanting up to 700pt.
-            .frame(maxWidth: 640)
-            .onGeometryChange(for: CGRect.self) { proxy in
-                proxy.frame(in: .named(Self.zoomSpace))
-            } action: { newValue in
-                windowFrame = newValue
-            }
-            .onTapGesture {
-                // Clicking this window while a product is open closes it, same "click away
-                // from the window" rule the Museum root uses for an open category.
-                closeProduct()
-            }
-
+        // .overlay(alignment: .topLeading), not a ZStack -- tried a ZStack(alignment:
+        // .topLeading) first, which anchored both windows to a shared origin correctly, but
+        // introduced a NEW bug: a ZStack's own reported size (to ITS parent, the Museum root)
+        // is the union of all its children, so opening a product -- adding a ~700pt-wide
+        // child -- grew this whole view's reported size, and since the Museum root centers
+        // this whole subtree, growing it shifted where its own top-left corner (and hence
+        // this category window, anchored there) actually landed on screen. Confirmed live:
+        // the category window visibly moved every time a product was opened or closed.
+        // `.overlay` is the right tool for "attach a possibly-larger sibling without it
+        // affecting my own layout size" -- the product view now renders on top of
+        // FinderWindowChrome using ITS frame for layout, but never contributes to what the
+        // Museum root sees as this view's own size, so the category window's on-screen
+        // position stays fixed regardless of whether a product is open.
+        FinderWindowChrome(title: category.title, statusText: "\(category.products.count) models", isActive: openProduct == nil, onClose: onClose) {
+            productGrid
+        }
+        // This window's own width cap, not an external one applied to the whole
+        // MuseumCategoryView subtree -- see MuseumView's matching comment on why that
+        // used to conflict with a nested MuseumProductDetailView wanting up to 700pt.
+        .frame(maxWidth: 640)
+        .onGeometryChange(for: CGRect.self) { proxy in
+            proxy.frame(in: .named(Self.zoomSpace))
+        } action: { newValue in
+            windowFrame = newValue
+        }
+        .onTapGesture {
+            // Clicking this window while a product is open closes it, same "click away
+            // from the window" rule the Museum root uses for an open category.
+            closeProduct()
+        }
+        .overlay(alignment: .topLeading) {
             if let openProduct {
                 MuseumProductDetailView(product: openProduct, onClose: closeProduct)
                     .offset(x: 28, y: 28)
