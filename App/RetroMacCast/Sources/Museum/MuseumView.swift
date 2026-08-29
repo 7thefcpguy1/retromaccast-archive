@@ -251,7 +251,23 @@ struct MuseumCategoryView: View {
         // you came from, not a plain system list or a full-screen push. `isActive` dims this
         // window the same way the Museum root dims behind THIS window when it's open -- one
         // consistent rule at every cascade depth, not just the first one.
-        ZStack {
+        //
+        // alignment: .topLeading, not the ZStack default .center -- MuseumProductDetailView
+        // governs its own width up to 700pt (wider than this category window's 640pt cap),
+        // and with default center alignment each child gets centered independently around
+        // this ZStack's own center, which shifts depending on each child's own size. Since
+        // the product window is wider, its centered (unoffset) position lands slightly
+        // further left/up than the category window's, and the +28/+28 offset below wasn't
+        // enough to compensate -- the category window ended up FULLY covered, invisible
+        // behind the product window, instead of leaving the expected top-left sliver
+        // (confirmed live, reported by the user: "the window in the background disappears").
+        // topLeading anchors both windows to this ZStack's own top-left corner regardless of
+        // either one's width, so the offset cascade is reliable at any size combination --
+        // matching how the Museum root -> category step already looks right today, which
+        // works only because its own ZStack additionally holds a full-bleed
+        // DesktopBackgroundView().ignoresSafeArea() sibling that incidentally provides the
+        // same kind of large, stable reference frame.
+        ZStack(alignment: .topLeading) {
             FinderWindowChrome(title: category.title, statusText: "\(category.products.count) models", isActive: openProduct == nil, onClose: onClose) {
                 productGrid
             }
