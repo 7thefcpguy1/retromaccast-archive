@@ -89,24 +89,35 @@ private struct GlossaryContent: View {
     // doc comment.
     @State private var scrollPosition = ScrollPosition()
 
-    private var groups: [GlossaryGroup] {
-        GlossaryGroup.grouped(from: allTerms)
+    // Cached rather than computed `var`s -- as plain computed properties, this whole
+    // grouping/filtering/lettering chain (an O(n) pass each over up to ~1,100 raw term rows)
+    // silently re-ran on *every* SwiftUI body re-evaluation, including ones that have nothing
+    // to do with the term list itself (expanding a row, the player becoming active). Recomputed
+    // explicitly instead, only when the two things that actually affect the result change --
+    // see recomputeGroups()/recomputeFilteredAndLettered() below.
+    @State private var groups: [GlossaryGroup] = []
+    @State private var filtered: [GlossaryGroup] = []
+    @State private var lettered: [(letter: String, groups: [GlossaryGroup])] = []
+
+    private func recomputeGroups() {
+        groups = GlossaryGroup.grouped(from: allTerms)
+        recomputeFilteredAndLettered()
     }
 
-    private var filtered: [GlossaryGroup] {
-        guard !query.trimmingCharacters(in: .whitespaces).isEmpty else { return groups }
-        let needle = query.lowercased()
-        return groups.filter {
-            $0.term.lowercased().contains(needle)
-                || ($0.expansion?.lowercased().contains(needle) ?? false)
-                || $0.definition.lowercased().contains(needle)
+    private func recomputeFilteredAndLettered() {
+        if query.trimmingCharacters(in: .whitespaces).isEmpty {
+            filtered = groups
+        } else {
+            let needle = query.lowercased()
+            filtered = groups.filter {
+                $0.term.lowercased().contains(needle)
+                    || ($0.expansion?.lowercased().contains(needle) ?? false)
+                    || $0.definition.lowercased().contains(needle)
+            }
         }
-    }
-
-    // Groups the (already alphabetically-sorted) filtered list under its first letter, in a
-    // single left-to-right pass -- an A-Z jargon list reads a lot more like a real dictionary
-    // with section headers than as one undifferentiated scroll.
-    private var lettered: [(letter: String, groups: [GlossaryGroup])] {
+        // Groups the (already alphabetically-sorted) filtered list under its first letter, in
+        // a single left-to-right pass -- an A-Z jargon list reads a lot more like a real
+        // dictionary with section headers than as one undifferentiated scroll.
         var result: [(String, [GlossaryGroup])] = []
         for group in filtered {
             let firstChar = group.term.prefix(1)
@@ -120,7 +131,7 @@ private struct GlossaryContent: View {
                 result.append((letter, [group]))
             }
         }
-        return result
+        lettered = result
     }
 
     /// Jumping to "W" in a 1,101-term list by scrolling would be tedious -- this drives
@@ -215,10 +226,15 @@ private struct GlossaryContent: View {
         .onAppear {
             if allTerms.isEmpty {
                 allTerms = Corpus.shared.glossaryTerms()
+                recomputeGroups()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .corpusDidReload)) { _ in
             allTerms = Corpus.shared.glossaryTerms()
+            recomputeGroups()
+        }
+        .onChange(of: query) { _, _ in
+            recomputeFilteredAndLettered()
         }
     }
 
@@ -257,7 +273,17 @@ private struct AZIndexStrip: View {
     let availableLetters: Set<String>
     let onSelect: (String) -> Void
 
-    private static let allLetters = ["#"] + (UInt8(ascii: "A")...UInt8(ascii: "Z")).map { String(UnicodeScalar($0)) }
+    private static let standardLetters = ["#"] + (UInt8(ascii: "A")...UInt8(ascii: "Z")).map { String(UnicodeScalar($0)) }
+
+    // The standard "#" + A-Z ruler, plus any section that actually exists in the current term
+    // list but falls outside it -- e.g. a term like ".Mac" sections under ".", which otherwise
+    // had no rail button at all and was unreachable except by scrolling. Extras are sorted and
+    // placed ahead of "#", roughly matching where a leading punctuation character lands in the
+    // list's own sort order.
+    private var allLetters: [String] {
+        let extra = availableLetters.subtracting(Self.standardLetters).sorted()
+        return extra + Self.standardLetters
+    }
 
     var body: some View {
         // maxHeight: .infinity here, not just on each label below -- without it this VStack
@@ -265,7 +291,7 @@ private struct AZIndexStrip: View {
         // vertical room its parent actually offers, leaving the letters compressed into a
         // short strip with lots of dead space below rather than spread across the full rail.
         VStack(spacing: 0) {
-            ForEach(Self.allLetters, id: \.self) { letter in
+            ForEach(allLetters, id: \.self) { letter in
                 let isAvailable = availableLetters.contains(letter)
                 Button {
                     onSelect(letter)

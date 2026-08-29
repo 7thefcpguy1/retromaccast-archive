@@ -466,15 +466,43 @@ final class Corpus {
         do {
             return try dbQueue.read { db in
                 let terms = try GlossaryTerm.fetchAll(db, sql: "SELECT * FROM glossary_terms ORDER BY term COLLATE NOCASE ASC")
+                guard !terms.isEmpty else { return [] }
+
+                // Batch-fetch every episode/segment these terms reference, rather than one
+                // fetchOne per row -- with ~2,200 term rows across ~1,100 distinct episodes,
+                // the old per-row lookups meant thousands of extra single-row SELECTs on
+                // every call to this unbounded (no LIMIT) query, growing with every future
+                // mining run. contextWindow's own prev/next-neighbor lookups are unaffected --
+                // those only run for rows with a resolved segment and are a separate, shared
+                // helper, not part of this N+1.
+                let episodeIds = Array(Set(terms.map(\.episodeId)))
+                let episodePlaceholders = episodeIds.map { _ in "?" }.joined(separator: ",")
+                let episodes = try Episode.fetchAll(
+                    db, sql: "SELECT * FROM episodes WHERE id IN (\(episodePlaceholders))",
+                    arguments: StatementArguments(episodeIds)
+                )
+                let episodesById = Dictionary(uniqueKeysWithValues: episodes.map { ($0.id, $0) })
+
+                let segmentIds = Array(Set(terms.compactMap(\.segmentId)))
+                var segmentsById: [Int64: TranscriptSegment] = [:]
+                if !segmentIds.isEmpty {
+                    let segmentPlaceholders = segmentIds.map { _ in "?" }.joined(separator: ",")
+                    let segments = try TranscriptSegment.fetchAll(
+                        db, sql: "SELECT * FROM transcript_segments WHERE id IN (\(segmentPlaceholders))",
+                        arguments: StatementArguments(segmentIds)
+                    )
+                    segmentsById = Dictionary(uniqueKeysWithValues: segments.compactMap { seg -> (Int64, TranscriptSegment)? in
+                        guard let id = seg.id else { return nil }
+                        return (id, seg)
+                    })
+                }
+
                 return try terms.compactMap { entry -> GlossaryTermResult? in
-                    guard let id = entry.id,
-                          let episode = try Episode.fetchOne(db, sql: "SELECT * FROM episodes WHERE id = ?", arguments: [entry.episodeId])
-                    else { return nil }
+                    guard let id = entry.id, let episode = episodesById[entry.episodeId] else { return nil }
 
                     var contextStartMs: Int?
                     var contextEndMs: Int?
-                    if let segmentId = entry.segmentId,
-                       let segment = try TranscriptSegment.fetchOne(db, sql: "SELECT * FROM transcript_segments WHERE id = ?", arguments: [segmentId]) {
+                    if let segmentId = entry.segmentId, let segment = segmentsById[segmentId] {
                         (contextStartMs, contextEndMs) = try Self.contextWindow(db, episodeId: entry.episodeId, segment: segment)
                     }
 
