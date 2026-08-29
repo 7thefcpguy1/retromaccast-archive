@@ -530,7 +530,9 @@ private struct OnThisDayHeroCard: View {
             if !episode.showNotesHTML.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Text(plainText(fromHTML: episode.showNotesHTML))
                     .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
+                    // Fixed color, not semantic `.secondary` -- same dark-desktop-theme
+                    // invisible-text bug fixed live in MuseumView.swift.
+                    .foregroundStyle(Retro.mutedText)
                     .multilineTextAlignment(.center)
                     .lineLimit(4)
             }
@@ -637,18 +639,21 @@ struct ResultCard: View {
                     HStack {
                         Text(result.episode.title)
                             .font(.chicago(13))
+                            // Explicit .black, not implicit `.primary` -- same dark-desktop-
+                            // theme invisible-text bug fixed live in MuseumView.swift.
+                            .foregroundStyle(.black)
                             .lineLimit(1)
                         Spacer()
                         if let ms = result.timestampMs {
                             Text(formatTimestamp(ms))
                                 .font(.chicago(11))
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Retro.mutedText)
                         }
                     }
                     if let snippet = result.snippet {
                         Text(snippet)
                             .font(.system(size: 12))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Retro.mutedText)
                             .lineLimit(2)
                     }
                 }

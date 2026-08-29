@@ -147,7 +147,12 @@ private struct TriviaHeroCard: View {
             if let episode = fact.episode {
                 Text(episode.title)
                     .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
+                    // Explicit, fixed color, not semantic `.secondary` -- same dark-desktop-
+                    // theme invisible-text bug fixed live in MuseumView.swift (this card sits
+                    // on FinderWindowChrome's permanently-white/cream card, whose own
+                    // .preferredColorScheme(.light) pin doesn't reliably override the real
+                    // window's dark appearance for descendant content on macOS).
+                    .foregroundStyle(Retro.mutedText)
                     .lineLimit(1)
 
                 Button {

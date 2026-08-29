@@ -353,7 +353,15 @@ struct MuseumCategoryView: View {
                 .background(isSelected ? Color.black : Color.clear)
             Text(product.dateRange)
                 .font(.system(size: 10))
-                .foregroundStyle(.secondary)
+                // Explicit, fixed color, not semantic `.secondary` -- this cell sits on
+                // FinderWindowChrome's permanently-white/cream card, but its own
+                // .preferredColorScheme(.light) pin doesn't reliably override the real
+                // window's dark appearance for descendant content on macOS (confirmed live:
+                // a dark desktop theme like Circuit Board left `.secondary` text here
+                // rendering near-white and effectively invisible). `Retro.mutedText` is a
+                // fixed black-opacity color, immune to the scheme flip either way -- same
+                // fix as MuseumMomentCard/MuseumProductDetailView below.
+                .foregroundStyle(Retro.mutedText)
         }
         .frame(width: 124)
     }
@@ -423,6 +431,13 @@ struct MuseumProductDetailView: View {
                     header
                     Text(product.synopsis)
                         .font(.system(size: 14))
+                        // Explicit .black, not implicit `.primary` -- see productCell's
+                        // Retro.mutedText fix above for why: FinderWindowChrome's
+                        // .preferredColorScheme(.light) pin doesn't reliably override the
+                        // real window's dark appearance for descendant content on macOS, so
+                        // `.primary` rendered near-white (invisible on this white card) under
+                        // a dark desktop theme. Confirmed live.
+                        .foregroundStyle(.black)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -443,7 +458,7 @@ struct MuseumProductDetailView: View {
                     if let attribution = product.imageAttribution {
                         Text(attribution)
                             .font(.system(size: 9))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Retro.mutedText)
                             .frame(width: 220, alignment: .trailing)
                     }
                 }
@@ -464,13 +479,16 @@ struct MuseumProductDetailView: View {
             if let attribution = product.imageAttribution {
                 Text(attribution)
                     .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Retro.mutedText)
                     .frame(maxWidth: .infinity, alignment: .center)
             }
 
             header
             Text(product.synopsis)
                 .font(.system(size: 14))
+                // See the macOS branch's identical fix above -- same dark-theme
+                // invisible-text bug applies here too.
+                .foregroundStyle(.black)
             onShowSection
             featuredMomentsSection
         }
@@ -482,7 +500,7 @@ struct MuseumProductDetailView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(product.dateRange)
                 .font(.system(size: 13))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Retro.mutedText)
         }
     }
 
@@ -549,10 +567,15 @@ private struct MuseumMomentCard: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(item.episode.title)
                         .font(.chicago(13))
+                        // Explicit .black, not implicit `.primary` -- see MuseumProductDetailView's
+                        // synopsis fix above for why (FinderWindowChrome's dark-theme-under-macOS
+                        // gotcha). Confirmed live: this card rendered entirely blank under a dark
+                        // desktop theme (Circuit Board) with no visible title or blurb at all.
+                        .foregroundStyle(.black)
                         .lineLimit(1)
                     Text(item.blurb)
                         .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Retro.mutedText)
                         .lineLimit(3)
                 }
                 .contentShape(Rectangle())
