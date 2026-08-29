@@ -191,10 +191,17 @@ private struct VideoJukeboxView: View {
             videos = Corpus.shared.listVideos()
         }
         .onDisappear {
-            // YouTubePlayerModel's script-message-handler registration creates a reference
-            // cycle that deinit alone can never break (see its teardown() doc comment) --
-            // this is the explicit trigger.
+            // Fires on every switch away from Videos, not just once -- confirmed live that
+            // this view's @State (including selectedVideoId) survives a tab switch, so this
+            // is a real "leaving the tab" event, not a one-time final teardown. Stops
+            // playback (see teardown()'s doc comment) so a video doesn't keep running
+            // invisibly behind another tab, and resets the selection back to nil so
+            // returning to Videos shows the honest idle placeholder + "-- Select a video --"
+            // instead of a stale title/year still naming a video that isn't actually loaded
+            // or playing anymore (confirmed live: without this, returning showed a black,
+            // unplayable box under the old episode's title).
             playerModel.teardown()
+            selectedVideoId = nil
         }
         .onChange(of: selectedYear) { _, _ in
             // A video picked under a different year no longer belongs to the now-visible

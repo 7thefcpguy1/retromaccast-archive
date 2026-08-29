@@ -48,15 +48,21 @@ final class YouTubePlayerModel: NSObject, ObservableObject {
         webView.navigationDelegate = self
     }
 
-    /// `WKUserContentController.add(self, name:)` above holds a *strong* reference to its
-    /// handler, and this model also owns the `WKWebView` that owns that controller -- a real
-    /// reference cycle (model -> webView -> controller -> model). That means `deinit` would
-    /// never actually fire on its own (the whole point of a cycle is nothing calls it), so
-    /// cleanup can't live there -- it has to be triggered explicitly from outside. Call this
-    /// from the owning view's `.onDisappear`.
+    /// Stops whatever's currently playing (via `stop()`) -- called from the owning view's
+    /// `.onDisappear`, which fires on every tab switch away from Videos. Confirmed live this
+    /// session that `VideosView`'s `@StateObject` (and its `@State` selection) survives a tab
+    /// switch -- `.onDisappear`/`.onAppear` fire on visibility, but this is the *same* model
+    /// instance for the whole app session, not a one-time final teardown -- so this
+    /// deliberately does NOT remove the script message handler (an earlier version of this
+    /// method did; confirmed live that permanently killed the JS->Swift bridge on the very
+    /// first tab switch, since nothing ever re-adds it, leaving the tab in a black, unplayable
+    /// state on return). `WKUserContentController.add(self, name:)` does hold a strong
+    /// reference back to this model (model -> webView -> controller -> model, a real cycle
+    /// `deinit` alone could never break), but since this object lives for the app's entire
+    /// session regardless, that cycle is harmless -- there's no earlier point where it's
+    /// actually supposed to be freed.
     func teardown() {
-        stopPolling()
-        controller.removeScriptMessageHandler(forName: Self.messageHandlerName)
+        stop()
     }
 
     /// Loads a video via the real `youtube.com/iframe_api` bootstrap (not a bare `<iframe>`),
@@ -70,9 +76,6 @@ final class YouTubePlayerModel: NSObject, ObservableObject {
         isPlaying = false
         currentTime = 0
         duration = 0
-        // Started unconditionally, not gated behind the 'ready' message arriving -- see
-        // startPolling's doc comment.
-        startPolling()
 
         let html = """
         <!DOCTYPE html>
@@ -135,6 +138,13 @@ final class YouTubePlayerModel: NSObject, ObservableObject {
         </html>
         """
         webView.loadHTMLString(html, baseURL: URL(string: "https://www.retromaccast.com"))
+        // Started after loadHTMLString, not before -- starting it first left a narrow window
+        // where the very first tick(s) could still read the *previous* video's `player` JS
+        // var (the old page's DOM/JS context is still live until the new page finishes
+        // loading over it). Polling's own `player &&` guards already make it safe to run
+        // before the new page's `player` var exists, so there's no reason to also risk it
+        // reading the old one.
+        startPolling()
     }
 
     func play() { webView.evaluateJavaScript("player.playVideo();") }
@@ -216,24 +226,37 @@ final class YouTubePlayerModel: NSObject, ObservableObject {
     /// gated behind 'ready' first), and the guarded `player &&` checks below make it safe to
     /// start polling before the JS `player` var even exists yet -- so a dropped message can no
     /// longer strand the UI the way it did before.
+    private static let pollJS = """
+        (function() {
+            if (!player) { return null; }
+            return JSON.stringify({
+                t: (player.getCurrentTime ? player.getCurrentTime() : null),
+                d: (player.getDuration ? player.getDuration() : null),
+                s: (player.getPlayerState ? player.getPlayerState() : null)
+            });
+        })();
+        """
+
     private func startPolling() {
         stopPolling()
         pollTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
             guard let self else { return }
             Task { @MainActor in
-                if let seconds = try? await self.webView.evaluateJavaScript(
-                    "player && player.getCurrentTime ? player.getCurrentTime() : null;"
-                ) as? Double {
+                // One JS round-trip per tick, not three sequential ones -- each
+                // evaluateJavaScript call is a real WKWebView IPC hop, so three awaited calls
+                // back-to-back nearly tripled this timer's real-world latency for no benefit;
+                // the three values were always read together anyway.
+                guard let json = try? await self.webView.evaluateJavaScript(Self.pollJS) as? String,
+                      let data = json.data(using: .utf8),
+                      let result = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+                else { return }
+                if let seconds = result["t"] as? Double {
                     self.currentTime = seconds
                 }
-                if let newDuration = try? await self.webView.evaluateJavaScript(
-                    "player && player.getDuration ? player.getDuration() : null;"
-                ) as? Double, newDuration > 0 {
+                if let newDuration = result["d"] as? Double, newDuration > 0 {
                     self.duration = newDuration
                 }
-                if let state = try? await self.webView.evaluateJavaScript(
-                    "player && player.getPlayerState ? player.getPlayerState() : null;"
-                ) as? Int {
+                if let state = result["s"] as? Int {
                     // YT.PlayerState: -1 unstarted, 0 ended, 1 playing, 2 paused, 3 buffering, 5 cued.
                     self.isPlaying = (state == 1)
                     if !self.isReady {
