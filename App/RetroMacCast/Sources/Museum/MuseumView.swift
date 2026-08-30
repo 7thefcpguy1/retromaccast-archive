@@ -412,9 +412,14 @@ struct MuseumCategoryView: View {
                     // MuseumProductDetailView's own internal frame already caps at, so it's
                     // sized correctly regardless of how narrow or short the category window
                     // it happens to be cascading from is.
+                    // max(..., 320/240) guards against a negative frame -- `availableSize`
+                    // is expected to comfortably clear 40pt in either dimension in practice
+                    // (RootTabView enforces a 420x560 minimum app window on macOS), but an
+                    // early, not-yet-settled geometry pass could transiently report something
+                    // smaller, and `.frame(width: -20, ...)` is an invalid SwiftUI frame.
                     .frame(
-                        width: availableSize.width > 0 ? min(availableSize.width - 40, 700) : 700,
-                        height: availableSize.height > 0 ? min(availableSize.height - 40, 600) : 600
+                        width: availableSize.width > 0 ? max(min(availableSize.width - 40, 700), 320) : 700,
+                        height: availableSize.height > 0 ? max(min(availableSize.height - 40, 600), 240) : 600
                     )
                     // Base cascade offset plus whatever the user has dragged this window
                     // by -- see MuseumView's matching categoryDragOffset comment.

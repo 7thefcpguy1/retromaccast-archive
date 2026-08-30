@@ -566,17 +566,33 @@ final class Corpus {
         return "NEAR(\(tokens.joined(separator: " ")), 15)"
     }
 
+    /// Escapes a literal '%'/'_' (and the escape character itself) so it's usable inside a
+    /// `LIKE ... ESCAPE '\'` pattern without being misread as a wildcard. Paired with the
+    /// same `ESCAPE '\'` clause the pipeline's resolveSegment uses.
+    private static func escapedForLike(_ s: String) -> String {
+        s.replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "%", with: "\\%")
+            .replacingOccurrences(of: "_", with: "\\_")
+    }
+
     /// Locates a transcript segment to use as the result's snippet/timestamp. Tries an
     /// exact verbatim match first (the tightest, most relevant snippet), then falls back
     /// to a segment containing every query word in any order -- Whisper's pause-based
     /// segmentation means a multi-word query often isn't verbatim-contiguous in any one
     /// segment even when the episode is a genuine, on-topic match.
     private static func findMatchingSegment(_ db: Database, episodeId: Int, query: String) throws -> TranscriptSegment? {
+        // Escaped the same way, for the same reason, as the pipeline's own resolveSegment
+        // (RMCPipeline.swift) -- `query` here is live user-typed search text, not a
+        // classifier-generated quote, but the LIKE-wildcard risk is identical: a literal '%'
+        // or '_' the user typed (a percentage figure like "90% market share" comes up
+        // naturally on a tech podcast) would otherwise be interpreted as a wildcard instead
+        // of a literal character, silently loosening the match instead of searching for what
+        // was actually typed.
         if let exact = try TranscriptSegment.fetchOne(db, sql: """
             SELECT * FROM transcript_segments
-            WHERE episodeId = ? AND text LIKE ? COLLATE NOCASE
+            WHERE episodeId = ? AND text LIKE ? ESCAPE '\\' COLLATE NOCASE
             LIMIT 1
-            """, arguments: [episodeId, "%\(query)%"]) {
+            """, arguments: [episodeId, "%\(Self.escapedForLike(query))%"]) {
             return exact
         }
 
@@ -585,8 +601,8 @@ final class Corpus {
         var sql = "SELECT * FROM transcript_segments WHERE episodeId = ?"
         var arguments: [DatabaseValueConvertible] = [episodeId]
         for word in words {
-            sql += " AND text LIKE ? COLLATE NOCASE"
-            arguments.append("%\(word)%")
+            sql += " AND text LIKE ? ESCAPE '\\' COLLATE NOCASE"
+            arguments.append("%\(Self.escapedForLike(word))%")
         }
         sql += " LIMIT 1"
         if let sameSegment = try TranscriptSegment.fetchOne(db, sql: sql, arguments: StatementArguments(arguments)) {

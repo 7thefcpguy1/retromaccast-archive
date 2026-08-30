@@ -355,13 +355,38 @@ struct Classify: AsyncParsableCommand {
             do {
                 let matches = try await classifier.classify(transcript: transcript, collections: collections)
 
-                try await database.dbQueue.write { db in
-                    if onlyUnresolved {
-                        try db.execute(sql: "DELETE FROM collection_items WHERE episodeId = ?", arguments: [ep.id])
-                    }
+                let insertedCount = try await database.dbQueue.write { db -> Int in
+                    var insertedCount = 0
+                    // Scoped to still-unresolved rows only -- NOT a wholesale delete of the
+                    // whole episode. This episode reached the fallback re-classify path
+                    // because it STILL has at least one unresolved item, but the cheap
+                    // quote-based pass above may have already resolved OTHER items on this
+                    // same episode in this very run; a blanket delete here would silently
+                    // discard that just-completed work. Confirmed by code review: the
+                    // previous version's unconditional `DELETE FROM collection_items WHERE
+                    // episodeId = ?` did exactly that, undermining the cheap pass's own
+                    // documented guarantee that it "can never regress an already-good
+                    // sibling row" for any episode with a mix of resolved and unresolved
+                    // items.
+                    let keptItems: [CollectionItem] = onlyUnresolved ? try {
+                        try db.execute(sql: "DELETE FROM collection_items WHERE episodeId = ? AND segmentId IS NULL", arguments: [ep.id])
+                        return try CollectionItem.filter(sql: "episodeId = ?", arguments: [ep.id]).fetchAll(db)
+                    }() : []
                     for match in matches {
                         guard let collection = collectionBySlug[match.collectionSlug], let collectionId = collection.id else {
                             print("  [\(label)] unknown collection slug '\(match.collectionSlug)', skipping")
+                            continue
+                        }
+                        // Skip a fresh match that would duplicate an item just kept above --
+                        // the LLM call returns the episode's FULL match set every time, not
+                        // just what was missing, so without this a topic that's already
+                        // correctly resolved (and deliberately not deleted, per the scoped
+                        // DELETE above) would get a second, redundant row inserted alongside
+                        // it. Matched by collection + exact blurb text; a differently-worded
+                        // re-description of the same moment could still slip through as a
+                        // near-duplicate, but that's a far smaller risk than the wholesale
+                        // data loss this whole scoped-delete change exists to prevent.
+                        if onlyUnresolved, keptItems.contains(where: { $0.collectionId == collectionId && $0.blurb == match.blurb }) {
                             continue
                         }
                         // Same corruption check `synthesize`/`generate-glossary` use -- a
@@ -387,15 +412,21 @@ struct Classify: AsyncParsableCommand {
                             quote: match.quote
                         )
                         try item.insert(db)
+                        insertedCount += 1
                     }
                     var updated = ep
                     updated.classifiedAt = ISO8601DateFormatter().string(from: Date())
                     try updated.save(db)
+                    return insertedCount
                 }
 
                 done += 1
-                matched += matches.count
-                print("[\(done)/\(targets.count)] \(label) -- \(matches.count) match(es)")
+                // Actual rows inserted, not matches.count -- a corrupted or de-duplicated
+                // match is skipped above without inserting, so counting the raw match array
+                // overstated how many rows this episode actually added (confirmed by code
+                // review after the corruption filter and dedup-on-skip were added above).
+                matched += insertedCount
+                print("[\(done)/\(targets.count)] \(label) -- \(insertedCount) match(es)")
             } catch {
                 failed += 1
                 print("[FAILED] \(label): \(error)")
@@ -529,8 +560,9 @@ private func looksCorrupted(_ text: String) -> Bool {
     if artifactMarkers.contains(where: { lower.contains($0) }) { return true }
     if text.contains("</") || text.contains("<parameter") { return true }
 
-    let words = text
-        .lowercased()
+    // Reuses `lower` (already computed above) rather than lowercasing the same text a
+    // second time.
+    let words = lower
         .split(whereSeparator: { !$0.isLetter && !$0.isNumber })
         .map(String.init)
     for i in 0..<max(words.count - 1, 0) {
@@ -626,12 +658,18 @@ struct Synthesize: AsyncParsableCommand {
                 // before finally succeeding on a later one), so a single retry isn't always
                 // enough headroom.
                 var attempt = 1
-                while looksCorrupted(paragraph), attempt < 3 {
+                var isCorrupted = looksCorrupted(paragraph)
+                while isCorrupted, attempt < 3 {
                     attempt += 1
                     print("  [\(collection.title)] attempt \(attempt - 1) looked corrupted, retrying (attempt \(attempt)/3)...")
                     paragraph = try await classifier.synthesize(productTitle: collection.title, moments: synthesizeArgs)
+                    // Tracked alongside `paragraph`, not re-derived after the loop -- the
+                    // loop's own last iteration already computed this; re-running the same
+                    // multi-step string scan again immediately afterward on an unchanged
+                    // value was pure redundant work.
+                    isCorrupted = looksCorrupted(paragraph)
                 }
-                guard !looksCorrupted(paragraph) else {
+                guard !isCorrupted else {
                     throw ClaudeClassifierError.corruptedGeneration(collection.title)
                 }
                 let finalParagraph = paragraph

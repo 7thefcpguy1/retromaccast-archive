@@ -58,7 +58,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="corpus-$(date -u +%Y-%m-%d)-museum-backfill"
+          # Time suffix, not just the date -- avoids a same-day tag collision on a retry,
+          # same class of bug fixed in fix-content-quality.yml.
+          TAG="corpus-$(date -u +%Y-%m-%d)-museum-backfill-$(date -u +%H%M%S)"
           EP_COUNT=$(jq '.episodeCount' corpus/manifest.json)
           gh release create "$TAG" corpus/rmc.sqlite corpus/manifest.json \
             --title "Museum segment backfill $(date -u +%Y-%m-%d)" \

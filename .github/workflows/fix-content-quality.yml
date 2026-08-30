@@ -72,7 +72,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="corpus-$(date -u +%Y-%m-%d-%H%M%S)-content-quality-fix"
+          # Same tag shape as generate-glossary.yml (date, descriptor, then a time suffix)
+          # rather than a third, differently-ordered format -- weekly-sync.yml and
+          # backfill-museum-segments.yml now follow suit too.
+          TAG="corpus-$(date -u +%Y-%m-%d)-content-quality-fix-$(date -u +%H%M%S)"
           EP_COUNT=$(jq '.episodeCount' corpus/manifest.json)
           gh release create "$TAG" corpus/rmc.sqlite corpus/manifest.json \
             --title "Content quality fix $(date -u +%Y-%m-%d)" \

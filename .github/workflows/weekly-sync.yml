@@ -121,7 +121,10 @@ jobs:
             echo "No new episodes or videos -- skipping release."
             exit 0
           fi
-          TAG="corpus-$(date -u +%Y-%m-%d)"
+          # Time suffix, not just the date -- a same-day manual workflow_dispatch retry
+          # (e.g. after a transient failure) would otherwise collide with this same tag and
+          # fail at release-create, same class of bug fixed in fix-content-quality.yml.
+          TAG="corpus-$(date -u +%Y-%m-%d)-$(date -u +%H%M%S)"
           gh release create "$TAG" corpus/rmc.sqlite corpus/manifest.json \
             --title "Corpus sync $(date -u +%Y-%m-%d)" \
             --notes "Automated weekly sync -- $EP_AFTER episodes (was $EP_BEFORE), $VID_AFTER videos (was $VID_BEFORE)."

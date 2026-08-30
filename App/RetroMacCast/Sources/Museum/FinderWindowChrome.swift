@@ -94,7 +94,17 @@ struct FinderWindowChrome<Content: View>: View {
         }
         .frame(height: 22)
         .contentShape(Rectangle())
-        .gesture(titleBarDragGesture)
+        // .simultaneousGesture, not .gesture -- this ZStack also contains the closeBox and
+        // zoomBox Buttons, and a plain .gesture() here competes exclusively with their own
+        // tap recognizers for the same touch. On real mouse/trackpad input a click routinely
+        // carries a point or two of incidental pointer drift, which is enough to satisfy
+        // this gesture's `minimumDistance: 2` -- if the drag gesture wins that exclusivity
+        // race, the close box's own tap never fires and the window fails to close on that
+        // click, on every FinderWindowChrome in the app (Trivia, Search, Glossary, not just
+        // Museum's draggable windows), regardless of whether dragOffset is even set.
+        // .simultaneousGesture lets both recognizers evaluate independently instead of
+        // picking one exclusive winner, so the button's own tap still fires normally.
+        .simultaneousGesture(titleBarDragGesture)
     }
 
     /// Always attached, even when `dragOffset` is nil -- harmless no-op then (the closures
