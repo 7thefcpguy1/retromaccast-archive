@@ -619,13 +619,16 @@ struct Synthesize: AsyncParsableCommand {
             do {
                 let synthesizeArgs = moments.map { (episodeTitle: $0.0, blurb: $0.1) }
                 var paragraph = try await classifier.synthesize(productTitle: collection.title, moments: synthesizeArgs)
-                if looksCorrupted(paragraph) {
-                    // One retry, not zero -- confirmed live (a content-quality audit found
-                    // two real instances of this in the corpus) that this class of glitch is
-                    // a rare, one-off generation hiccup rather than a per-product failure
-                    // mode, so a second attempt with the identical prompt reliably comes back
-                    // clean rather than repeating the same corruption.
-                    print("  [\(collection.title)] first attempt looked corrupted, retrying once...")
+                // Up to 2 retries (3 attempts total), not just 1 -- confirmed live that this
+                // class of glitch, while rare across the corpus overall, can be stubbornly
+                // reproducible for a specific product's own moment list (one real product
+                // came back corrupted on 4 consecutive attempts across two separate runs
+                // before finally succeeding on a later one), so a single retry isn't always
+                // enough headroom.
+                var attempt = 1
+                while looksCorrupted(paragraph), attempt < 3 {
+                    attempt += 1
+                    print("  [\(collection.title)] attempt \(attempt - 1) looked corrupted, retrying (attempt \(attempt)/3)...")
                     paragraph = try await classifier.synthesize(productTitle: collection.title, moments: synthesizeArgs)
                 }
                 guard !looksCorrupted(paragraph) else {

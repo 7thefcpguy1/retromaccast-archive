@@ -72,7 +72,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="corpus-$(date -u +%Y-%m-%d)-content-quality-fix"
+          TAG="corpus-$(date -u +%Y-%m-%d-%H%M%S)-content-quality-fix"
           EP_COUNT=$(jq '.episodeCount' corpus/manifest.json)
           gh release create "$TAG" corpus/rmc.sqlite corpus/manifest.json \
             --title "Content quality fix $(date -u +%Y-%m-%d)" \
