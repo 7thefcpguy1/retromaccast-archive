@@ -364,6 +364,15 @@ struct Classify: AsyncParsableCommand {
                             print("  [\(label)] unknown collection slug '\(match.collectionSlug)', skipping")
                             continue
                         }
+                        // Same corruption check `synthesize`/`generate-glossary` use -- a
+                        // content-quality audit found a live blurb reading "The hosts read
+                        // read a a listener email...". Rare (one match out of 4290 in the
+                        // real corpus), but Museum's "Featured Moments" cards render this
+                        // text directly, so it's worth skipping rather than storing.
+                        guard !looksCorrupted(match.blurb) else {
+                            print("  [\(label)] skipping corrupted blurb: \"\(match.blurb.prefix(80))\"")
+                            continue
+                        }
                         // Tiered lookup, loosest last -- the model is asked for a verbatim
                         // quote but doesn't reliably deliver one, so an exact match alone
                         // left ~35% of items with no resolved segment (silently falling
@@ -500,6 +509,36 @@ private func normalizeForMatching(_ s: String) -> String {
     return result
 }
 
+/// Catches a rare but real class of generation glitch found in the live corpus during a
+/// content-quality audit: a strict-mode tool call whose string field, instead of clean prose,
+/// contains the model's own leaked meta-narration or a malformed echo of the tool-call syntax
+/// itself -- e.g. a stored "ON RETROMACCAST" paragraph that literally began "</antml>\n\nI
+/// apologize for that error. Let me write the paragraph properly...(newline)antml:invoke
+/// name=\"record_synthesis\"\n<parameter name=\"paragraph\">...", or a glossary definition
+/// that was nothing but ">antml:parameter>parameter>ml:parameter name=". Neither is a
+/// hallucinated *fact* (the existing placeholder-word filter's job) -- it's the model
+/// narrating its own retry, or corrupting the tool-call wrapper itself, into a field that's
+/// supposed to hold only the finished text. Also catches plain doubled-word slips ("read read
+/// a a listener email"), a second, unrelated defect found in the same audit. Not exhaustive --
+/// a purely well-formed-but-still-wrong paragraph wouldn't trip this -- but it's a cheap,
+/// specific backstop for exactly the failure shapes actually observed, same spirit as the
+/// glossary placeholder filter below.
+private func looksCorrupted(_ text: String) -> Bool {
+    let artifactMarkers = ["antml", "apologize", "i need to", "let me write", "invoke name=", "parameter name="]
+    let lower = text.lowercased()
+    if artifactMarkers.contains(where: { lower.contains($0) }) { return true }
+    if text.contains("</") || text.contains("<parameter") { return true }
+
+    let words = text
+        .lowercased()
+        .split(whereSeparator: { !$0.isLetter && !$0.isNumber })
+        .map(String.init)
+    for i in 0..<max(words.count - 1, 0) {
+        if words[i] == words[i + 1], words[i].count > 1 { return true }
+    }
+    return false
+}
+
 struct ResetStaleSynthesis: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "reset-stale-synthesis",
@@ -578,13 +617,24 @@ struct Synthesize: AsyncParsableCommand {
             }
 
             do {
-                let paragraph = try await classifier.synthesize(
-                    productTitle: collection.title,
-                    moments: moments.map { (episodeTitle: $0.0, blurb: $0.1) }
-                )
+                let synthesizeArgs = moments.map { (episodeTitle: $0.0, blurb: $0.1) }
+                var paragraph = try await classifier.synthesize(productTitle: collection.title, moments: synthesizeArgs)
+                if looksCorrupted(paragraph) {
+                    // One retry, not zero -- confirmed live (a content-quality audit found
+                    // two real instances of this in the corpus) that this class of glitch is
+                    // a rare, one-off generation hiccup rather than a per-product failure
+                    // mode, so a second attempt with the identical prompt reliably comes back
+                    // clean rather than repeating the same corruption.
+                    print("  [\(collection.title)] first attempt looked corrupted, retrying once...")
+                    paragraph = try await classifier.synthesize(productTitle: collection.title, moments: synthesizeArgs)
+                }
+                guard !looksCorrupted(paragraph) else {
+                    throw ClaudeClassifierError.corruptedGeneration(collection.title)
+                }
+                let finalParagraph = paragraph
                 try await database.dbQueue.write { db in
                     var updated = collection
-                    updated.synthesizedParagraph = paragraph
+                    updated.synthesizedParagraph = finalParagraph
                     try updated.save(db)
                 }
                 done += 1
@@ -768,7 +818,15 @@ struct GenerateGlossary: AsyncParsableCommand {
                     let term = match.term.trimmingCharacters(in: .whitespacesAndNewlines)
                     let definition = match.definition.trimmingCharacters(in: .whitespacesAndNewlines)
                     guard !term.isEmpty, !definition.isEmpty, definition.count >= 15 else { return false }
-                    return !placeholderWords.contains(term.lowercased())
+                    guard !placeholderWords.contains(term.lowercased()) else { return false }
+                    // Same corruption check `synthesize` retries on -- a content-quality
+                    // audit found a live glossary definition that was nothing but
+                    // ">antml:parameter>parameter>ml:parameter name=" (a malformed tool-call
+                    // echo) and another badly word-corrupted one. No retry here (this filters
+                    // a whole batch of matches per episode, not one isolated string), just
+                    // drop the bad entry -- losing one term from an episode that likely
+                    // yielded several others is a fine trade against storing garbage.
+                    return !looksCorrupted(term) && !looksCorrupted(definition)
                 }
                 let skipped = rawMatches.count - matches.count
                 if skipped > 0 {

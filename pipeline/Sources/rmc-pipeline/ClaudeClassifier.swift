@@ -11,6 +11,10 @@ enum ClaudeClassifierError: Error {
     case missingAPIKey
     case badStatus(Int, String)
     case unexpectedResponseShape
+    /// A generated string field failed the `looksCorrupted` check (RMCPipeline.swift) even
+    /// after a retry -- e.g. leaked meta-narration or a malformed tool-call echo instead of
+    /// clean prose. Carries the collection/episode label for the caller's failure log.
+    case corruptedGeneration(String)
 }
 
 struct ClaudeClassifier {

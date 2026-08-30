@@ -1,0 +1,79 @@
+name: Fix Content Quality Issues
+
+# One-off fix for a handful of corrupted entries a content-quality audit found in the live
+# corpus: two "ON RETROMACCAST" synthesis paragraphs where a strict-mode tool call leaked the
+# model's own meta-narration or a malformed echo of the tool-call syntax into the paragraph
+# text itself (rather than clean prose), one Museum "Featured Moments" blurb with a doubled-
+# word slip ("read read a a listener email"), and two glossary definitions with the same kind
+# of leaked/malformed text. None of these are hallucinated facts -- they're generation
+# artifacts that should never have been stored as-is. The pipeline itself now has a defensive
+# `looksCorrupted` check (RMCPipeline.swift) so future synthesize/classify/generate-glossary
+# runs catch this automatically; this workflow just cleans up the entries that predate that
+# check. Manual-only (no schedule) -- meant to be run once, not on a recurring basis.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write # needed to create a Release and upload the updated corpus
+
+jobs:
+  fix-content:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: pipeline
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build pipeline
+        run: swift build -c release
+
+      - name: Download latest published corpus
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p corpus
+          gh release download --pattern 'rmc.sqlite' --dir corpus --clobber
+
+      - name: Patch corrupted entries
+        run: |
+          sqlite3 corpus/rmc.sqlite <<'SQL'
+          -- Clear the two "ON RETROMACCAST" paragraphs with leaked meta-narration/malformed
+          -- tool-call text, so the next `synthesize` run regenerates them from scratch
+          -- (matched by title, not a hardcoded id, in case ids ever drift between downloads).
+          UPDATE collections SET synthesizedParagraph = NULL
+            WHERE title IN ('Power Mac G3', 'iPhone X Series');
+
+          -- Delete the two corrupted glossary definitions outright rather than regenerate --
+          -- both terms (Floppy Emu, PRAM) already have well over a dozen other clean
+          -- definitions each from other episode mentions, so nothing unique is lost.
+          DELETE FROM glossary_terms
+            WHERE definition LIKE '%drnum-bSD card card%'
+               OR definition = '>antml:parameter>parameter>ml:parameter name=';
+
+          -- Fix the one doubled-word Museum "Featured Moments" blurb directly -- purely
+          -- mechanical de-duplication, no new content invented.
+          UPDATE collection_items
+            SET blurb = 'The hosts read a listener email about Doctor Who and finding a Lisa at a boot sale.'
+            WHERE blurb LIKE 'The hosts read read a a listener email%';
+          SQL
+
+      - name: Re-synthesize the cleared paragraphs
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: .build/release/rmc-pipeline synthesize
+
+      - name: Export manifest
+        run: .build/release/rmc-pipeline export-manifest
+
+      - name: Publish updated corpus as a release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="corpus-$(date -u +%Y-%m-%d)-content-quality-fix"
+          EP_COUNT=$(jq '.episodeCount' corpus/manifest.json)
+          gh release create "$TAG" corpus/rmc.sqlite corpus/manifest.json \
+            --title "Content quality fix $(date -u +%Y-%m-%d)" \
+            --notes "One-off fix: regenerated 2 corrupted ON RETROMACCAST paragraphs (Power Mac G3, iPhone X Series), removed 2 corrupted glossary definitions (Floppy Emu, PRAM), fixed 1 doubled-word Museum blurb. $EP_COUNT episodes total."
