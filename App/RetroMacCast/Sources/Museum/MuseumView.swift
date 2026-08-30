@@ -101,6 +101,22 @@ struct MuseumView: View {
     // overlay showing the exact (undersized, mid-animation) frame it had captured.
     @State private var categoryFrame: CGRect = .zero
 
+    /// The lowest `categoryDragOffset` the category window's own drag gesture will accept,
+    /// per axis -- passed down for FinderWindowChrome to clamp against directly inside the
+    /// gesture itself (see FinderWindowChrome.minDragOffset's own doc comment for why it has
+    /// to be enforced there, not corrected reactively from here). `categoryFrame` already
+    /// equals `basePosition + categoryDragOffset` at last measurement (`basePosition` being
+    /// root's own position plus the fixed +28/+28 cascade offset, neither of which changes
+    /// mid-drag), so `basePosition` -- and hence the floor that keeps `basePosition +
+    /// dragOffset >= 0` -- can be derived from state already being tracked, with no
+    /// additional geometry reader needed.
+    private var categoryMinDragOffset: CGSize {
+        CGSize(
+            width: categoryDragOffset.width - categoryFrame.minX,
+            height: categoryDragOffset.height - categoryFrame.minY
+        )
+    }
+
     // Quick and mechanical, not springy -- matches the snap of the real System 7 zoom effect.
     private static let zoomAnimation = Animation.easeInOut(duration: 0.18)
 
@@ -179,7 +195,15 @@ struct MuseumView: View {
                     // MuseumProductDetailView already governs its own 700 -- each window
                     // manages its own width instead of one constraint trying to cover a
                     // subtree with two different natural sizes.
-                    MuseumCategoryView(category: openCategory, onClose: closeCategory, dragOffset: $categoryDragOffset, availableSize: availableSize)
+                    MuseumCategoryView(
+                        category: openCategory, onClose: closeCategory, dragOffset: $categoryDragOffset,
+                        // A read-only computed value, wrapped as a Binding purely so
+                        // FinderWindowChrome's drag gesture always reads it fresh -- see
+                        // FinderWindowChrome.minDragOffset's own doc comment for why a plain
+                        // captured value wasn't reliable mid-gesture.
+                        minDragOffset: Binding(get: { categoryMinDragOffset }, set: { _ in }),
+                        availableSize: availableSize
+                    )
                         .padding(24)
                         // Base cascade offset plus whatever the user has dragged this
                         // window by -- see categoryDragOffset's own doc comment.
@@ -188,8 +212,11 @@ struct MuseumView: View {
                         // actual rendered position (cascade + drag combined), not its
                         // pre-offset layout position. Just tracks the latest frame
                         // unconditionally now -- see categoryFrame's own doc comment for why
-                        // the correction itself waits for openCategoryAnimated's completion
-                        // handler instead of applying reactively right here.
+                        // the open-time clamp waits for openCategoryAnimated's completion
+                        // handler instead of applying reactively right here. The *reachable*
+                        // (top/left) clamp lives inside FinderWindowChrome's own drag gesture
+                        // now, driven by categoryMinDragOffset below -- see that property's
+                        // doc comment for why a reactive correction from here couldn't work.
                         .onGeometryChange(for: CGRect.self) { proxy in
                             proxy.frame(in: .named(museumContentSpace))
                         } action: { newFrame in
@@ -301,6 +328,10 @@ struct MuseumCategoryView: View {
     /// (root) owns and applies the actual offset; see FinderWindowChrome.dragOffset's doc
     /// comment for why the caller has to own it rather than this view handling it internally.
     var dragOffset: Binding<CGSize>? = nil
+    /// Forwarded straight through to this window's own FinderWindowChrome, same as
+    /// `dragOffset` above -- MuseumView (root) owns and computes the actual value; see
+    /// MuseumView.categoryMinDragOffset's doc comment.
+    var minDragOffset: Binding<CGSize>? = nil
     /// The Museum tab's total available size, forwarded from MuseumView (root) -- used the
     /// same way as there, to clamp a freshly-opened product window fully into view.
     var availableSize: CGSize = .zero
@@ -315,6 +346,13 @@ struct MuseumCategoryView: View {
     @State private var productDragOffset: CGSize = .zero
     // Same reasoning as MuseumView's categoryFrame -- see its doc comment.
     @State private var productFrame: CGRect = .zero
+    // Same reasoning as MuseumView's categoryMinDragOffset -- see its doc comment.
+    private var productMinDragOffset: CGSize {
+        CGSize(
+            width: productDragOffset.width - productFrame.minX,
+            height: productDragOffset.height - productFrame.minY
+        )
+    }
 
     // Same zoom-cascade machinery as MuseumView's own root -> category step (window frame,
     // per-icon frames, a zoom anchor, a quick mechanical animation), scoped to its own
@@ -377,7 +415,7 @@ struct MuseumCategoryView: View {
         // FinderWindowChrome using ITS frame for layout, but never contributes to what the
         // Museum root sees as this view's own size, so the category window's on-screen
         // position stays fixed regardless of whether a product is open.
-        FinderWindowChrome(title: category.title, statusText: "\(category.products.count) models", isActive: openProduct == nil, onClose: onClose, dragOffset: dragOffset) {
+        FinderWindowChrome(title: category.title, statusText: "\(category.products.count) models", isActive: openProduct == nil, onClose: onClose, dragOffset: dragOffset, minDragOffset: minDragOffset) {
             productGrid
         }
         // This window's own width cap, not an external one applied to the whole
@@ -396,7 +434,12 @@ struct MuseumCategoryView: View {
         }
         .overlay(alignment: .topLeading) {
             if let openProduct {
-                MuseumProductDetailView(product: openProduct, onClose: closeProduct, dragOffset: $productDragOffset)
+                MuseumProductDetailView(
+                    product: openProduct, onClose: closeProduct, dragOffset: $productDragOffset,
+                    // Same reasoning as MuseumView's identical wrapping -- see
+                    // FinderWindowChrome.minDragOffset's doc comment.
+                    minDragOffset: Binding(get: { productMinDragOffset }, set: { _ in })
+                )
                     // Explicit size, not left to .overlay(alignment:)'s implicit size
                     // proposal -- .overlay proposes the BASE view's own rendered size to its
                     // content, which is this category window's 640pt cap, not the full
@@ -542,6 +585,9 @@ struct MuseumProductDetailView: View {
     /// Forwarded straight through to this window's own FinderWindowChrome -- MuseumCategoryView
     /// owns and applies the actual offset; see FinderWindowChrome.dragOffset's doc comment.
     var dragOffset: Binding<CGSize>? = nil
+    /// Forwarded straight through to this window's own FinderWindowChrome, same as
+    /// `dragOffset` above -- see MuseumView.categoryMinDragOffset's doc comment.
+    var minDragOffset: Binding<CGSize>? = nil
 
     private static let fallbackParagraph = "Not enough episodes have covered this one yet -- check back as the archive gets classified further."
 
@@ -570,7 +616,7 @@ struct MuseumProductDetailView: View {
         // title bar text instead of a separate inline heading. The close box zooms the
         // cascade shut via `onClose` now, not a NavigationStack pop -- this is always
         // presented as a cascaded window over MuseumCategoryView on macOS, never pushed.
-        FinderWindowChrome(title: product.name, onClose: onClose, dragOffset: dragOffset) {
+        FinderWindowChrome(title: product.name, onClose: onClose, dragOffset: dragOffset, minDragOffset: minDragOffset) {
             ClassicScrollView {
                 detailContent
             }

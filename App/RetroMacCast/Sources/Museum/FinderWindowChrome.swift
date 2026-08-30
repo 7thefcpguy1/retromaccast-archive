@@ -26,14 +26,49 @@ struct FinderWindowChrome<Content: View>: View {
     /// dragged window's cascaded child would open from its old, undragged position instead
     /// of following it.
     var dragOffset: Binding<CGSize>?
+    /// The lowest (most negative) `dragOffset` the caller will accept, per axis -- keeps this
+    /// window's title bar (its only drag handle, close box included) from being draggable
+    /// above/left of the visible content area. nil means unclamped. Applied INSIDE the drag
+    /// gesture itself, not as a correction the caller applies afterward from a geometry
+    /// reading: an earlier version tried exactly that (re-clamping `dragOffset` reactively
+    /// once the caller's `onGeometryChange` saw an out-of-bounds frame), and it silently did
+    /// nothing during an actual drag -- `titleBarDragGesture`'s own `onChanged` recomputes
+    /// `dragOffset.wrappedValue` from `dragGestureStartOffset + value.translation` on every
+    /// tick, unconditionally overwriting whatever the caller had just corrected it to a
+    /// moment earlier.
+    ///
+    /// A `Binding`, not a plain `CGSize?` value -- a plain value is captured fresh each time
+    /// this struct is reconstructed, but confirmed live that a reconstruction driven by
+    /// `dragOffset` changing mid-gesture doesn't reliably make `titleBarDragGesture`'s
+    /// already-in-flight `.onChanged` closure see the new value (dragging the title bar
+    /// toward the top of the app still rendered it with no visible title bar or close box at
+    /// all, exactly as the user reported, even after adding the plain-value clamp). Routing
+    /// through the caller's own `Binding` getter -- the same mechanism `dragOffset` above
+    /// already relies on successfully -- reads the caller's live @State on every access
+    /// instead of a frozen snapshot, but the REAL bug turned out to be one level deeper than
+    /// that: the caller derives this floor as `dragOffset - measuredFrame` (the window's
+    /// static, non-drag base position, isolated out algebraically), and `measuredFrame` is
+    /// only ever updated asynchronously via `onGeometryChange`, one render behind `dragOffset`
+    /// itself during a fast, continuous drag -- so the two values being subtracted are never
+    /// actually from the same instant, and the "floor" drifts further permissive (more
+    /// negative) the longer a single drag continues, chasing but never reaching the true
+    /// boundary. Confirmed live with a temporary debug overlay: dragging steadily upward,
+    /// the reported floor kept sliding down in lockstep with the drag instead of staying
+    /// fixed. Worked around below by reading this Binding's getter only ONCE, at the start of
+    /// each drag gesture -- correct, not just a workaround: the floor is a static property of
+    /// "where this window sits with zero drag," which genuinely can't change mid-gesture, so
+    /// there's nothing to re-derive after that first read.
+    var minDragOffset: Binding<CGSize>?
     @ViewBuilder let content: Content
 
     // True only for the duration of one continuous drag gesture -- lets titleBarDragGesture
-    // capture `dragOffset`'s value exactly once per gesture (its value *before* this drag's
-    // own translation is added), rather than on every `.onChanged` tick. Local @State, not
-    // shared with the caller -- purely this view's own bookkeeping for one drag session.
+    // capture `dragOffset`'s (and, see minDragOffset's doc comment, `minDragOffset`'s) value
+    // exactly once per gesture (its value *before* this drag's own translation is added),
+    // rather than on every `.onChanged` tick. Local @State, not shared with the caller --
+    // purely this view's own bookkeeping for one drag session.
     @State private var isDragging = false
     @State private var dragGestureStartOffset: CGSize = .zero
+    @State private var dragGestureFloor: CGSize?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -132,11 +167,19 @@ struct FinderWindowChrome<Content: View>: View {
                 if !isDragging {
                     isDragging = true
                     dragGestureStartOffset = dragOffset.wrappedValue
+                    // Read once, here, not on every tick below -- see minDragOffset's own
+                    // doc comment for why re-reading it live mid-drag doesn't work.
+                    dragGestureFloor = minDragOffset?.wrappedValue
                 }
-                dragOffset.wrappedValue = CGSize(
+                var newOffset = CGSize(
                     width: dragGestureStartOffset.width + value.translation.width,
                     height: dragGestureStartOffset.height + value.translation.height
                 )
+                if let floor = dragGestureFloor {
+                    newOffset.width = max(newOffset.width, floor.width)
+                    newOffset.height = max(newOffset.height, floor.height)
+                }
+                dragOffset.wrappedValue = newOffset
             }
             .onEnded { _ in isDragging = false }
     }
