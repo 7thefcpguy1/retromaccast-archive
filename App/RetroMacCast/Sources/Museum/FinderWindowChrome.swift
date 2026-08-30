@@ -103,8 +103,20 @@ struct FinderWindowChrome<Content: View>: View {
     /// `minimumDistance: 2` (not the default 10) so a real drag starts responding quickly
     /// without being so sensitive that an ordinary click-to-select on this title bar
     /// misfires as a drag.
+    ///
+    /// `coordinateSpace: .global`, not the default `.local` -- this is the actual window
+    /// being dragged, and its translation feeds straight back into an `.offset()` applied to
+    /// an ANCESTOR of this title bar (the caller's whole window, so the cascade offset moves
+    /// with it). With the default `.local` coordinate space, `DragGesture.translation` is
+    /// measured relative to this title bar's OWN current rendered position -- which is
+    /// itself shifting every frame because of the very offset this gesture is driving,
+    /// turning what should be a stable 1:1 mapping into a feedback loop. Confirmed live:
+    /// jitter, and the pointer visibly drifting away from the title bar the longer a drag
+    /// continued. `.global` measures against a fixed screen-space reference instead, so the
+    /// reported translation always matches real mouse movement regardless of how far the
+    /// window (and this title bar) has already moved.
     private var titleBarDragGesture: some Gesture {
-        DragGesture(minimumDistance: 2)
+        DragGesture(minimumDistance: 2, coordinateSpace: .global)
             .onChanged { value in
                 guard let dragOffset else { return }
                 if !isDragging {

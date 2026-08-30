@@ -17,6 +17,35 @@ private func museumZoomAnchor(forIcon iconId: String, iconFrames: [String: CGRec
     )
 }
 
+/// A coordinate space shared across the whole Museum cascade (root, category, and product
+/// windows), rooted at MuseumView's own outermost content -- lets any level measure its own
+/// on-screen frame against the same reference the tab's total available size is measured in,
+/// so a freshly-opened window can be pulled back into view if it would otherwise open with
+/// part of itself off screen. Distinct from each view's own `zoomSpace`/`museumCategoryZoomSpace`
+/// (used for the icon-zoom-open animation's anchor math, scoped locally to each window's own
+/// icon grid) -- this one specifically spans every cascade level.
+private let museumContentSpace = "museumContentSpace"
+
+/// Nudges `dragOffset` up (and, if needed, left) so `frame` -- a window's just-measured,
+/// on-screen position in `museumContentSpace` -- fits within `availableSize` instead of
+/// opening with part of itself off screen. Only ever shifts a window UP/LEFT into more room,
+/// never down/right, and only by the minimum needed -- a window shorter than the available
+/// space is left exactly where its normal cascade position put it.
+private func clampedDragOffset(for frame: CGRect, availableSize: CGSize, current: CGSize) -> CGSize {
+    guard availableSize.height > 0, availableSize.width > 0 else { return current }
+    let margin: CGFloat = 12
+    var adjusted = current
+    let bottomOverflow = frame.maxY - (availableSize.height - margin)
+    if bottomOverflow > 0 {
+        adjusted.height -= bottomOverflow
+    }
+    let rightOverflow = frame.maxX - (availableSize.width - margin)
+    if rightOverflow > 0 {
+        adjusted.width -= rightOverflow
+    }
+    return adjusted
+}
+
 /// Museum tab root: a list of product categories (Compact Macintosh, iMac, iPhone, ...).
 /// Tapping one pushes MuseumCategoryView (chronological model list), which pushes
 /// MuseumProductDetailView (the full page: photo, synopsis, real synthesized show-history
@@ -55,6 +84,22 @@ struct MuseumView: View {
     // always starts at its default cascade position, not wherever a previously closed one
     // had been dragged to.
     @State private var categoryDragOffset: CGSize = .zero
+    // The Museum tab's own total available size, measured in `museumContentSpace` -- used to
+    // clamp a freshly-opened category window fully into view.
+    @State private var availableSize: CGSize = .zero
+    // The category window's own on-screen frame, in `museumContentSpace` -- updated
+    // unconditionally on every geometry change (not gated behind any "needs checking" flag).
+    // Read once, after the open animation's completion handler fires (see
+    // openPendingCategoryIfNeeded/the iconGrid double-click handler), to apply the one-time
+    // "pull it into view if needed" correction against the window's *settled* position --
+    // an earlier version of this read the frame reactively, inside the same onGeometryChange
+    // that updates it, gated by a one-shot flag; that flag got consumed by the FIRST
+    // geometry-change firing, which happens early in the zoom-open transition while the
+    // window is still mid-animation (tiny/partially offscreen-scaled), not by its final
+    // settled size -- so the clamp math always saw a frame far too small to ever look like
+    // it needed correcting, and never actually fired. Confirmed live with a temporary debug
+    // overlay showing the exact (undersized, mid-animation) frame it had captured.
+    @State private var categoryFrame: CGRect = .zero
 
     // Quick and mechanical, not springy -- matches the snap of the real System 7 zoom effect.
     private static let zoomAnimation = Animation.easeInOut(duration: 0.18)
@@ -77,8 +122,21 @@ struct MuseumView: View {
         guard let productId = navigator.pendingMuseumProductId,
               let category = museumCategories.first(where: { cat in cat.products.contains { $0.id == productId } })
         else { return }
+        openCategoryAnimated(category)
+    }
+
+    /// Resets any leftover drag offset, opens `category` with the usual zoom animation, and
+    /// -- once that animation actually finishes, not reactively during it -- clamps the
+    /// window fully into view if it would otherwise land with its bottom (or right edge) off
+    /// screen. Centralized here (both call sites below used to duplicate this sequence
+    /// inline) specifically so the completion-based clamp can't be forgotten at either one.
+    private func openCategoryAnimated(_ category: MuseumCategory) {
         categoryDragOffset = .zero
-        withAnimation(Self.zoomAnimation) { openCategory = category }
+        withAnimation(Self.zoomAnimation) {
+            openCategory = category
+        } completion: {
+            categoryDragOffset = clampedDragOffset(for: categoryFrame, availableSize: availableSize, current: categoryDragOffset)
+        }
     }
 
     var body: some View {
@@ -121,11 +179,22 @@ struct MuseumView: View {
                     // MuseumProductDetailView already governs its own 700 -- each window
                     // manages its own width instead of one constraint trying to cover a
                     // subtree with two different natural sizes.
-                    MuseumCategoryView(category: openCategory, onClose: closeCategory, dragOffset: $categoryDragOffset)
+                    MuseumCategoryView(category: openCategory, onClose: closeCategory, dragOffset: $categoryDragOffset, availableSize: availableSize)
                         .padding(24)
                         // Base cascade offset plus whatever the user has dragged this
                         // window by -- see categoryDragOffset's own doc comment.
                         .offset(x: 28 + categoryDragOffset.width, y: 28 + categoryDragOffset.height)
+                        // After .offset(), not before -- this needs to see the window's
+                        // actual rendered position (cascade + drag combined), not its
+                        // pre-offset layout position. Just tracks the latest frame
+                        // unconditionally now -- see categoryFrame's own doc comment for why
+                        // the correction itself waits for openCategoryAnimated's completion
+                        // handler instead of applying reactively right here.
+                        .onGeometryChange(for: CGRect.self) { proxy in
+                            proxy.frame(in: .named(museumContentSpace))
+                        } action: { newFrame in
+                            categoryFrame = newFrame
+                        }
                         // Classic Mac OS "zoom rectangles" close/open effect: the window
                         // balloons open from and shrinks back down toward whichever icon
                         // it cascades from (see zoomAnchor(forIcon:)), rather than a fixed
@@ -151,6 +220,12 @@ struct MuseumView: View {
             }
             #if os(macOS)
             .coordinateSpace(.named(Self.zoomSpace))
+            .coordinateSpace(.named(museumContentSpace))
+            .onGeometryChange(for: CGSize.self) { proxy in
+                proxy.size
+            } action: { newValue in
+                availableSize = newValue
+            }
             .onAppear { openPendingCategoryIfNeeded() }
             .onChange(of: navigator.pendingMuseumProductId) { _, _ in openPendingCategoryIfNeeded() }
             #endif
@@ -174,8 +249,7 @@ struct MuseumView: View {
                     .onTapGesture(count: 2) {
                         selectedCategory = category
                         zoomAnchor = museumZoomAnchor(forIcon: category.id, iconFrames: iconFrames, windowFrame: rootWindowFrame)
-                        categoryDragOffset = .zero
-                        withAnimation(Self.zoomAnimation) { openCategory = category }
+                        openCategoryAnimated(category)
                     }
                     .onTapGesture(count: 1) {
                         selectedCategory = category
@@ -227,6 +301,9 @@ struct MuseumCategoryView: View {
     /// (root) owns and applies the actual offset; see FinderWindowChrome.dragOffset's doc
     /// comment for why the caller has to own it rather than this view handling it internally.
     var dragOffset: Binding<CGSize>? = nil
+    /// The Museum tab's total available size, forwarded from MuseumView (root) -- used the
+    /// same way as there, to clamp a freshly-opened product window fully into view.
+    var availableSize: CGSize = .zero
 
     // macOS only -- same single-click-selects/double-click-opens pattern as the Museum
     // root, since a product icon here is exactly as "foldery" as a category icon there.
@@ -236,6 +313,8 @@ struct MuseumCategoryView: View {
     // view owns and applies it (rather than forwarding a binding from further up) since it's
     // the one embedding MuseumProductDetailView's cascade.
     @State private var productDragOffset: CGSize = .zero
+    // Same reasoning as MuseumView's categoryFrame -- see its doc comment.
+    @State private var productFrame: CGRect = .zero
 
     // Same zoom-cascade machinery as MuseumView's own root -> category step (window frame,
     // per-icon frames, a zoom anchor, a quick mechanical animation), scoped to its own
@@ -261,9 +340,20 @@ struct MuseumCategoryView: View {
         guard let productId = navigator.pendingMuseumProductId,
               let product = category.products.first(where: { $0.id == productId })
         else { return }
-        productDragOffset = .zero
-        withAnimation(Self.zoomAnimation) { openProduct = product }
+        openProductAnimated(product)
         navigator.pendingMuseumProductId = nil
+    }
+
+    /// Same reasoning as MuseumView's openCategoryAnimated -- the clamp has to wait for the
+    /// zoom-open animation to actually finish, not fire reactively off the FIRST (still
+    /// mid-animation, too-small-to-ever-look-overflowing) geometry change.
+    private func openProductAnimated(_ product: MuseumProduct) {
+        productDragOffset = .zero
+        withAnimation(Self.zoomAnimation) {
+            openProduct = product
+        } completion: {
+            productDragOffset = clampedDragOffset(for: productFrame, availableSize: availableSize, current: productDragOffset)
+        }
     }
 
     var body: some View {
@@ -307,9 +397,38 @@ struct MuseumCategoryView: View {
         .overlay(alignment: .topLeading) {
             if let openProduct {
                 MuseumProductDetailView(product: openProduct, onClose: closeProduct, dragOffset: $productDragOffset)
+                    // Explicit size, not left to .overlay(alignment:)'s implicit size
+                    // proposal -- .overlay proposes the BASE view's own rendered size to its
+                    // content, which is this category window's 640pt cap, not the full
+                    // available space. Without this, MuseumProductDetailView's own internal
+                    // `.frame(maxWidth: 700, maxHeight: 600)` never got a chance to matter --
+                    // a `maxWidth` only ever shrinks a proposal, it can't request MORE than
+                    // what's already been proposed, so the product window was silently
+                    // capped at category's own (often narrower) width instead of its own
+                    // intended one. Confirmed live via a temporary debug overlay: the
+                    // measured product frame was exactly 640pt wide, category's cap, not up
+                    // to 700. Driven by `availableSize` (already tracked for the bounds
+                    // clamp below) instead, with the same 700/600 ceiling
+                    // MuseumProductDetailView's own internal frame already caps at, so it's
+                    // sized correctly regardless of how narrow or short the category window
+                    // it happens to be cascading from is.
+                    .frame(
+                        width: availableSize.width > 0 ? min(availableSize.width - 40, 700) : 700,
+                        height: availableSize.height > 0 ? min(availableSize.height - 40, 600) : 600
+                    )
                     // Base cascade offset plus whatever the user has dragged this window
                     // by -- see MuseumView's matching categoryDragOffset comment.
                     .offset(x: 28 + productDragOffset.width, y: 28 + productDragOffset.height)
+                    // See MuseumView's identical bounds-check hook for the reasoning --
+                    // `museumContentSpace` was registered by MuseumView's own root ZStack,
+                    // an ancestor of this view, so it resolves correctly without needing to
+                    // be re-registered here. Just tracks the latest frame unconditionally;
+                    // openProductAnimated's completion handler does the actual clamping.
+                    .onGeometryChange(for: CGRect.self) { proxy in
+                        proxy.frame(in: .named(museumContentSpace))
+                    } action: { newFrame in
+                        productFrame = newFrame
+                    }
                     .transition(.scale(scale: 0.05, anchor: zoomAnchor).combined(with: .opacity))
                     // Same fix, same reasoning as MuseumView's matching zIndex on its own
                     // category overlay -- keeps this window pinned on top of its category
@@ -346,8 +465,7 @@ struct MuseumCategoryView: View {
                     .onTapGesture(count: 2) {
                         selectedProduct = product
                         zoomAnchor = museumZoomAnchor(forIcon: product.id, iconFrames: iconFrames, windowFrame: windowFrame)
-                        productDragOffset = .zero
-                        withAnimation(Self.zoomAnimation) { openProduct = product }
+                        openProductAnimated(product)
                     }
                     .onTapGesture(count: 1) {
                         selectedProduct = product
