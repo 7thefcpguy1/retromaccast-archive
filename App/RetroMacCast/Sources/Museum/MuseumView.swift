@@ -47,21 +47,27 @@ private let museumContentSpace = "museumContentSpace"
 /// The earlier version stopped exactly at the edge (frame.minY >= 0), which kept the title
 /// bar technically on screen but let a window be pinned right against it; reported by the
 /// user, with screenshots, that holding a window there could render its content visibly
-/// duplicated/ghosted for some windows and not others. A first attempt backed this off to
-/// 60pt -- confirmed live (with a further screenshot) that 60pt still wasn't a comfortable
-/// enough distance; the ghosting reproduced again, this time on a product-level window.
-/// Rather than continue chasing that edge case's exact mechanism, this pushes the margin up
-/// substantially further instead.
+/// duplicated/ghosted for some windows and not others.
 ///
-/// Raising this past a window's own resting distance from the top briefly caused a real
-/// regression -- confirmed live, with a screenshot: a product window opened low enough that
-/// `minDragOffset`'s floor came out positive, which forced the window DOWN the instant any
-/// drag began (rather than merely limiting upward movement), making it impossible to drag
-/// back up and stranding it off the bottom of the app window. Fixed at the source in
-/// `minDragOffset` itself (capped so the floor can never exceed the window's own current
-/// offset), so this constant is now safe to raise arbitrarily high without risking that same
-/// failure mode again -- see that method's own doc comment for the detail.
-private let museumDragTopMargin: CGFloat = 180
+/// Went 60 -> 180 -> back to 60 across three rounds of live user feedback:
+/// - 60pt first: confirmed live that this still wasn't a comfortable enough distance --
+///   ghosting reproduced again, on a product-level window.
+/// - 180pt next: pushing the margin up that far exposed a real regression in
+///   `minDragOffset`'s floor -- a product window could open low enough that the floor came
+///   out positive, forcing the window DOWN the instant any drag began, stranding it off the
+///   bottom of the app window with no way to drag it back. Fixed at the source in
+///   `minDragOffset` (capped so the floor can never exceed the window's own current offset).
+/// - That cap traded one bug for another, though: once a window's OWN resting position sits
+///   inside the margin zone -- now the common case for a tall window in a modest app window,
+///   since `clampedDragOffset`'s open-time centering (see its own doc comment) can legitimately
+///   land a window's top edge anywhere, including well inside a 180pt zone -- the capped floor
+///   equals that resting offset exactly, which blocks upward dragging ENTIRELY rather than
+///   just limiting how far it goes. Confirmed by the user: "barely lets you move that window
+///   up at all." Back to 60pt to make that zone -- and hence how often the freeze bites --
+///   much narrower, now that open-time centering is doing most of the "keep a window
+///   comfortably in view" work on its own; manually dragging into the top-margin zone is a
+///   rarer, more deliberate action than it was before that fix existed.
+private let museumDragTopMargin: CGFloat = 60
 
 /// Where a window's un-dragged top-left corner should land along one axis so it's fully
 /// visible with a comfortable margin on both sides -- or, when it's simply too big for the
@@ -173,22 +179,41 @@ final class MuseumCascadeState<Item: Identifiable> where Item.ID == String {
         withAnimation(Self.zoomAnimation) { open = nil }
     }
 
-    /// Resets any leftover drag offset, opens `item` with the usual zoom animation, and --
-    /// once that animation actually finishes, not reactively during it -- clamps the window
-    /// fully into view via `clampedDragOffset` if it would otherwise land with its bottom (or
-    /// right edge) off screen. An earlier version read `cascadeFrame` reactively, inside the
-    /// same `onGeometryChange` that updates it, gated by a one-shot flag; that flag got
-    /// consumed by the FIRST geometry-change firing, early in the zoom-open transition while
-    /// the window is still mid-animation (tiny/partially offscreen-scaled), not its final
-    /// settled size -- so the clamp math always saw a frame far too small to ever look like it
-    /// needed correcting, and never actually fired. Confirmed live with a temporary debug
-    /// overlay showing the exact (undersized, mid-animation) frame it had captured.
-    func openAnimated(_ item: Item, availableSize: CGSize) {
-        dragOffset = .zero
-        withAnimation(Self.zoomAnimation) {
-            open = item
-        } completion: {
-            self.dragOffset = clampedDragOffset(for: self.cascadeFrame, availableSize: availableSize, current: self.dragOffset)
+    /// Opens `item` with the usual zoom animation, positioned fully into view via
+    /// `clampedDragOffset` from the very first frame of the animation when `predictedFrame`
+    /// is supplied -- the window's final size and position, computed analytically rather than
+    /// measured, BEFORE it's ever actually rendered (see `MuseumCategoryView.predictedProductFrame`'s
+    /// own doc comment for how). Without a prediction, falls back to the older two-step
+    /// sequence: reset to zero, animate, and only correct the position once the animation
+    /// actually finishes and a live measurement is available. That fallback is what MuseumView's
+    /// root -> category cascade still uses -- a category window's height is content-driven
+    /// (however many products it holds) and genuinely isn't knowable before it renders, so
+    /// there's nothing to predict there. The fallback's own live-measurement timing is why it
+    /// has to wait for animation completion rather than react to it: an earlier version read
+    /// `cascadeFrame` reactively, inside the same `onGeometryChange` that updates it, gated by
+    /// a one-shot flag; that flag got consumed by the FIRST geometry-change firing, early in
+    /// the zoom-open transition while the window is still mid-animation (tiny/partially
+    /// offscreen-scaled), not its final settled size -- so the clamp math always saw a frame
+    /// far too small to ever look like it needed correcting, and never actually fired.
+    /// Confirmed live with a temporary debug overlay showing the exact (undersized,
+    /// mid-animation) frame it had captured. The predicted-frame path sidesteps that whole
+    /// problem by never needing a live measurement to begin with -- confirmed live (after a
+    /// user report, with a screenshot, of a visible "opens off-position, then snaps into
+    /// place a moment later" jump) that computing the correct offset up front and animating
+    /// straight to it removes the snap entirely.
+    func openAnimated(_ item: Item, availableSize: CGSize, predictedFrame: CGRect? = nil) {
+        if let predictedFrame {
+            dragOffset = clampedDragOffset(for: predictedFrame, availableSize: availableSize, current: .zero)
+            withAnimation(Self.zoomAnimation) {
+                open = item
+            }
+        } else {
+            dragOffset = .zero
+            withAnimation(Self.zoomAnimation) {
+                open = item
+            } completion: {
+                self.dragOffset = clampedDragOffset(for: self.cascadeFrame, availableSize: availableSize, current: self.dragOffset)
+            }
         }
     }
 
@@ -485,6 +510,26 @@ struct MuseumCategoryView: View {
         )
     }
 
+    /// The product window's predicted frame, entirely before it's ever rendered -- both its
+    /// size (`productWindowSize`, already computed analytically above) and its position (this
+    /// category window's own already-settled `containerFrame`, plus the fixed +28/+28 cascade
+    /// offset every product window opens at) are knowable in advance here, with no live
+    /// measurement needed. Passed to `cascade.openAnimated` so a manually-double-clicked (or
+    /// VoiceOver-activated) product opens directly at its correct, already-clamped position
+    /// instead of the raw, unclamped cascade position with a visible snap into place once a
+    /// live measurement catches up a render later -- see `openAnimated`'s own doc comment.
+    /// Deliberately NOT used by `openPendingProductIfNeeded` (the Home "Featured Collection"
+    /// deep-link path): that one can fire as early as this category window's own `.onAppear`,
+    /// before `containerFrame` has necessarily settled to its true value yet, so a prediction
+    /// made from it there could itself be wrong -- that path keeps the safer (if occasionally
+    /// snap-prone) live-measurement fallback instead.
+    private var predictedProductFrame: CGRect {
+        CGRect(
+            origin: CGPoint(x: cascade.containerFrame.minX + 28, y: cascade.containerFrame.minY + 28),
+            size: productWindowSize
+        )
+    }
+
     private func closeProduct() {
         cascade.close()
     }
@@ -636,7 +681,7 @@ struct MuseumCategoryView: View {
                     .onTapGesture(count: 2) {
                         cascade.selected = product
                         cascade.zoomAnchor = museumZoomAnchor(forIcon: product.id, iconFrames: cascade.iconFrames, windowFrame: cascade.containerFrame, targetSize: productWindowSize)
-                        cascade.openAnimated(product, availableSize: availableSize)
+                        cascade.openAnimated(product, availableSize: availableSize, predictedFrame: predictedProductFrame)
                     }
                     .onTapGesture(count: 1) {
                         cascade.selected = product
@@ -649,7 +694,7 @@ struct MuseumCategoryView: View {
                     .accessibilityAction {
                         cascade.selected = product
                         cascade.zoomAnchor = museumZoomAnchor(forIcon: product.id, iconFrames: cascade.iconFrames, windowFrame: cascade.containerFrame, targetSize: productWindowSize)
-                        cascade.openAnimated(product, availableSize: availableSize)
+                        cascade.openAnimated(product, availableSize: availableSize, predictedFrame: predictedProductFrame)
                     }
                 #else
                 NavigationLink {
