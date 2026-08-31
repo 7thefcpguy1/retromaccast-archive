@@ -116,6 +116,11 @@ final class Corpus {
         let yearsRunning: Int
     }
 
+    /// Used only for the very first `Corpus.shared` at app launch, where there's no
+    /// previously-working corpus to fall back to -- so an unopenable database (missing or
+    /// corrupt bundled resource) genuinely is unrecoverable and stays a `fatalError`.
+    /// `reloadFromDisk()` below uses a separate, non-crashing initializer instead, since it
+    /// always has a working `shared` it can leave untouched if the reload fails.
     private init() {
         let path: String
         if FileManager.default.fileExists(atPath: Self.downloadedDBURL.path) {
@@ -134,6 +139,12 @@ final class Corpus {
         }
     }
 
+    private init(reopeningAt path: String) throws {
+        var config = Configuration()
+        config.readonly = true
+        dbQueue = try DatabaseQueue(path: path, configuration: config)
+    }
+
     /// Called after `CorpusUpdateManager` finishes downloading and validating a newer
     /// database. Posts `.corpusDidReload` afterward -- `Corpus.shared` being reassigned is
     /// enough on its own for any *fresh* `Corpus.shared.foo()` call to pick up the new data,
@@ -145,9 +156,23 @@ final class Corpus {
     /// after a real "Check Now" update actually landed 253 videos, because VideosView had
     /// already cached its own empty result from before the update. Broadcasting this lets
     /// those views react and refresh instead of only ever loading once per app launch.
-    static func reloadFromDisk() {
-        shared = Corpus()
+    /// Returns `false` (and leaves `Corpus.shared` untouched, posting no notification) if
+    /// the just-downloaded-and-moved file somehow fails to reopen -- this is meant to be the
+    /// *safe* half of the update path (the file was already validated by a trial open before
+    /// `CorpusUpdateManager` moved it into place), so a failure here is an unexpected,
+    /// unretryable-by-the-user problem (disk/permissions issue at the exact moment of the
+    /// swap, etc.), not something worth crashing the whole app over when the previous corpus
+    /// (bundled or an earlier successful download) is still sitting right there, already open,
+    /// and perfectly able to keep serving the app until the next launch.
+    @discardableResult
+    static func reloadFromDisk() -> Bool {
+        do {
+            shared = try Corpus(reopeningAt: downloadedDBURL.path)
+        } catch {
+            return false
+        }
         NotificationCenter.default.post(name: .corpusDidReload, object: nil)
+        return true
     }
 
     func search(_ query: String, sortBy: SearchSortOrder = .relevance) -> [SearchResult] {

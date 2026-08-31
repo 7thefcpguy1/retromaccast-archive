@@ -245,6 +245,13 @@ struct OnThisDayView: View {
                 result = Corpus.shared.onThisDay()
             }
         }
+        // Unconditional refresh on a corpus swap -- the "if nil" guard above is exactly
+        // what would otherwise leave this stale after a live "Check Now" update, same bug
+        // (and same fix shape) VideosView/GlossaryView already had. See
+        // Corpus.reloadFromDisk()'s doc comment.
+        .onReceive(NotificationCenter.default.publisher(for: .corpusDidReload)) { _ in
+            result = Corpus.shared.onThisDay()
+        }
     }
 }
 
@@ -271,6 +278,9 @@ private struct HomeStatsStrip: View {
             if stats == nil {
                 stats = Corpus.shared.homeStats()
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .corpusDidReload)) { _ in
+            stats = Corpus.shared.homeStats()
         }
     }
 
@@ -360,6 +370,9 @@ private struct HomeFunFactCard: View {
                 fact = Corpus.shared.randomTriviaSelection(moreCount: 0)?.featured
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .corpusDidReload)) { _ in
+            fact = Corpus.shared.randomTriviaSelection(moreCount: 0)?.featured
+        }
     }
 }
 
@@ -438,6 +451,9 @@ private struct HomeFeaturedCollectionCard: View {
                 collection = Corpus.shared.randomFeaturedCollection()
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .corpusDidReload)) { _ in
+            collection = Corpus.shared.randomFeaturedCollection()
+        }
     }
 }
 
@@ -475,6 +491,9 @@ private struct RecentlyAddedStrip: View {
             if episodes.isEmpty {
                 episodes = Corpus.shared.recentEpisodes()
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .corpusDidReload)) { _ in
+            episodes = Corpus.shared.recentEpisodes()
         }
     }
 }

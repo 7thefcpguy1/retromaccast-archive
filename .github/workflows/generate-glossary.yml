@@ -44,12 +44,20 @@ jobs:
       - name: Mine glossary terms
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Passed through env, not interpolated directly into the script below via `${{ }}`
+          # templating -- these are free-text workflow_dispatch inputs, and direct
+          # interpolation into a `run:` block is a known GitHub Actions script-injection
+          # vector (a value containing shell metacharacters would execute as this runner's own
+          # shell code, in an environment holding ANTHROPIC_API_KEY and a contents:write
+          # token). Reading them back as ordinary shell variables sidesteps that entirely.
+          LIMIT: ${{ github.event.inputs.limit }}
+          RESET: ${{ github.event.inputs.reset }}
         run: |
           RESET_FLAG=""
-          if [ "${{ github.event.inputs.reset }}" = "true" ]; then
+          if [ "$RESET" = "true" ]; then
             RESET_FLAG="--reset"
           fi
-          .build/release/rmc-pipeline generate-glossary --limit "${{ github.event.inputs.limit }}" $RESET_FLAG
+          .build/release/rmc-pipeline generate-glossary --limit "$LIMIT" $RESET_FLAG
 
       - name: Export manifest
         run: .build/release/rmc-pipeline export-manifest
@@ -57,9 +65,12 @@ jobs:
       - name: Publish updated corpus as a release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Same reasoning as the "Mine glossary terms" step -- read back via env, not
+          # interpolated directly into this run: block.
+          LIMIT: ${{ github.event.inputs.limit }}
         run: |
           TAG="corpus-$(date -u +%Y-%m-%d)-glossary-$(date -u +%H%M%S)"
           EP_COUNT=$(jq '.episodeCount' corpus/manifest.json)
           gh release create "$TAG" corpus/rmc.sqlite corpus/manifest.json \
             --title "Glossary terms $(date -u +%Y-%m-%d)" \
-            --notes "generate-glossary run (limit=${{ github.event.inputs.limit }}). $EP_COUNT episodes total."
+            --notes "generate-glossary run (limit=$LIMIT). $EP_COUNT episodes total."

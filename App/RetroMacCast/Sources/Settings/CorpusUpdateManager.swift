@@ -45,9 +45,6 @@ final class CorpusUpdateManager: ObservableObject {
         isChecking = true
         defer { isChecking = false }
 
-        lastCheckedDate = Date()
-        UserDefaults.standard.set(lastCheckedDate, forKey: Self.lastCheckedDateKey)
-
         do {
             let url = URL(string: "https://api.github.com/repos/\(Self.owner)/\(Self.repo)/releases/latest")!
             // GitHub's REST API 403s any request with no User-Agent header (confirmed via
@@ -64,6 +61,14 @@ final class CorpusUpdateManager: ObservableObject {
                 return
             }
             let release = try JSONDecoder().decode(GitHubRelease.self, from: data)
+
+            // Only stamped once GitHub has actually answered with a real release -- stamping
+            // this unconditionally at the top of the function (the old behavior) meant a
+            // check that failed outright (offline, GitHub down, a bad response) still reset
+            // the 7-day `checkIfDue()` gate, so a single offline launch could silently skip a
+            // real check for a full extra week (or longer, if it kept happening).
+            lastCheckedDate = Date()
+            UserDefaults.standard.set(lastCheckedDate, forKey: Self.lastCheckedDateKey)
 
             let lastKnownTag = UserDefaults.standard.string(forKey: Self.lastKnownTagKey)
             guard release.tagName != lastKnownTag else {
@@ -110,7 +115,17 @@ final class CorpusUpdateManager: ObservableObject {
         }
         try FileManager.default.moveItem(at: tempURL, to: destination)
 
-        Corpus.reloadFromDisk()
+        guard Corpus.reloadFromDisk() else {
+            // Reopening the file we just validated and moved into place failed -- shouldn't
+            // happen, but if it does, `Corpus.shared` is untouched (see reloadFromDisk's doc
+            // comment) so the app keeps running on the previous corpus. Remove the broken
+            // file rather than leaving it at `downloadedDBURL`, where the next app launch
+            // would try to open it too -- and, unlike this recoverable path, `Corpus.init()`
+            // has no fallback to reach for and would `fatalError`.
+            try? FileManager.default.removeItem(at: destination)
+            statusMessage = "The update downloaded but couldn't be applied -- kept the current database."
+            return
+        }
         UserDefaults.standard.set(tag, forKey: Self.lastKnownTagKey)
         refreshCurrentStats()
         statusMessage = "Updated to \(episodeCount.formatted(.number.grouping(.automatic))) episodes."

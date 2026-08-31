@@ -15,6 +15,15 @@ enum ClaudeClassifierError: Error {
     /// after a retry -- e.g. leaked meta-narration or a malformed tool-call echo instead of
     /// clean prose. Carries the collection/episode label for the caller's failure log.
     case corruptedGeneration(String)
+    /// `stop_reason` came back `"max_tokens"` -- the tool-call JSON was cut off mid-generation
+    /// rather than genuinely completing with zero/few results. Thrown instead of returning
+    /// whatever partial (and here, unparseable-as-valid-JSON, so silently empty) result fell
+    /// out of the truncated response -- a truncated response and a real "nothing found" result
+    /// look identical once parsed, and the caller (RMCPipeline.swift) treats a thrown error as
+    /// "leave classifiedAt/glossaryMinedAt unset, retry next run" rather than permanently
+    /// stamping this episode as done with zero matches. See RMCPipeline.swift's per-episode
+    /// catch blocks around `classify`/`generateGlossaryTerms` call sites.
+    case truncatedResponse
 }
 
 struct ClaudeClassifier {
@@ -101,6 +110,13 @@ struct ClaudeClassifier {
               let content = json["content"] as? [[String: Any]] else {
             throw ClaudeClassifierError.unexpectedResponseShape
         }
+        // A `max_tokens`-truncated tool call still parses as valid top-level JSON but is
+        // missing its closing braces inside `input`, so `input["..."] as? [...]` below fails
+        // its cast and falls through to "no results" -- indistinguishable from a real empty
+        // result unless checked here first. See `.truncatedResponse`'s doc comment.
+        guard json["stop_reason"] as? String != "max_tokens" else {
+            throw ClaudeClassifierError.truncatedResponse
+        }
 
         for block in content where block["type"] as? String == "tool_use" {
             guard let input = block["input"] as? [String: Any],
@@ -177,6 +193,13 @@ struct ClaudeClassifier {
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let content = json["content"] as? [[String: Any]] else {
             throw ClaudeClassifierError.unexpectedResponseShape
+        }
+        // A `max_tokens`-truncated tool call still parses as valid top-level JSON but is
+        // missing its closing braces inside `input`, so `input["..."] as? [...]` below fails
+        // its cast and falls through to "no results" -- indistinguishable from a real empty
+        // result unless checked here first. See `.truncatedResponse`'s doc comment.
+        guard json["stop_reason"] as? String != "max_tokens" else {
+            throw ClaudeClassifierError.truncatedResponse
         }
 
         for block in content where block["type"] as? String == "tool_use" {
@@ -290,6 +313,13 @@ struct ClaudeClassifier {
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let content = json["content"] as? [[String: Any]] else {
             throw ClaudeClassifierError.unexpectedResponseShape
+        }
+        // A `max_tokens`-truncated tool call still parses as valid top-level JSON but is
+        // missing its closing braces inside `input`, so `input["..."] as? [...]` below fails
+        // its cast and falls through to "no results" -- indistinguishable from a real empty
+        // result unless checked here first. See `.truncatedResponse`'s doc comment.
+        guard json["stop_reason"] as? String != "max_tokens" else {
+            throw ClaudeClassifierError.truncatedResponse
         }
 
         for block in content where block["type"] as? String == "tool_use" {
@@ -408,6 +438,13 @@ struct ClaudeClassifier {
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let content = json["content"] as? [[String: Any]] else {
             throw ClaudeClassifierError.unexpectedResponseShape
+        }
+        // A `max_tokens`-truncated tool call still parses as valid top-level JSON but is
+        // missing its closing braces inside `input`, so `input["..."] as? [...]` below fails
+        // its cast and falls through to "no results" -- indistinguishable from a real empty
+        // result unless checked here first. See `.truncatedResponse`'s doc comment.
+        guard json["stop_reason"] as? String != "max_tokens" else {
+            throw ClaudeClassifierError.truncatedResponse
         }
 
         for block in content where block["type"] as? String == "tool_use" {

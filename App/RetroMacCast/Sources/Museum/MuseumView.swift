@@ -219,6 +219,17 @@ struct MuseumView: View {
                         minDragOffset: Binding(get: { categoryMinDragOffset }, set: { _ in }),
                         availableSize: availableSize
                     )
+                        // Forces SwiftUI to treat a different category as a genuinely new
+                        // view instance rather than reusing this one's -- without an
+                        // explicit id, jumping straight from one open category window to a
+                        // different one (double-clicking a still-visible sibling icon on the
+                        // root grid while this one is open) left MuseumCategoryView's own
+                        // @State (selectedProduct/openProduct/productDragOffset/etc.) intact
+                        // across the swap, so the new category's window could render with the
+                        // OLD category's product-detail overlay still on top of it, and no
+                        // zoom-open transition played for the swap since `openCategory` never
+                        // passed through nil.
+                        .id(openCategory.id)
                         .padding(24)
                         // Base cascade offset plus whatever the user has dragged this
                         // window by -- see categoryDragOffset's own doc comment.
@@ -455,6 +466,16 @@ struct MuseumCategoryView: View {
                     // FinderWindowChrome.minDragOffset's doc comment.
                     minDragOffset: Binding(get: { productMinDragOffset }, set: { _ in })
                 )
+                    // Same reasoning as MuseumView's identical .id(category.id) one cascade
+                    // level up -- without this, jumping directly from one open product's
+                    // detail window to a different product's (double-clicking a different
+                    // still-visible product icon while this one is open) left
+                    // MuseumProductDetailView's own @State (featuredMoments/onShowParagraph,
+                    // both only populated in .onAppear) holding the PREVIOUS product's data,
+                    // so the Featured Moments list and "ON RETROMACCAST" paragraph silently
+                    // kept describing the wrong product even though the title/photo/synopsis
+                    // (plain `let product` fields) updated correctly.
+                    .id(openProduct.id)
                     // Explicit size, not left to .overlay(alignment:)'s implicit size
                     // proposal -- .overlay proposes the BASE view's own rendered size to its
                     // content, which is this category window's 640pt cap, not the full
