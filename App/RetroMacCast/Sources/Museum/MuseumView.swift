@@ -51,43 +51,48 @@ private let museumContentSpace = "museumContentSpace"
 /// 60pt -- confirmed live (with a further screenshot) that 60pt still wasn't a comfortable
 /// enough distance; the ghosting reproduced again, this time on a product-level window.
 /// Rather than continue chasing that edge case's exact mechanism, this pushes the margin up
-/// substantially further instead. Not re-verified live after this bump (at the user's
-/// request, to avoid another round of live-test iteration) -- worth a manual check, and worth
-/// bumping again (or reconsidering whether dragging is worth keeping at all) if it recurs.
+/// substantially further instead.
+///
+/// Raising this past a window's own resting distance from the top briefly caused a real
+/// regression -- confirmed live, with a screenshot: a product window opened low enough that
+/// `minDragOffset`'s floor came out positive, which forced the window DOWN the instant any
+/// drag began (rather than merely limiting upward movement), making it impossible to drag
+/// back up and stranding it off the bottom of the app window. Fixed at the source in
+/// `minDragOffset` itself (capped so the floor can never exceed the window's own current
+/// offset), so this constant is now safe to raise arbitrarily high without risking that same
+/// failure mode again -- see that method's own doc comment for the detail.
 private let museumDragTopMargin: CGFloat = 180
 
-/// Nudges `dragOffset` up (and, if needed, left) so `frame` -- a window's just-measured,
-/// on-screen position in `museumContentSpace` -- fits within `availableSize` instead of
-/// opening with part of itself off screen. Only ever shifts a window UP/LEFT into more room,
-/// never down/right, and only by the minimum needed -- a window shorter than the available
-/// space is left exactly where its normal cascade position put it.
+/// Where a window's un-dragged top-left corner should land along one axis so it's fully
+/// visible with a comfortable margin on both sides -- or, when it's simply too big for the
+/// available room, centered so the unavoidable overflow is split evenly between both edges
+/// instead of all dumped on one side. Used for both axes by `clampedDragOffset` below. Per
+/// the user's explicit ask: an opened window should generally land with all four edges
+/// visible, not hugging its cascade-offset corner with only the far edge ever corrected.
+private func fittedOrigin(current: CGFloat, extent: CGFloat, available: CGFloat, margin: CGFloat) -> CGFloat {
+    let usable = available - margin * 2
+    guard usable > 0 else { return margin }
+    if extent > usable {
+        return margin - (extent - usable) / 2
+    }
+    return min(max(current, margin), available - margin - extent)
+}
+
+/// Repositions a freshly-opened window fully into view within `availableSize`, based on
+/// `frame` -- the window's just-measured, on-screen position in `museumContentSpace` at its
+/// normal (un-dragged) cascade position -- rather than only correcting bottom/right overflow
+/// reactively the way an earlier version of this did. Both axes go through `fittedOrigin`,
+/// so a window that's simply too tall or too wide for the available space gets centered
+/// (overflow split evenly top/bottom or left/right) instead of clipped at one edge only.
 private func clampedDragOffset(for frame: CGRect, availableSize: CGSize, current: CGSize) -> CGSize {
     guard availableSize.height > 0, availableSize.width > 0 else { return current }
     let margin: CGFloat = 12
-    var adjusted = current
-    var bottomOverflow = frame.maxY - (availableSize.height - margin)
-    if bottomOverflow > 0 {
-        // Never push the window's top above `museumDragTopMargin` -- the same safe
-        // distance from the literal top edge the title bar's own drag-gesture floor
-        // already enforces (see that constant's own doc comment for why: a window pinned
-        // exactly at the top edge could render with visibly duplicated/ghosted content for
-        // some windows). Without this cap, a window tall enough relative to `availableSize`
-        // -- easy to hit now that this same clamp also re-runs on every resize, not just at
-        // open time -- could get pushed by more than `museumDragTopMargin` worth of upward
-        // correction, right back into the exact zone this margin exists to avoid. A window
-        // whose own height genuinely exceeds the room between the top margin and the bottom
-        // margin can still end up with some residual bottom overflow after this -- preferable
-        // to "fixing" that overflow by reintroducing the rendering bug this margin exists to
-        // sidestep.
-        let maxUpwardShift = max(frame.minY - museumDragTopMargin, 0)
-        bottomOverflow = min(bottomOverflow, maxUpwardShift)
-        adjusted.height -= bottomOverflow
-    }
-    let rightOverflow = frame.maxX - (availableSize.width - margin)
-    if rightOverflow > 0 {
-        adjusted.width -= rightOverflow
-    }
-    return adjusted
+    let targetMinX = fittedOrigin(current: frame.minX, extent: frame.width, available: availableSize.width, margin: margin)
+    let targetMinY = fittedOrigin(current: frame.minY, extent: frame.height, available: availableSize.height, margin: margin)
+    return CGSize(
+        width: current.width + (targetMinX - frame.minX),
+        height: current.height + (targetMinY - frame.minY)
+    )
 }
 
 /// Bundles the per-cascade-level state and lifecycle logic MuseumView (root -> category) and
@@ -141,10 +146,24 @@ final class MuseumCascadeState<Item: Identifiable> where Item.ID == String {
     /// topMargin` -- can be derived from state already being tracked, with no additional
     /// geometry reader needed. `topMargin` stops the window well short of the literal top edge
     /// (see `museumDragTopMargin`'s own doc comment), not right at it.
+    ///
+    /// Capped at the window's OWN current offset, never higher -- a real regression, confirmed
+    /// live: `topMargin - basePosition.y` can come out positive whenever `topMargin` exceeds
+    /// how far down this window's un-dragged cascade position already sits (easy to hit for a
+    /// deeply-nested product window, or after `museumDragTopMargin` was raised). A positive
+    /// floor forced `newOffset = max(newOffset, floor)` to push the window DOWN from wherever
+    /// it was resting the instant any drag tick fired -- not just limit how far up it could
+    /// go, but yank it away from its current position outright, making it impossible to drag
+    /// up at all and (with a window whose cascade position already opened low) stranding it
+    /// off the bottom of the app window with no way back. This floor's whole job is to limit
+    /// upward movement, never to force downward movement on its own -- capping at `dragOffset`
+    /// itself (this axis's current, pre-gesture position) guarantees it can only ever restrict
+    /// how far up a drag goes, the same way it did before `topMargin` grew past what's safe
+    /// for every window's resting position.
     func minDragOffset(topMargin: CGFloat) -> CGSize {
         CGSize(
-            width: dragOffset.width - cascadeFrame.minX,
-            height: dragOffset.height - cascadeFrame.minY + topMargin
+            width: min(dragOffset.width - cascadeFrame.minX, dragOffset.width),
+            height: min(dragOffset.height - cascadeFrame.minY + topMargin, dragOffset.height)
         )
     }
 
