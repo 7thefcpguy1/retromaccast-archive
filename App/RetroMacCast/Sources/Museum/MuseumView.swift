@@ -26,6 +26,17 @@ private func museumZoomAnchor(forIcon iconId: String, iconFrames: [String: CGRec
 /// icon grid) -- this one specifically spans every cascade level.
 private let museumContentSpace = "museumContentSpace"
 
+/// How far short of the literal top edge a dragged category/product window's title bar stops
+/// -- both `categoryMinDragOffset` and `productMinDragOffset` build this into their floor.
+/// The earlier version stopped exactly at the edge (frame.minY >= 0), which kept the title
+/// bar technically on screen but let a window be pinned right against it; reported by the
+/// user, with screenshots, that holding a window there could render its content visibly
+/// duplicated/ghosted for some windows and not others. Rather than continue chasing that
+/// edge case's exact mechanism, this just keeps every dragged window a comfortable distance
+/// from the boundary altogether, matching the user's own ask: don't let windows be dragged
+/// all the way to the very top, full stop.
+private let museumDragTopMargin: CGFloat = 60
+
 /// Nudges `dragOffset` up (and, if needed, left) so `frame` -- a window's just-measured,
 /// on-screen position in `museumContentSpace` -- fits within `availableSize` instead of
 /// opening with part of itself off screen. Only ever shifts a window UP/LEFT into more room,
@@ -108,12 +119,16 @@ struct MuseumView: View {
     /// equals `basePosition + categoryDragOffset` at last measurement (`basePosition` being
     /// root's own position plus the fixed +28/+28 cascade offset, neither of which changes
     /// mid-drag), so `basePosition` -- and hence the floor that keeps `basePosition +
-    /// dragOffset >= 0` -- can be derived from state already being tracked, with no
-    /// additional geometry reader needed.
+    /// dragOffset >= museumDragTopMargin` -- can be derived from state already being tracked,
+    /// with no additional geometry reader needed. Stops well short of the literal top edge
+    /// (see `museumDragTopMargin`'s own doc comment), not right at it -- reported by the user
+    /// (with screenshots) that a window pinned exactly at the edge could render with visibly
+    /// duplicated/ghosted content for some windows, not others. Backing off the boundary
+    /// sidesteps whatever that edge case is instead of chasing its exact mechanism further.
     private var categoryMinDragOffset: CGSize {
         CGSize(
             width: categoryDragOffset.width - categoryFrame.minX,
-            height: categoryDragOffset.height - categoryFrame.minY
+            height: categoryDragOffset.height - categoryFrame.minY + museumDragTopMargin
         )
     }
 
@@ -350,7 +365,7 @@ struct MuseumCategoryView: View {
     private var productMinDragOffset: CGSize {
         CGSize(
             width: productDragOffset.width - productFrame.minX,
-            height: productDragOffset.height - productFrame.minY
+            height: productDragOffset.height - productFrame.minY + museumDragTopMargin
         )
     }
 

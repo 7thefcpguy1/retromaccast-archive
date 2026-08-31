@@ -179,6 +179,17 @@ struct FinderWindowChrome<Content: View>: View {
                     newOffset.width = max(newOffset.width, floor.width)
                     newOffset.height = max(newOffset.height, floor.height)
                 }
+                // Skip the write entirely once the drag is pinned at the floor and the
+                // mouse keeps moving past it -- every further .onChanged tick was
+                // recomputing the exact same clamped value and writing it to `dragOffset`
+                // again regardless, spamming identical state writes (and the resulting
+                // re-layout of this whole window) dozens of times a second for as long as
+                // the drag continued past the wall. Reported by the user with screenshots:
+                // held at the top boundary, the window's content visibly duplicated/ghosted
+                // (an extra divider line, cropped-looking icons) -- consistent with that
+                // rapid, redundant-write thrashing, not with the clamp math itself (which
+                // was already correct, per the earlier verified fix).
+                guard newOffset != dragOffset.wrappedValue else { return }
                 dragOffset.wrappedValue = newOffset
             }
             .onEnded { _ in isDragging = false }
