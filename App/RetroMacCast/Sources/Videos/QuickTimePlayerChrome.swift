@@ -105,6 +105,9 @@ struct QuickTimePlayerChrome: View {
         // instead of its black rows visually running right up against the box's own border.
         .padding(2)
         .background(Color.white)
+        // Same fix as FinderWindowChrome's matching close box -- a bare square shape
+        // otherwise gives VoiceOver nothing to announce.
+        .accessibilityLabel("Close")
     }
 
     /// Monochrome, unlike FinderWindowChrome's periwinkle-accented zoom box -- this component's

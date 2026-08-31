@@ -208,6 +208,10 @@ struct FinderWindowChrome<Content: View>: View {
         if let onClose {
             Button(action: onClose) { box }
                 .buttonStyle(CloseBoxButtonStyle())
+                // The shape alone (a bare square, per CloseBoxButtonStyle's own doc comment)
+                // gives VoiceOver nothing to announce -- confirmed via grep that this whole
+                // module had zero accessibility labels anywhere.
+                .accessibilityLabel("Close \(title)")
         } else {
             box
         }

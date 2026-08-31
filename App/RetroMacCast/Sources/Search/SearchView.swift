@@ -767,4 +767,7 @@ struct InlinePlayer: View {
 #Preview {
     SearchView()
         .environmentObject(AppearanceManager())
+        // Also required now -- ResultCard/InlinePlayer/the Home hero cards all read
+        // PlayerViewModel as an @EnvironmentObject, so Xcode's canvas crashed without this.
+        .environmentObject(PlayerViewModel())
 }

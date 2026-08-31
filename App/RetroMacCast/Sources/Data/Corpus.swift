@@ -181,6 +181,14 @@ final class Corpus {
         do {
             return try dbQueue.read { db in
                 let ftsQuery = Self.sanitizeForFTS(trimmed)
+                // A query that's nothing but quote characters (e.g. the user just types a
+                // stray `"`) used to sanitize down to a degenerate, empty-phrase FTS5 MATCH
+                // string -- confirmed to throw inside the outer catch, which silently
+                // returned zero results indistinguishable from a real "nothing found."
+                // Short-circuiting here instead treats it the same clean, expected way the
+                // empty-`trimmed`-string guard above already does, rather than routing it
+                // through a MATCH query that was never going to succeed.
+                guard !ftsQuery.isEmpty else { return [] }
                 // episodes_fts columns are (title, showNotesHTML, transcriptText) in that
                 // order -- weight title/show-notes matches well above one-off transcript
                 // mentions, since a deliberate title match is a much stronger signal than
@@ -255,20 +263,32 @@ final class Corpus {
         }
     }
 
+    /// The earliest episode's air date, parsed from `episodes.pubDate` (a `yyyy-MM-dd`
+    /// string) -- shared by `daysSinceFirstEpisode` and `homeStats` below, which both used to
+    /// duplicate this exact lookup-and-parse (identical `DateFormatter`/UTC-calendar setup
+    /// copy-pasted in two places) rather than sharing it.
+    private static func earliestEpisodeDate(_ db: Database) throws -> Date? {
+        guard let earliest = try String.fetchOne(db, sql: "SELECT MIN(pubDate) FROM episodes"),
+              earliest.count == 10 else { return nil }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.timeZone = TimeZone(identifier: "UTC")
+        return formatter.date(from: earliest)
+    }
+
+    private static var utcCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        return calendar
+    }
+
     /// Days between the earliest episode's air date and today, for the "keeping it retro
     /// for N days and counting" tagline.
     func daysSinceFirstEpisode(referenceDate: Date = Date()) -> Int? {
         do {
             return try dbQueue.read { db in
-                guard let earliest = try String.fetchOne(db, sql: "SELECT MIN(pubDate) FROM episodes"),
-                      earliest.count == 10 else { return nil }
-                let formatter = DateFormatter()
-                formatter.dateFormat = "yyyy-MM-dd"
-                formatter.timeZone = TimeZone(identifier: "UTC")
-                guard let earliestDate = formatter.date(from: earliest) else { return nil }
-                var calendar = Calendar(identifier: .gregorian)
-                calendar.timeZone = TimeZone(identifier: "UTC")!
-                return calendar.dateComponents([.day], from: earliestDate, to: referenceDate).day
+                guard let earliestDate = try Self.earliestEpisodeDate(db) else { return nil }
+                return Self.utcCalendar.dateComponents([.day], from: earliestDate, to: referenceDate).day
             }
         } catch {
             print("daysSinceFirstEpisode error: \(error)")
@@ -287,15 +307,8 @@ final class Corpus {
                 let triviaFactCount = try TriviaFact.fetchCount(db)
 
                 var yearsRunning = 0
-                if let earliest = try String.fetchOne(db, sql: "SELECT MIN(pubDate) FROM episodes"), earliest.count == 10 {
-                    let formatter = DateFormatter()
-                    formatter.dateFormat = "yyyy-MM-dd"
-                    formatter.timeZone = TimeZone(identifier: "UTC")
-                    if let earliestDate = formatter.date(from: earliest) {
-                        var calendar = Calendar(identifier: .gregorian)
-                        calendar.timeZone = TimeZone(identifier: "UTC")!
-                        yearsRunning = calendar.dateComponents([.year], from: earliestDate, to: referenceDate).year ?? 0
-                    }
+                if let earliestDate = try Self.earliestEpisodeDate(db) {
+                    yearsRunning = Self.utcCalendar.dateComponents([.year], from: earliestDate, to: referenceDate).year ?? 0
                 }
 
                 return HomeStats(episodeCount: episodeCount, videoCount: videoCount, triviaFactCount: triviaFactCount, yearsRunning: yearsRunning)
@@ -335,7 +348,11 @@ final class Corpus {
 
                 let shuffled = facts.shuffled()
                 let picked = Array(shuffled.prefix(1 + moreCount))
-                let results = try picked.map { try Self.triviaResult(db, fact: $0) }
+                // compactMap, not map -- see triviaResult's own doc comment for why a nil id
+                // now filters the fact out instead of silently colliding with another
+                // nil-id fact as a duplicate `Identifiable` id.
+                let results = try picked.compactMap { try Self.triviaResult(db, fact: $0) }
+                guard !results.isEmpty else { return nil }
 
                 return TriviaSelection(featured: results[0], more: Array(results.dropFirst()))
             }
@@ -345,9 +362,16 @@ final class Corpus {
         }
     }
 
-    private static func triviaResult(_ db: Database, fact: TriviaFact) throws -> TriviaResult {
+    /// Returns nil (filtering the fact out) rather than falling back to a fabricated id of 0
+    /// for the -- in practice vanishingly rare -- case of a `trivia_facts` row with no id of
+    /// its own, matching the nil-id-filters-out-the-row pattern `GlossaryTermResult`/
+    /// `CollectionItemResult` already use below. A fallback of 0 risked two such rows
+    /// colliding as duplicate `Identifiable` ids in a `ForEach`; simply not surfacing a fact
+    /// with no real id is the safer failure mode.
+    private static func triviaResult(_ db: Database, fact: TriviaFact) throws -> TriviaResult? {
+        guard let id = fact.id else { return nil }
         guard let episodeId = fact.episodeId else {
-            return TriviaResult(id: fact.id ?? 0, factText: fact.factText, episode: nil, timestampMs: nil, contextStartMs: nil, contextEndMs: nil)
+            return TriviaResult(id: id, factText: fact.factText, episode: nil, timestampMs: nil, contextStartMs: nil, contextEndMs: nil)
         }
 
         if let segmentId = fact.segmentId {
@@ -360,11 +384,11 @@ final class Corpus {
             // no longer verify what moment it was pointing at, so no play button is more honest
             // than a wrong one.
             guard let segment else {
-                return TriviaResult(id: fact.id ?? 0, factText: fact.factText, episode: nil, timestampMs: nil, contextStartMs: nil, contextEndMs: nil)
+                return TriviaResult(id: id, factText: fact.factText, episode: nil, timestampMs: nil, contextStartMs: nil, contextEndMs: nil)
             }
             let episode = try Episode.fetchOne(db, sql: "SELECT * FROM episodes WHERE id = ?", arguments: [episodeId])
             let (contextStartMs, contextEndMs) = try contextWindow(db, episodeId: episodeId, segment: segment)
-            return TriviaResult(id: fact.id ?? 0, factText: fact.factText, episode: episode, timestampMs: fact.timestampMs, contextStartMs: contextStartMs, contextEndMs: contextEndMs)
+            return TriviaResult(id: id, factText: fact.factText, episode: episode, timestampMs: fact.timestampMs, contextStartMs: contextStartMs, contextEndMs: contextEndMs)
         }
 
         // No segmentId at all -- an aggregate-leaning fact that was always episode-only, never
@@ -372,7 +396,7 @@ final class Corpus {
         // the app (e.g. MuseumMomentCard) when a collection item has no segment.
         let episode = try Episode.fetchOne(db, sql: "SELECT * FROM episodes WHERE id = ?", arguments: [episodeId])
         let (contextStartMs, contextEndMs) = try contextWindow(db, episodeId: episodeId, segment: nil)
-        return TriviaResult(id: fact.id ?? 0, factText: fact.factText, episode: episode, timestampMs: fact.timestampMs, contextStartMs: contextStartMs, contextEndMs: contextEndMs)
+        return TriviaResult(id: id, factText: fact.factText, episode: episode, timestampMs: fact.timestampMs, contextStartMs: contextStartMs, contextEndMs: contextEndMs)
     }
 
     private static func monthDay(_ pubDate: String) -> String {
@@ -417,6 +441,21 @@ final class Corpus {
         } catch {
             print("listCollections error: \(error)")
             return []
+        }
+    }
+
+    /// A single, indexed lookup by slug -- MuseumProductDetailView.onAppear used to call
+    /// `listCollections()` (a full `SELECT *` of the whole table) and linear-scan the result
+    /// for a matching slug every single time a product window opened, rather than asking the
+    /// database for just the one row it actually needed.
+    func collection(bySlug slug: String) -> EpisodeCollection? {
+        do {
+            return try dbQueue.read { db in
+                try EpisodeCollection.fetchOne(db, sql: "SELECT * FROM collections WHERE slug = ?", arguments: [slug])
+            }
+        } catch {
+            print("collection(bySlug:) error: \(error)")
+            return nil
         }
     }
 
@@ -578,11 +617,18 @@ final class Corpus {
     }
 
     private static func sanitizeForFTS(_ query: String) -> String {
-        let tokens = query.split(separator: " ").map { token -> String in
+        // compactMap, not map -- a token that's nothing but quote characters (e.g. a stray
+        // `"` on its own) stripped down to an empty string previously still became a
+        // degenerate quoted-empty-string FTS token (`""`) instead of being dropped, which
+        // could throw inside FTS5's MATCH parser (a phrase with zero real tokens) and get
+        // silently swallowed by the caller's outer catch as "zero results."
+        let tokens = query.split(separator: " ").compactMap { token -> String? in
             let escaped = token.replacingOccurrences(of: "\"", with: "")
+            guard !escaped.isEmpty else { return nil }
             return "\"\(escaped)\""
         }
-        guard tokens.count > 1 else { return tokens.first ?? "" }
+        guard !tokens.isEmpty else { return "" }
+        guard tokens.count > 1 else { return tokens[0] }
         // A bare "a" "b" "c" query is an implicit AND across the *whole* transcript --
         // satisfied even when the words never appear together (e.g. "Power" from one
         // aside, "7200" from an unrelated RPM figure minutes later). NEAR requires the

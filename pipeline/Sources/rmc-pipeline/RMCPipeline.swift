@@ -755,6 +755,12 @@ struct GenerateTrivia: AsyncParsableCommand {
             do {
                 let facts = try await classifier.generateTrivia(episodes: episodeBlurbs)
 
+                // Scopes the sourceBlurb lookup below to just this batch's own episodes --
+                // `generateTrivia` only ever sees blurbs from THIS batch in its single prompt,
+                // so a duplicate blurb text belonging to some other, unrelated episode
+                // elsewhere in the whole corpus was never a candidate the model could
+                // actually have meant, and shouldn't be a candidate for the lookup either.
+                let batchEpisodeIds = batch.compactMap { $0.id }
                 let batchUnresolved = try await database.dbQueue.write { db -> Int in
                     var batchUnresolved = 0
                     for fact in facts {
@@ -771,7 +777,17 @@ struct GenerateTrivia: AsyncParsableCommand {
                             // space shouldn't be the difference between a linked and unlinked
                             // fact when the actual content matched.
                             let sourceBlurb = rawSourceBlurb.trimmingCharacters(in: .whitespacesAndNewlines)
-                            sourceItem = try CollectionItem.fetchOne(db, sql: "SELECT * FROM collection_items WHERE blurb = ? LIMIT 1", arguments: [sourceBlurb])
+                            // Scoped to this batch's own episodes (see batchEpisodeIds' doc
+                            // comment above) with a deterministic ORDER BY id as a final
+                            // tiebreaker -- the old unscoped, unordered `LIMIT 1` could
+                            // silently attribute a fact to whichever row of a duplicate blurb
+                            // SQLite happened to return first, anywhere in the whole corpus.
+                            let idList = batchEpisodeIds.map(String.init).joined(separator: ",")
+                            sourceItem = try CollectionItem.fetchOne(db, sql: """
+                                SELECT * FROM collection_items
+                                WHERE blurb = ? AND episodeId IN (\(idList))
+                                ORDER BY id ASC LIMIT 1
+                                """, arguments: [sourceBlurb])
                             if sourceItem == nil {
                                 batchUnresolved += 1
                                 print("  [batch \(index + 1)] sourceBlurb didn't match verbatim, storing unlinked: \"\(sourceBlurb.prefix(60))...\"")

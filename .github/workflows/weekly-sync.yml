@@ -48,8 +48,24 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p corpus
-          gh release download --pattern 'rmc.sqlite' --dir corpus --clobber \
-            || echo "No prior release found -- starting from an empty corpus."
+          # Distinguish "no release has ever been published" (the only case that should
+          # legitimately fall through to starting from an empty corpus) from a real download
+          # failure -- auth hiccup, rate limit, transient network error. The old
+          # `gh release download ... || echo ...` swallowed BOTH identically: if this ever
+          # failed on a week where a real corpus already existed, the run silently started
+          # from empty, crawled/transcribed only up to --limit 10 new episodes, and the
+          # "publish a release if the episode/video count changed" step at the end of this
+          # job would then happily publish that near-empty corpus AS the new release --
+          # effectively rolling back the whole archive the app downloads. Checking
+          # `gh release list` first makes "nothing published yet" an explicit, separately
+          # verified case instead of inferring it from why the download call happened to
+          # fail -- so a genuine download failure now fails this step outright (visible,
+          # investigable) rather than silently proceeding on an empty corpus.
+          if [ -z "$(gh release list --limit 1 2>/dev/null)" ]; then
+            echo "No releases published yet -- starting from an empty corpus."
+          else
+            gh release download --pattern 'rmc.sqlite' --dir corpus --clobber
+          fi
 
       - name: Record starting episode count
         run: |

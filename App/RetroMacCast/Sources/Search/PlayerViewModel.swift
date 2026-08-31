@@ -18,8 +18,6 @@ final class PlayerViewModel: ObservableObject {
     private var loadToken = UUID()
 
     init() {
-        setvbuf(stdout, nil, _IONBF, 0) // stdout is fully buffered when not a tty, and this
-        // app never exits to flush it -- keep unbuffered so future debug prints show up live.
         #if os(iOS)
         try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio)
         try? AVAudioSession.sharedInstance().setActive(true)

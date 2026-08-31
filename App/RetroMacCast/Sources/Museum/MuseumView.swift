@@ -8,12 +8,27 @@ import SwiftUI
 /// without waiting a frame for the cascade window to render. File-scope, not a method on
 /// either view below -- both the Museum root (category cascade) and MuseumCategoryView
 /// (product cascade) need the identical math against their own icon grid and window frame.
-private func museumZoomAnchor(forIcon iconId: String, iconFrames: [String: CGRect], windowFrame: CGRect) -> UnitPoint {
+///
+/// `targetSize` defaults to `windowFrame`'s own size (the root->category call sites, where
+/// the target category window's real size genuinely isn't knowable in advance -- both it and
+/// the root window are capped at the same 640pt width with broadly similar content density,
+/// so approximating one with the other holds up reasonably well). The category->product call
+/// sites pass it explicitly instead: unlike a category window (uncapped height, driven by
+/// however many products it holds -- a low-count category like Newton's 3 products can be
+/// much shorter than a typical one), MuseumProductDetailView's target size on the other end
+/// IS knowable in advance, since MuseumCategoryView computes it deterministically from
+/// `availableSize` before ever rendering it (see `productWindowSize`). Using the category
+/// window's own (often much shorter) height as the divisor there instead of the product
+/// window's real height was producing a UnitPoint far outside a sane range for low-count
+/// categories, which visibly ballooned the zoom-open from the wrong place.
+private func museumZoomAnchor(forIcon iconId: String, iconFrames: [String: CGRect], windowFrame: CGRect, targetSize: CGSize? = nil) -> UnitPoint {
     guard let iconFrame = iconFrames[iconId], windowFrame.width > 0, windowFrame.height > 0 else { return .topLeading }
+    let size = targetSize ?? windowFrame.size
+    guard size.width > 0, size.height > 0 else { return .topLeading }
     let cascadeOrigin = CGPoint(x: windowFrame.minX + 28, y: windowFrame.minY + 28)
     return UnitPoint(
-        x: (iconFrame.midX - cascadeOrigin.x) / windowFrame.width,
-        y: (iconFrame.midY - cascadeOrigin.y) / windowFrame.height
+        x: (iconFrame.midX - cascadeOrigin.x) / size.width,
+        y: (iconFrame.midY - cascadeOrigin.y) / size.height
     )
 }
 
@@ -153,6 +168,10 @@ struct MuseumView: View {
         guard let productId = navigator.pendingMuseumProductId,
               let category = museumCategories.first(where: { cat in cat.products.contains { $0.id == productId } })
         else { return }
+        // Same reasoning as MuseumCategoryView's matching addition to its own
+        // openPendingProductIfNeeded -- see that one's doc comment.
+        selectedCategory = category
+        zoomAnchor = museumZoomAnchor(forIcon: category.id, iconFrames: iconFrames, windowFrame: rootWindowFrame)
         openCategoryAnimated(category)
     }
 
@@ -307,6 +326,20 @@ struct MuseumView: View {
                     .onTapGesture(count: 1) {
                         selectedCategory = category
                     }
+                    // The bespoke double-tap-to-open gesture above has no VoiceOver
+                    // equivalent on its own -- confirmed via grep that this whole module had
+                    // zero accessibility labels/actions anywhere, unlike iOS's NavigationLink
+                    // branch just below, which gets real accessibility support for free. A
+                    // direct accessibilityAction bypasses the tap-count gesture entirely
+                    // rather than trying to simulate a double-tap through it.
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(category.title)
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityAction {
+                        selectedCategory = category
+                        zoomAnchor = museumZoomAnchor(forIcon: category.id, iconFrames: iconFrames, windowFrame: rootWindowFrame)
+                        openCategoryAnimated(category)
+                    }
                 #else
                 NavigationLink {
                     MuseumCategoryView(category: category)
@@ -390,6 +423,19 @@ struct MuseumCategoryView: View {
     private static let zoomSpace = "museumCategoryZoomSpace"
     private static let zoomAnimation = Animation.easeInOut(duration: 0.18)
 
+    /// The product window's real target size, computed the exact same way `body`'s own
+    /// `.frame(width:height:)` on MuseumProductDetailView computes it (factored out here so
+    /// the two can never drift apart) -- used as `museumZoomAnchor`'s `targetSize` so the
+    /// zoom-open anchor is computed against the product window's OWN real size rather than
+    /// this (often much shorter, product-count-driven) category window's size. See
+    /// `museumZoomAnchor`'s doc comment for why that mismatch mattered.
+    private var productWindowSize: CGSize {
+        CGSize(
+            width: availableSize.width > 0 ? max(min(availableSize.width - 40, 700), 320) : 700,
+            height: availableSize.height > 0 ? max(min(availableSize.height - 40, 600), 240) : 600
+        )
+    }
+
     private func closeProduct() {
         selectedProduct = nil
         guard openProduct != nil else { return }
@@ -404,6 +450,15 @@ struct MuseumCategoryView: View {
         guard let productId = navigator.pendingMuseumProductId,
               let product = category.products.first(where: { $0.id == productId })
         else { return }
+        // Same zoomAnchor computation the tap-gesture handler below does -- without this,
+        // this Home "Featured Collection" deep-link path opened straight from
+        // openProductAnimated, bypassing the only place zoomAnchor was otherwise ever set,
+        // so the zoom-open animated from whatever zoomAnchor happened to be left over from
+        // the last manual click (or its .topLeading default on a fresh launch) instead of
+        // from the product's actual icon position -- visibly wrong specifically on the one
+        // flow this doc-commented feature exists for.
+        selectedProduct = product
+        zoomAnchor = museumZoomAnchor(forIcon: product.id, iconFrames: iconFrames, windowFrame: windowFrame, targetSize: productWindowSize)
         openProductAnimated(product)
         navigator.pendingMuseumProductId = nil
     }
@@ -496,10 +551,7 @@ struct MuseumCategoryView: View {
                     // (RootTabView enforces a 420x560 minimum app window on macOS), but an
                     // early, not-yet-settled geometry pass could transiently report something
                     // smaller, and `.frame(width: -20, ...)` is an invalid SwiftUI frame.
-                    .frame(
-                        width: availableSize.width > 0 ? max(min(availableSize.width - 40, 700), 320) : 700,
-                        height: availableSize.height > 0 ? max(min(availableSize.height - 40, 600), 240) : 600
-                    )
+                    .frame(width: productWindowSize.width, height: productWindowSize.height)
                     // Base cascade offset plus whatever the user has dragged this window
                     // by -- see MuseumView's matching categoryDragOffset comment.
                     .offset(x: 28 + productDragOffset.width, y: 28 + productDragOffset.height)
@@ -548,11 +600,21 @@ struct MuseumCategoryView: View {
                     }
                     .onTapGesture(count: 2) {
                         selectedProduct = product
-                        zoomAnchor = museumZoomAnchor(forIcon: product.id, iconFrames: iconFrames, windowFrame: windowFrame)
+                        zoomAnchor = museumZoomAnchor(forIcon: product.id, iconFrames: iconFrames, windowFrame: windowFrame, targetSize: productWindowSize)
                         openProductAnimated(product)
                     }
                     .onTapGesture(count: 1) {
                         selectedProduct = product
+                    }
+                    // Same fix, same reasoning as MuseumView's matching accessibility
+                    // additions on its own category grid.
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(product.name)
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityAction {
+                        selectedProduct = product
+                        zoomAnchor = museumZoomAnchor(forIcon: product.id, iconFrames: iconFrames, windowFrame: windowFrame, targetSize: productWindowSize)
+                        openProductAnimated(product)
                     }
                 #else
                 NavigationLink {
@@ -678,8 +740,7 @@ struct MuseumProductDetailView: View {
         }
         .navigationTitle(product.name)
         .onAppear {
-            let collections = Corpus.shared.listCollections()
-            guard let match = collections.first(where: { $0.slug == product.collectionSlug }), let id = match.id else { return }
+            guard let match = Corpus.shared.collection(bySlug: product.collectionSlug), let id = match.id else { return }
             featuredMoments = Corpus.shared.items(forCollection: id)
             onShowParagraph = match.synthesizedParagraph
         }

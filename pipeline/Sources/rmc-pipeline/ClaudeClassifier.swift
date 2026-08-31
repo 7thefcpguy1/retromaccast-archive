@@ -37,6 +37,53 @@ struct ClaudeClassifier {
         apiKey = key
     }
 
+    /// Retries transient network failures (same rationale as LibsynCrawler.fetchWithRetry/
+    /// YouTubeClient.fetchWithRetry) AND rate-limit/server-error HTTP responses (429, 5xx)
+    /// with a short linear backoff, rather than failing this one episode/collection/batch
+    /// outright on what's very plausibly a transient condition. `classify`/`generate-glossary`/
+    /// `generate-trivia` run over hundreds of episodes inside a single long-running job with
+    /// only a flat 200ms politeness delay between calls -- unlike the two network clients
+    /// above (each already retrying for their own APIs), this had NO in-run resilience at all
+    /// before this, so a burst of rate-limiting could fail a large fraction of a run outright.
+    /// State stays consistent either way -- classifiedAt/glossaryMinedAt is only ever stamped
+    /// on success, so an unretried failure was always safely retryable on the NEXT run -- this
+    /// just means a transient blip no longer has to fall all the way back to "try again
+    /// tomorrow" when it could instead just wait a few seconds and keep going right now.
+    private static func fetchWithRetry(_ request: URLRequest, maxAttempts: Int = 3) async throws -> (Data, URLResponse) {
+        var lastError: Error?
+        for attempt in 1...maxAttempts {
+            do {
+                let (data, response) = try await URLSession.shared.data(for: request)
+                if let http = response as? HTTPURLResponse,
+                   http.statusCode == 429 || (500...599).contains(http.statusCode),
+                   attempt < maxAttempts {
+                    let backoffSeconds = Double(attempt) * 2 // 2s, then 4s
+                    try? await Task.sleep(nanoseconds: UInt64(backoffSeconds * 1_000_000_000))
+                    continue
+                }
+                return (data, response)
+            } catch {
+                lastError = error
+                guard isTransient(error), attempt < maxAttempts else { throw error }
+                let backoffSeconds = Double(attempt) * 2
+                try? await Task.sleep(nanoseconds: UInt64(backoffSeconds * 1_000_000_000))
+            }
+        }
+        throw lastError ?? URLError(.unknown)
+    }
+
+    private static func isTransient(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        guard nsError.domain == NSURLErrorDomain else { return false }
+        switch nsError.code {
+        case NSURLErrorTimedOut, NSURLErrorNetworkConnectionLost, NSURLErrorNotConnectedToInternet,
+             NSURLErrorCannotFindHost, NSURLErrorCannotConnectToHost, NSURLErrorDNSLookupFailed:
+            return true
+        default:
+            return false
+        }
+    }
+
     func classify(transcript: String, collections: [EpisodeCollection]) async throws -> [ClassificationMatch] {
         let taxonomyText = collections
             .map { "- \($0.slug): \($0.title) -- \($0.collectionDescription)" }
@@ -100,7 +147,7 @@ struct ClaudeClassifier {
         request.setValue("application/json", forHTTPHeaderField: "content-type")
         request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await Self.fetchWithRetry(request)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
             let status = (response as? HTTPURLResponse)?.statusCode ?? -1
             throw ClaudeClassifierError.badStatus(status, String(data: data, encoding: .utf8) ?? "")
@@ -184,7 +231,7 @@ struct ClaudeClassifier {
         request.setValue("application/json", forHTTPHeaderField: "content-type")
         request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await Self.fetchWithRetry(request)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
             let status = (response as? HTTPURLResponse)?.statusCode ?? -1
             throw ClaudeClassifierError.badStatus(status, String(data: data, encoding: .utf8) ?? "")
@@ -304,7 +351,7 @@ struct ClaudeClassifier {
         request.setValue("application/json", forHTTPHeaderField: "content-type")
         request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await Self.fetchWithRetry(request)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
             let status = (response as? HTTPURLResponse)?.statusCode ?? -1
             throw ClaudeClassifierError.badStatus(status, String(data: data, encoding: .utf8) ?? "")
@@ -429,7 +476,7 @@ struct ClaudeClassifier {
         request.setValue("application/json", forHTTPHeaderField: "content-type")
         request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await Self.fetchWithRetry(request)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
             let status = (response as? HTTPURLResponse)?.statusCode ?? -1
             throw ClaudeClassifierError.badStatus(status, String(data: data, encoding: .utf8) ?? "")

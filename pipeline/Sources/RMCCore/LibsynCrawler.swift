@@ -1,6 +1,13 @@
 import Foundation
 import SwiftSoup
 
+public enum LibsynCrawlerError: Error {
+    /// A month page (or the audio-embed page) came back with a status that isn't a normal,
+    /// expected outcome for that request -- see the two call sites' own doc comments for what
+    /// counts as "normal" (a month page 404, specifically) versus what doesn't.
+    case badStatus(Int, String)
+}
+
 public struct LibsynCrawler {
     public static let baseURL = "https://retromaccast.libsyn.com"
 
@@ -12,8 +19,23 @@ public struct LibsynCrawler {
         var request = URLRequest(url: url)
         request.setValue("Mozilla/5.0 (compatible; RMCArchiveBot/0.1; personal fan project)", forHTTPHeaderField: "User-Agent")
         let (data, response) = try await Self.fetchWithRetry(request)
-        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { return [] }
-        guard let html = String(data: data, encoding: .utf8) else { return [] }
+        guard let http = response as? HTTPURLResponse else {
+            throw LibsynCrawlerError.badStatus(-1, urlString)
+        }
+        // A 404 for a specific month is a normal, expected outcome here (a month before the
+        // show existed yet, or simply one Libsyn has no archive page for) -- not a fetch
+        // failure, so it still just returns no episodes. Any OTHER non-200 status (429
+        // rate-limited, a 5xx) genuinely IS a failure and now throws, so it reaches
+        // CrawlIndex's per-month try/catch (added specifically to track and surface failed
+        // months) instead of being silently logged identically to a real empty month --
+        // confirmed by code review that this exact distinction was being lost, making the
+        // operator-facing "months failed" summary inaccurate for this failure mode. Real data
+        // loss was already mitigated (crawl-index re-walks the full 2006-to-present range
+        // every run, so a missed month self-heals next week), but the reporting wasn't.
+        guard http.statusCode == 200 || http.statusCode == 404 else {
+            throw LibsynCrawlerError.badStatus(http.statusCode, urlString)
+        }
+        guard http.statusCode == 200, let html = String(data: data, encoding: .utf8) else { return [] }
         return try parseMonthPage(html: html)
     }
 
@@ -49,7 +71,17 @@ public struct LibsynCrawler {
         guard let url = URL(string: embedURLString) else { return nil }
         var request = URLRequest(url: url)
         request.setValue("Mozilla/5.0 (compatible; RMCArchiveBot/0.1; personal fan project)", forHTTPHeaderField: "User-Agent")
-        let (data, _) = try await Self.fetchWithRetry(request)
+        let (data, response) = try await Self.fetchWithRetry(request)
+        // Unlike fetchMonthPage, there's no "expected" non-200 here -- every episode this is
+        // called for is known to exist, so a non-200 response is always a genuine failure
+        // that should throw and be retried on a later run, not get silently swallowed into
+        // the same `nil` this method also returns for "the page loaded fine but had no
+        // media_url marker in it" (a real, if rare, legitimate case for an unusually old or
+        // differently-formatted embed page).
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+            throw LibsynCrawlerError.badStatus(status, embedURLString)
+        }
         guard let html = String(data: data, encoding: .utf8) else { return nil }
         // The embed page's `data-url` attribute is unreliable -- for many episodes it points
         // at the episode's webpage rather than the audio file. The `playlistItem` JS object

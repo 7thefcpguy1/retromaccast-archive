@@ -202,11 +202,18 @@ private struct VideoJukeboxView: View {
             // unplayable box under the old episode's title).
             playerModel.teardown()
             selectedVideoId = nil
+            // Same "abandoned open dropdown" reasoning as the checkbox toggles above --
+            // switching away from the tab entirely is the clearest possible "abandonment"
+            // signal there is.
+            yearMenuOpen = false
+            videoMenuOpen = false
         }
         .onChange(of: selectedYear) { _, _ in
             // A video picked under a different year no longer belongs to the now-visible
             // list -- clearing it keeps the video pop-up's shown selection in sync with
-            // what it's actually scoped to.
+            // what it's actually scoped to. Not `playerModel.stop()`'s job to call here too:
+            // the `.onChange(of: selectedVideoId)` below already reacts to this same
+            // assignment and stops playback on its own.
             selectedVideoId = nil
         }
         .onChange(of: selectedVideoId) { _, newValue in
@@ -270,12 +277,27 @@ private struct VideoJukeboxView: View {
 
             HStack(spacing: 16) {
                 checkboxToggle("1-BIT VIDEO", isOn: oneBit) {
+                    // An open dropdown left open indefinitely until a row was explicitly
+                    // picked (confirmed: neither pop-up had any tap-outside-to-dismiss
+                    // handling) -- closing both here covers the realistic "opened a menu,
+                    // then reached for a checkbox instead" abandonment case directly, without
+                    // the risk a genuine full-screen tap-outside catcher would carry here:
+                    // videoBox hosts QuickTimePlayerChrome's own play/pause/scrubber
+                    // controls, and this session already hit a real gesture-swallowing bug
+                    // wrapping a *different* interactive view in a competing tap gesture
+                    // (see FinderWindowChrome.titleBarDragGesture's .simultaneousGesture
+                    // fix) -- not worth risking a repeat of that for a much lower-stakes
+                    // dropdown-polish fix.
+                    yearMenuOpen = false
+                    videoMenuOpen = false
                     oneBit.toggle()
                 }
                 // Off by default (see YouTubePlayerModel.setCaptionsEnabled) -- this is the
                 // user-facing control for turning them on, since cc_load_policy alone isn't
                 // reliable enough to keep every video's captions off on its own.
                 checkboxToggle("CAPTIONS", isOn: captionsEnabled) {
+                    yearMenuOpen = false
+                    videoMenuOpen = false
                     captionsEnabled.toggle()
                 }
             }
@@ -321,6 +343,10 @@ private struct VideoJukeboxView: View {
     /// a year is what scopes/enables the video list next to it.
     private var yearMenu: some View {
         Button {
+            // Closing videoMenu here too -- without this, opening Year while Video was
+            // already open left both custom dropdown overlays visible and hit-testable at
+            // once, overlapping each other over the video box.
+            videoMenuOpen = false
             yearMenuOpen.toggle()
         } label: {
             popUpButtonLabel(selectedYear ?? "Year")
@@ -335,10 +361,20 @@ private struct VideoJukeboxView: View {
         .overlay(alignment: .bottomLeading) {
             if yearMenuOpen {
                 dropdownPopover(width: 100, height: 220) {
-                    ForEach(availableYears, id: \.self) { year in
-                        dropdownRow(title: year, key: "year-\(year)") {
-                            selectedYear = year
+                    // A first launch (or an offline one) before the corpus has downloaded
+                    // any videos yet used to render this as a blank 220pt white box with no
+                    // rows and no explanation -- not a crash, but confusing enough to be
+                    // worth a one-line explicit state instead.
+                    if availableYears.isEmpty {
+                        dropdownRow(title: "No videos available", key: "empty") {
                             yearMenuOpen = false
+                        }
+                    } else {
+                        ForEach(availableYears, id: \.self) { year in
+                            dropdownRow(title: year, key: "year-\(year)") {
+                                selectedYear = year
+                                yearMenuOpen = false
+                            }
                         }
                     }
                 }
@@ -375,6 +411,8 @@ private struct VideoJukeboxView: View {
     /// disabled until one is -- there's nothing to list otherwise.
     private var videoMenu: some View {
         Button {
+            // Same reasoning as yearMenu's matching line.
+            yearMenuOpen = false
             videoMenuOpen.toggle()
         } label: {
             popUpButtonLabel(selectedVideo?.title ?? "— Select a video —")

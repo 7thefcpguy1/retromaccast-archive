@@ -28,6 +28,24 @@ final class YouTubePlayerModel: NSObject, ObservableObject {
     private let controller = WKUserContentController()
     private static let messageHandlerName = "playerBridge"
 
+    /// Escapes a string for safe embedding inside a single-quoted JavaScript string literal.
+    /// Used anywhere a JS template below interpolates a value that traces back to real data
+    /// (a video id from `Corpus`, a CSS filter string) rather than a hardcoded literal --
+    /// without this, a value containing a `'`, `\`, or `</script>` could break out of the
+    /// string literal (or the `<script>` block itself) and run arbitrary JS in the page. Not
+    /// currently reachable in practice (video ids are regex-shaped `[A-Za-z0-9_-]{11}` by the
+    /// time they reach here, and the app's own single CSS-filter caller passes a hardcoded
+    /// constant), but every one of these values ultimately originates from the downloaded
+    /// corpus, not a compile-time literal, so a malformed or corrupted entry there shouldn't
+    /// be able to inject script.
+    private static func jsStringLiteral(_ raw: String) -> String {
+        raw.replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "'", with: "\\'")
+            .replacingOccurrences(of: "\n", with: "\\n")
+            .replacingOccurrences(of: "\r", with: "\\r")
+            .replacingOccurrences(of: "</", with: "<\\/")
+    }
+
     override init() {
         // WKWebView snapshots its configuration at construction time -- assigning
         // config.userContentController *after* creating the WKWebView (the previous, broken
@@ -107,7 +125,7 @@ final class YouTubePlayerModel: NSObject, ObservableObject {
         }
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('player', {
-                videoId: '\(id)',
+                videoId: '\(Self.jsStringLiteral(id))',
                 playerVars: { autoplay: 1, controls: 0, disablekb: 1, playsinline: 1, modestbranding: 1, rel: 0, cc_load_policy: 0, iv_load_policy: 3 },
                 events: {
                     onReady: function(e) {
@@ -211,7 +229,7 @@ final class YouTubePlayerModel: NSObject, ObservableObject {
     func applyCSSFilter(_ css: String?) {
         cssFilter = css
         let value = css ?? "none"
-        webView.evaluateJavaScript("document.documentElement.style.filter = '\(value)';")
+        webView.evaluateJavaScript("document.documentElement.style.filter = '\(Self.jsStringLiteral(value))';")
     }
 
     /// Polls time/duration/play-state together on a timer -- the IFrame API has no push-based
@@ -311,7 +329,7 @@ extension YouTubePlayerModel: WKNavigationDelegate {
         // A fresh page load resets the DOM, which would otherwise silently drop the 8-bit
         // look the moment a new video loads while the toggle is still on.
         if let cssFilter {
-            webView.evaluateJavaScript("document.documentElement.style.filter = '\(cssFilter)';")
+            webView.evaluateJavaScript("document.documentElement.style.filter = '\(Self.jsStringLiteral(cssFilter))';")
         }
     }
 }
