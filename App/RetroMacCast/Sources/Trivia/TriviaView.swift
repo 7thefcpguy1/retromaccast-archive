@@ -130,62 +130,27 @@ private struct TriviaHeroCard: View {
     private var isActive: Bool { fact.episode != nil && player.activeEpisodeId == fact.episode?.id }
 
     var body: some View {
-        VStack(spacing: 14) {
-            Text("DID YOU KNOW?")
-                .font(.chicago(11))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 5)
-                .background(Retro.amberText)
-                .clipShape(Capsule())
-
-            Text(fact.factText)
-                .font(.chicago(17))
-                .foregroundStyle(Retro.amberText)
-                .multilineTextAlignment(.center)
-
-            if let episode = fact.episode {
-                Text(episode.title)
-                    .font(.system(size: 12))
-                    // Explicit, fixed color, not semantic `.secondary` -- same dark-desktop-
-                    // theme invisible-text bug fixed live in MuseumView.swift (this card sits
-                    // on FinderWindowChrome's permanently-white/cream card, whose own
-                    // .preferredColorScheme(.light) pin doesn't reliably override the real
-                    // window's dark appearance for descendant content on macOS).
-                    .foregroundStyle(Retro.mutedText)
-                    .lineLimit(1)
-
-                Button {
-                    withAnimation(.snappy) {
-                        if isActive {
-                            player.collapse()
-                        } else {
-                            player.playInContext(fact)
-                        }
+        PlayableMomentHeroCard(
+            badge: "DID YOU KNOW?",
+            primaryText: fact.factText,
+            primaryFont: .chicago(17),
+            primaryLineLimit: nil,
+            secondaryText: fact.episode?.title,
+            secondaryFont: .system(size: 12),
+            secondaryLineLimit: 1,
+            isActive: isActive,
+            // nil (no play button at all) for a cross-episode aggregate fact -- there's
+            // nothing for it to jump to.
+            onToggle: fact.episode == nil ? nil : {
+                withAnimation(.snappy) {
+                    if isActive {
+                        player.collapse()
+                    } else {
+                        player.playInContext(fact)
                     }
-                } label: {
-                    Image(systemName: isActive ? "pause.circle.fill" : "play.circle.fill")
-                        .font(.system(size: 44))
-                        .foregroundStyle(Retro.amberText)
-                }
-                .buttonStyle(.plain)
-
-                if isActive {
-                    InlinePlayer()
-                        .frame(maxWidth: 320)
-                        .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 24)
-        .padding(.horizontal, 20)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16).stroke(isActive ? Retro.amberText.opacity(0.4) : Retro.cardBorder, lineWidth: isActive ? 1.5 : 1)
         )
-        .shadow(color: .black.opacity(0.08), radius: 10, x: 0, y: 4)
     }
 }
 
@@ -196,9 +161,10 @@ private struct TriviaCompactRow: View {
     private var isActive: Bool { fact.episode != nil && player.activeEpisodeId == fact.episode?.id }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if let episode = fact.episode {
-                Button {
+        if let episode = fact.episode {
+            PlayableMomentRow(
+                isActive: isActive,
+                onToggle: {
                     withAnimation(.snappy) {
                         if isActive {
                             player.collapse()
@@ -206,38 +172,36 @@ private struct TriviaCompactRow: View {
                             player.playInContext(fact)
                         }
                     }
-                } label: {
-                    HStack(alignment: .top, spacing: 8) {
-                        Text(fact.factText)
-                            .font(.system(size: 13))
-                            .multilineTextAlignment(.leading)
-                            .foregroundStyle(.black)
-                        Spacer(minLength: 8)
-                        Image(systemName: isActive ? "pause.circle.fill" : "play.circle.fill")
-                            .foregroundStyle(Retro.amberText)
-                    }
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
+                },
                 // Chicago, matching every other episode title in the app (MuseumMomentCard,
-                // the hero cards, OnThisDayCompactRow) rather than plain system font.
-                Text(episode.title)
-                    .font(.chicago(11))
-                    .foregroundStyle(Retro.mutedText)
-                    .lineLimit(1)
-            } else {
-                // A cross-episode aggregate fact -- nothing to play, just the text.
+                // the hero cards, OnThisDayCompactRow) rather than plain system font. Below
+                // the tappable row, not part of it -- same as before this was extracted.
+                caption: AnyView(
+                    Text(episode.title)
+                        .font(.chicago(11))
+                        .foregroundStyle(Retro.mutedText)
+                        .lineLimit(1)
+                )
+            ) {
+                HStack(alignment: .top, spacing: 8) {
+                    Text(fact.factText)
+                        .font(.system(size: 13))
+                        .multilineTextAlignment(.leading)
+                        .foregroundStyle(.black)
+                    Spacer(minLength: 8)
+                    Image(systemName: isActive ? "pause.circle.fill" : "play.circle.fill")
+                        .foregroundStyle(Retro.amberText)
+                }
+            }
+        } else {
+            // A cross-episode aggregate fact -- nothing to play, just the text. No onToggle,
+            // so PlayableMomentRow renders this bare, with no button/tap target.
+            PlayableMomentRow {
                 Text(fact.factText)
                     .font(.system(size: 13))
                     .foregroundStyle(.black)
             }
-
-            if isActive {
-                InlinePlayer()
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            }
         }
-        .padding(.vertical, 8)
     }
 }
 

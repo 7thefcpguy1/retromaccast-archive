@@ -31,6 +31,7 @@
 		3EB5864A6362E6E2335FEF72 /* RetroMacCastApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E488D0C57FE63F183ECA87CD /* RetroMacCastApp.swift */; };
 		41F340773E8003A4C36581E3 /* MuseumData+iPod.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37A3F6BEBF658809D3C63DD7 /* MuseumData+iPod.swift */; };
 		46AA4482C3411BE2BBEF2444 /* RetroStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DA8791C8E48BC407348CBB4 /* RetroStyle.swift */; };
+		91FE7C522E668C66109242A0 /* PlayableMomentCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E31114A71C94BE4035B46E0 /* PlayableMomentCard.swift */; };
 		480F3D09939F139DE1DE28AA /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB96F53A68C85288CF99197F /* SettingsView.swift */; };
 		4A2B7AC9D4344A008BFE762C /* PlayerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16C232C7F9B42B439FF8AC9B /* PlayerViewModel.swift */; };
 		503FE61F27179C65E7ED4E9B /* VideosView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DCEE9E02B2231A85C26DD4F /* VideosView.swift */; };
@@ -57,6 +58,7 @@
 		92FAA142CA80D38D34547AEC /* MuseumData+Laptops.swift in Sources */ = {isa = PBXBuildFile; fileRef = B925B2116BF4FB8531E61AAE /* MuseumData+Laptops.swift */; };
 		9312202D1ACAB66190C7335C /* MuseumData+Newton.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD28459F6B6F7EF61C8530F3 /* MuseumData+Newton.swift */; };
 		937D40A664273D5810644774 /* RetroStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DA8791C8E48BC407348CBB4 /* RetroStyle.swift */; };
+		BB140771F2954DC5DF3B798A /* PlayableMomentCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E31114A71C94BE4035B46E0 /* PlayableMomentCard.swift */; };
 		96545C3CDED166276548A2DB /* RetroMacCastApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E488D0C57FE63F183ECA87CD /* RetroMacCastApp.swift */; };
 		9A6714804DD49C9FEFCC011A /* MuseumData+Newton.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD28459F6B6F7EF61C8530F3 /* MuseumData+Newton.swift */; };
 		A06ED2B05DC29EA6209C5FBB /* RootTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6121B42C402400EB9DF586A0 /* RootTabView.swift */; };
@@ -89,6 +91,7 @@
 		04CEDDC72E6FF21D19101DBD /* MuseumData+iMac.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MuseumData+iMac.swift"; sourceTree = "<group>"; };
 		0CEA19B0565A66C982C2E3B9 /* ChicagoFLF.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = ChicagoFLF.ttf; sourceTree = "<group>"; };
 		0DA8791C8E48BC407348CBB4 /* RetroStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RetroStyle.swift; sourceTree = "<group>"; };
+		2E31114A71C94BE4035B46E0 /* PlayableMomentCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayableMomentCard.swift; sourceTree = "<group>"; };
 		16C232C7F9B42B439FF8AC9B /* PlayerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerViewModel.swift; sourceTree = "<group>"; };
 		28EEC16B84989F68A34FEB81 /* RetroMacCast-macOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "RetroMacCast-macOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		2D04099854993668F20B3948 /* MuseumData+PowerMac.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MuseumData+PowerMac.swift"; sourceTree = "<group>"; };
@@ -211,6 +214,7 @@
 			isa = PBXGroup;
 			children = (
 				16C232C7F9B42B439FF8AC9B /* PlayerViewModel.swift */,
+				2E31114A71C94BE4035B46E0 /* PlayableMomentCard.swift */,
 				0DA8791C8E48BC407348CBB4 /* RetroStyle.swift */,
 				BA0FF236AF09CA4446AC9448 /* SearchView.swift */,
 				F8B324DF879F3C9673025E84 /* SearchViewModel.swift */,
@@ -438,6 +442,7 @@
 				1ACDFFD1F81D19056EEADB97 /* QuickTimePlayerChrome.swift in Sources */,
 				96545C3CDED166276548A2DB /* RetroMacCastApp.swift in Sources */,
 				937D40A664273D5810644774 /* RetroStyle.swift in Sources */,
+				BB140771F2954DC5DF3B798A /* PlayableMomentCard.swift in Sources */,
 				A06ED2B05DC29EA6209C5FBB /* RootTabView.swift in Sources */,
 				B3694573A7070A839DBC2D77 /* SearchView.swift in Sources */,
 				5F2A42834BD6FA44DB42A021 /* SearchViewModel.swift in Sources */,
@@ -479,6 +484,7 @@
 				2098A7AE5E80AC90D8EF6552 /* QuickTimePlayerChrome.swift in Sources */,
 				3EB5864A6362E6E2335FEF72 /* RetroMacCastApp.swift in Sources */,
 				46AA4482C3411BE2BBEF2444 /* RetroStyle.swift in Sources */,
+				91FE7C522E668C66109242A0 /* PlayableMomentCard.swift in Sources */,
 				1534AB22F1CD6CB1CEB31983 /* RootTabView.swift in Sources */,
 				0BABEB5DDD3901B6A3D13BA7 /* SearchView.swift in Sources */,
 				F7E94CD04805399BD8945E30 /* SearchViewModel.swift in Sources */,

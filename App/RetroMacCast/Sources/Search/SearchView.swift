@@ -531,32 +531,16 @@ private struct OnThisDayHeroCard: View {
     private var isActive: Bool { player.activeEpisodeId == episode.id }
 
     var body: some View {
-        VStack(spacing: 14) {
-            Text(yearsAgoLabel(for: episode).uppercased())
-                .font(.chicago(11))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 5)
-                .background(Retro.amberText)
-                .clipShape(Capsule())
-
-            Text(episode.title)
-                .font(.chicago(20))
-                .foregroundStyle(Retro.amberText)
-                .multilineTextAlignment(.center)
-                .lineLimit(3)
-
-            if !episode.showNotesHTML.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                Text(plainText(fromHTML: episode.showNotesHTML))
-                    .font(.system(size: 13))
-                    // Fixed color, not semantic `.secondary` -- same dark-desktop-theme
-                    // invisible-text bug fixed live in MuseumView.swift.
-                    .foregroundStyle(Retro.mutedText)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(4)
-            }
-
-            Button {
+        PlayableMomentHeroCard(
+            badge: yearsAgoLabel(for: episode).uppercased(),
+            primaryText: episode.title,
+            primaryFont: .chicago(20),
+            primaryLineLimit: 3,
+            secondaryText: episode.showNotesHTML.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                ? nil : plainText(fromHTML: episode.showNotesHTML),
+            secondaryLineLimit: 4,
+            isActive: isActive,
+            onToggle: {
                 withAnimation(.snappy) {
                     if isActive {
                         player.collapse()
@@ -564,28 +548,8 @@ private struct OnThisDayHeroCard: View {
                         player.playEpisode(episode)
                     }
                 }
-            } label: {
-                Image(systemName: isActive ? "pause.circle.fill" : "play.circle.fill")
-                    .font(.system(size: 44))
-                    .foregroundStyle(Retro.amberText)
             }
-            .buttonStyle(.plain)
-
-            if isActive {
-                InlinePlayer()
-                    .frame(maxWidth: 320)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 24)
-        .padding(.horizontal, 20)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16).stroke(isActive ? Retro.amberText.opacity(0.4) : Retro.cardBorder, lineWidth: isActive ? 1.5 : 1)
         )
-        .shadow(color: .black.opacity(0.08), radius: 10, x: 0, y: 4)
     }
 }
 
@@ -596,39 +560,29 @@ private struct OnThisDayCompactRow: View {
     private var isActive: Bool { player.activeEpisodeId == episode.id }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Button {
-                withAnimation(.snappy) {
-                    if isActive {
-                        player.collapse()
-                    } else {
-                        player.playEpisode(episode)
-                    }
+        PlayableMomentRow(isActive: isActive, onToggle: {
+            withAnimation(.snappy) {
+                if isActive {
+                    player.collapse()
+                } else {
+                    player.playEpisode(episode)
                 }
-            } label: {
-                HStack {
-                    // Chicago, not plain system -- every other episode title in the app
-                    // (MuseumMomentCard, the hero cards) renders in Chicago; this row was the
-                    // one inconsistent spot.
-                    Text(episode.title)
-                        .font(.chicago(13))
-                        .foregroundStyle(.black)
-                        .lineLimit(1)
-                    Spacer()
-                    Text(yearsAgoLabel(for: episode))
-                        .font(.system(size: 11))
-                        .foregroundStyle(Retro.mutedText)
-                }
-                .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
-
-            if isActive {
-                InlinePlayer()
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+        }) {
+            HStack {
+                // Chicago, not plain system -- every other episode title in the app
+                // (MuseumMomentCard, the hero cards) renders in Chicago; this row was the
+                // one inconsistent spot.
+                Text(episode.title)
+                    .font(.chicago(13))
+                    .foregroundStyle(.black)
+                    .lineLimit(1)
+                Spacer()
+                Text(yearsAgoLabel(for: episode))
+                    .font(.system(size: 11))
+                    .foregroundStyle(Retro.mutedText)
             }
         }
-        .padding(.vertical, 8)
     }
 }
 
