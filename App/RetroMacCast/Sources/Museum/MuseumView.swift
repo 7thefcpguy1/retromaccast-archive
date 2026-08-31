@@ -47,11 +47,14 @@ private let museumContentSpace = "museumContentSpace"
 /// The earlier version stopped exactly at the edge (frame.minY >= 0), which kept the title
 /// bar technically on screen but let a window be pinned right against it; reported by the
 /// user, with screenshots, that holding a window there could render its content visibly
-/// duplicated/ghosted for some windows and not others. Rather than continue chasing that
-/// edge case's exact mechanism, this just keeps every dragged window a comfortable distance
-/// from the boundary altogether, matching the user's own ask: don't let windows be dragged
-/// all the way to the very top, full stop.
-private let museumDragTopMargin: CGFloat = 60
+/// duplicated/ghosted for some windows and not others. A first attempt backed this off to
+/// 60pt -- confirmed live (with a further screenshot) that 60pt still wasn't a comfortable
+/// enough distance; the ghosting reproduced again, this time on a product-level window.
+/// Rather than continue chasing that edge case's exact mechanism, this pushes the margin up
+/// substantially further instead. Not re-verified live after this bump (at the user's
+/// request, to avoid another round of live-test iteration) -- worth a manual check, and worth
+/// bumping again (or reconsidering whether dragging is worth keeping at all) if it recurs.
+private let museumDragTopMargin: CGFloat = 180
 
 /// Nudges `dragOffset` up (and, if needed, left) so `frame` -- a window's just-measured,
 /// on-screen position in `museumContentSpace` -- fits within `availableSize` instead of
