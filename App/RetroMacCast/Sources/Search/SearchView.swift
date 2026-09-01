@@ -37,7 +37,22 @@ struct SearchView: View {
                 // .infinity, on the outer frame below -- an unbounded max height stretched this
                 // into an oddly tall, mostly-empty window on a resized-tall app window instead
                 // of just leaving the desktop-colored backdrop visible around a normal-sized one.
-                FinderWindowChrome(title: "Home") {
+                FinderWindowChrome(
+                    // "Home" for the dashboard, "Search Results" once there's an actual query
+                    // -- this window shows genuinely different content in each state (the
+                    // dashboard cards vs. a results list), so the title should say which one
+                    // is currently showing rather than always reading "Home" even while
+                    // displaying search results.
+                    title: viewModel.query.isEmpty ? "Home" : "Search Results",
+                    // Only active once there's a query to clear -- on the plain dashboard,
+                    // there's nothing for the close box to close (this window doesn't stack on
+                    // top of anything the way Museum's cascaded windows do), so it stays inert
+                    // there, same as every other window's close box does when `onClose` isn't
+                    // provided. Clearing `query` here also clears the toolbar's own search
+                    // field, since `.searchable` binds the same `viewModel.query` -- this
+                    // close box and clearing the search field by hand do the same thing.
+                    onClose: viewModel.query.isEmpty ? nil : { viewModel.query = "" }
+                ) {
                     homeContent
                         .frame(minHeight: 480, maxHeight: .infinity)
                 }
