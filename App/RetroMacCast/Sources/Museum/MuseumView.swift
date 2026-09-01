@@ -330,7 +330,13 @@ struct MuseumView: View {
                         // FinderWindowChrome.minDragOffset's own doc comment for why a plain
                         // captured value wasn't reliable mid-gesture.
                         minDragOffset: Binding(get: { cascade.minDragOffset(topMargin: museumDragTopMargin) }, set: { _ in }),
-                        availableSize: availableSize
+                        availableSize: availableSize,
+                        // This category window's own frame in museumContentSpace -- already
+                        // tracked here (cascade.cascadeFrame) for this level's own reclamp
+                        // math, and the one piece MuseumCategoryView itself has no way to
+                        // measure in the right coordinate space on its own. See
+                        // MuseumCategoryView.containerFrame's own doc comment.
+                        containerFrame: cascade.cascadeFrame
                     )
                         // Forces SwiftUI to treat a different category as a genuinely new
                         // view instance rather than reusing this one's -- without an
@@ -489,6 +495,19 @@ struct MuseumCategoryView: View {
     /// The Museum tab's total available size, forwarded from MuseumView (root) -- used the
     /// same way as there, to clamp a freshly-opened product window fully into view.
     var availableSize: CGSize = .zero
+    /// This category window's own on-screen frame, in `museumContentSpace` -- forwarded from
+    /// MuseumView's own `cascade.cascadeFrame` (the frame it already measures for this exact
+    /// window, one level up). Needed for `predictedProductFrame` below: `cascade.containerFrame`
+    /// (this view's OWN state) measures the SAME window instead in `Self.zoomSpace`
+    /// ("museumCategoryZoomSpace"), a coordinate space local to this category's own icon grid
+    /// -- correct for the zoom-open anchor math it was built for, but NOT interchangeable with
+    /// `museumContentSpace`, which is what `clampedDragOffset`/`availableSize` are expressed
+    /// in. Confirmed live, with a screenshot, that feeding `cascade.containerFrame` into a
+    /// `museumContentSpace` calculation produced a plausible-looking but wrong position --
+    /// the predicted-frame fix appeared to run, but the product window still opened
+    /// overflowing the app window's right and bottom edges, because the "fit into view" math
+    /// was fitting the wrong coordinates.
+    var containerFrame: CGRect = .zero
 
     // macOS only -- category -> product cascade state, same shape as MuseumView's own root ->
     // category `cascade` one level up. This view owns and applies it (rather than forwarding
@@ -511,8 +530,9 @@ struct MuseumCategoryView: View {
     }
 
     /// The product window's predicted frame, entirely before it's ever rendered -- both its
-    /// size (`productWindowSize`, already computed analytically above) and its position (this
-    /// category window's own already-settled `containerFrame`, plus the fixed +28/+28 cascade
+    /// size (`productWindowSize`, already computed analytically above) and its position (the
+    /// `containerFrame` parameter above -- THIS category window's own already-settled frame
+    /// in `museumContentSpace`, forwarded from the parent, plus the fixed +28/+28 cascade
     /// offset every product window opens at) are knowable in advance here, with no live
     /// measurement needed. Passed to `cascade.openAnimated` so a manually-double-clicked (or
     /// VoiceOver-activated) product opens directly at its correct, already-clamped position
@@ -525,7 +545,7 @@ struct MuseumCategoryView: View {
     /// snap-prone) live-measurement fallback instead.
     private var predictedProductFrame: CGRect {
         CGRect(
-            origin: CGPoint(x: cascade.containerFrame.minX + 28, y: cascade.containerFrame.minY + 28),
+            origin: CGPoint(x: containerFrame.minX + 28, y: containerFrame.minY + 28),
             size: productWindowSize
         )
     }
