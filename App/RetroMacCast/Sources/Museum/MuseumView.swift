@@ -43,62 +43,46 @@ private func museumZoomAnchor(forIcon iconId: String, iconFrames: [String: CGRec
 private let museumContentSpace = "museumContentSpace"
 
 /// How far short of the literal top edge a dragged category/product window's title bar stops
-/// -- built into the floor by every `MuseumCascadeState.minDragOffset(topMargin:)` call site.
-/// The earlier version stopped exactly at the edge (frame.minY >= 0), which kept the title
-/// bar technically on screen but let a window be pinned right against it; reported by the
-/// user, with screenshots, that holding a window there could render its content visibly
-/// duplicated/ghosted for some windows and not others.
-///
-/// Went 60 -> 180 -> back to 60 across three rounds of live user feedback:
-/// - 60pt first: confirmed live that this still wasn't a comfortable enough distance --
-///   ghosting reproduced again, on a product-level window.
-/// - 180pt next: pushing the margin up that far exposed a real regression in
-///   `minDragOffset`'s floor -- a product window could open low enough that the floor came
-///   out positive, forcing the window DOWN the instant any drag began, stranding it off the
-///   bottom of the app window with no way to drag it back. Fixed at the source in
-///   `minDragOffset` (capped so the floor can never exceed the window's own current offset).
-/// - That cap traded one bug for another, though: once a window's OWN resting position sits
-///   inside the margin zone -- now the common case for a tall window in a modest app window,
-///   since `clampedDragOffset`'s open-time centering (see its own doc comment) can legitimately
-///   land a window's top edge anywhere, including well inside a 180pt zone -- the capped floor
-///   equals that resting offset exactly, which blocks upward dragging ENTIRELY rather than
-///   just limiting how far it goes. Confirmed by the user: "barely lets you move that window
-///   up at all." Back to 60pt to make that zone -- and hence how often the freeze bites --
-///   much narrower, now that open-time centering is doing most of the "keep a window
-///   comfortably in view" work on its own; manually dragging into the top-margin zone is a
-///   rarer, more deliberate action than it was before that fix existed.
+/// -- the vertical axis's `leadingMargin` in every `MuseumCascadeState.windowOffset` call
+/// site. The earlier version stopped exactly at the edge (frame.minY >= 0), which kept the
+/// title bar technically on screen but let a window be pinned right against it; reported by
+/// the user, with screenshots, that holding a window there could render its content visibly
+/// duplicated/ghosted for some windows and not others. Larger than the plain 12pt margin
+/// used on the other three edges for exactly that reason -- see `windowOffset`'s own doc
+/// comment for the redesign that replaced the whole imperative-correction system this
+/// constant used to be tangled up in (a positive-floor regression, then a "can barely drag
+/// up at all" regression, both downstream of trying to enforce this margin reactively inside
+/// a drag gesture instead of as part of one derived position calculation).
 private let museumDragTopMargin: CGFloat = 60
 
-/// Where a window's un-dragged top-left corner should land along one axis so it's fully
-/// visible with a comfortable margin on both sides -- or, when it's simply too big for the
-/// available room, centered so the unavoidable overflow is split evenly between both edges
-/// instead of all dumped on one side. Used for both axes by `clampedDragOffset` below. Per
-/// the user's explicit ask: an opened window should generally land with all four edges
-/// visible, not hugging its cascade-offset corner with only the far edge ever corrected.
-private func fittedOrigin(current: CGFloat, extent: CGFloat, available: CGFloat, margin: CGFloat) -> CGFloat {
-    let usable = available - margin * 2
-    guard usable > 0 else { return margin }
+/// Where a window's top-left corner should land along one axis so it's fully visible with a
+/// comfortable margin on both sides -- or, when it's simply too big for the available room,
+/// either centered (the unavoidable overflow split evenly between both edges) or pinned to
+/// the leading edge (all the overflow dumped on the trailing edge only), per
+/// `pinLeadingWhenOversized`. `leadingMargin`/`trailingMargin` are independent (not one shared
+/// `margin`) so the vertical axis can ask for a bigger safety buffer on top than on bottom
+/// (see `museumDragTopMargin`) while the horizontal axis uses a plain, symmetric one. Used by
+/// `MuseumCascadeState.windowOffset` for both axes, at every cascade level.
+///
+/// `pinLeadingWhenOversized` matters specifically for the vertical axis: a window's title
+/// bar -- its only drag handle, and where the close box lives -- sits at the LEADING (top)
+/// edge, while the trailing (bottom) edge is just scrollable content (`ClassicScrollView`
+/// already handles a product page taller than its window). Centered overflow would let the
+/// title bar itself scroll off the top on a window that's simply too tall to ever fully fit
+/// (confirmed live: at the app's own enforced minimum size, iMac G4's title bar -- and its
+/// close box -- disappeared off the top edge entirely). Pinning the leading edge instead
+/// means the controls that actually need to stay reachable always do, at the cost of more of
+/// the (already-scrollable) content being cut off at the bottom. The horizontal axis doesn't
+/// have this asymmetry -- the close box is at the title bar's leading corner and the zoom box
+/// at its trailing corner, so centering (partially preserving both) is the better compromise
+/// there, same as before.
+private func fittedOrigin(current: CGFloat, extent: CGFloat, available: CGFloat, leadingMargin: CGFloat, trailingMargin: CGFloat, pinLeadingWhenOversized: Bool = false) -> CGFloat {
+    let usable = available - leadingMargin - trailingMargin
+    guard usable > 0 else { return leadingMargin }
     if extent > usable {
-        return margin - (extent - usable) / 2
+        return pinLeadingWhenOversized ? leadingMargin : leadingMargin - (extent - usable) / 2
     }
-    return min(max(current, margin), available - margin - extent)
-}
-
-/// Repositions a freshly-opened window fully into view within `availableSize`, based on
-/// `frame` -- the window's just-measured, on-screen position in `museumContentSpace` at its
-/// normal (un-dragged) cascade position -- rather than only correcting bottom/right overflow
-/// reactively the way an earlier version of this did. Both axes go through `fittedOrigin`,
-/// so a window that's simply too tall or too wide for the available space gets centered
-/// (overflow split evenly top/bottom or left/right) instead of clipped at one edge only.
-private func clampedDragOffset(for frame: CGRect, availableSize: CGSize, current: CGSize) -> CGSize {
-    guard availableSize.height > 0, availableSize.width > 0 else { return current }
-    let margin: CGFloat = 12
-    let targetMinX = fittedOrigin(current: frame.minX, extent: frame.width, available: availableSize.width, margin: margin)
-    let targetMinY = fittedOrigin(current: frame.minY, extent: frame.height, available: availableSize.height, margin: margin)
-    return CGSize(
-        width: current.width + (targetMinX - frame.minX),
-        height: current.height + (targetMinY - frame.minY)
-    )
+    return min(max(current, leadingMargin), available - trailingMargin - extent)
 }
 
 /// Bundles the per-cascade-level state and lifecycle logic MuseumView (root -> category) and
@@ -106,15 +90,31 @@ private func clampedDragOffset(for frame: CGRect, availableSize: CGSize, current
 /// the exact same "icon grid opens a cascaded Finder-style window, draggable back into view,
 /// zoom-open/close animated from the clicked icon" machinery. They used to each carry their
 /// own independent copy of seven near-identical `@State` vars plus three near-identical
-/// methods (close/openAnimated/minDragOffset) -- exactly the shape of duplication that made
-/// this session's own top/left drag-clamp fix (`museumDragTopMargin`, the gesture-start-
-/// capture pattern in FinderWindowChrome) something that had to be kept in careful sync by
-/// hand across two copies rather than living in one place. The SwiftUI view-tree code at each
-/// call site (offset/transition/zIndex/onGeometryChange/overlay-vs-ZStack sizing) stays
-/// separate and untouched below -- that part is genuinely different between the two levels
-/// (different width caps, different container types) and, more importantly, is where this
-/// session's hard-won, live-verified fixes actually live; only the state and the logic that's
-/// truly identical between the two levels moved here.
+/// methods -- exactly the shape of duplication that made this session's fixes something that
+/// had to be kept in careful sync by hand across two copies rather than living in one place.
+/// The SwiftUI view-tree code at each call site (transition/zIndex/onGeometryChange/
+/// overlay sizing) stays separate below -- that part is genuinely different between the two
+/// levels (different width caps, different container types).
+///
+/// **How positioning works, after a full redesign of this class:** every earlier version of
+/// this tracked a window's position as a `dragOffset` delta on top of an *implicit* base
+/// position, corrected back into view at specific imperative moments -- once at open time,
+/// once (only for the top edge) inside the drag gesture, and (an attempt that was reverted)
+/// once on resize. Each of those moments needed to independently stay in sync with the
+/// others, and each round of live user feedback this session found a new way they didn't: a
+/// visible snap once the zoom-open animation finished and a live measurement caught up; a
+/// margin increase that made the drag-gesture floor go positive and yank a window downward
+/// the instant a drag began; the fix for THAT freezing upward dragging entirely once a
+/// window's resting position sat inside the (by then far larger) margin zone; and, worst,
+/// resizing the app window after opening a window left its SIZE reactively updating while
+/// its POSITION stayed frozen from whenever it was last corrected, producing exactly the
+/// overflowing/fragmented rendering the user's most recent screenshots showed.
+///
+/// `windowOffset` below replaces all of that with one calculation: it's a pure function of
+/// currently-known inputs (`dragOffset`, a size, and `availableSize`), computed fresh by
+/// SwiftUI every single render -- open, drag, AND resize alike -- rather than a value stored
+/// and corrected at specific moments. There is no longer a separate "when do I re-run this"
+/// question for each trigger, because there's only one code path and it's always live.
 @MainActor
 @Observable
 final class MuseumCascadeState<Item: Identifiable> where Item.ID == String {
@@ -125,53 +125,34 @@ final class MuseumCascadeState<Item: Identifiable> where Item.ID == String {
     /// open on top of you.
     var selected: Item?
     /// This level's own icon-grid window's on-screen frame, measured in its local zoomSpace --
-    /// the zoom-open anchor's base origin (see `museumZoomAnchor`).
+    /// the zoom-open anchor's base origin (see `museumZoomAnchor`). Used ONLY for that
+    /// animation-anchor math, never for positioning -- see `windowOffset`'s own doc comment
+    /// for why conflating the two (feeding a local-zoomSpace frame into a museumContentSpace
+    /// positioning calculation) was a real, confirmed-live bug.
     var containerFrame: CGRect = .zero
     /// Each icon's on-screen frame within `containerFrame`'s coordinate space, keyed by id.
     var iconFrames: [String: CGRect] = [:]
     var zoomAnchor: UnitPoint = .topLeading
-    /// The cascaded window's drag position, on top of its fixed +28/+28 cascade offset. Reset
-    /// to zero every time `open` is newly set (not just cleared) via `openAnimated`, so a
-    /// freshly opened window always starts at its default cascade position, not wherever a
-    /// previously closed one had been dragged to.
+    /// How far the user has manually dragged this window's title bar, on top of its fixed
+    /// +28/+28 cascade step -- a plain, directly-mutable value written straight through by
+    /// FinderWindowChrome's drag gesture (which no longer does any bounds-clamping of its
+    /// own; see that type's own doc comment). Reset to zero every time `open` is newly set
+    /// (not just cleared), so a freshly opened window always starts at its default cascade
+    /// position, not wherever a previously closed one had been dragged to. This is
+    /// deliberately NOT the window's final on-screen offset -- `windowOffset` below derives
+    /// that fresh from this plus the window's current size and the available space.
     var dragOffset: CGSize = .zero
-    /// The cascaded window's own on-screen frame in `museumContentSpace`, kept up to date by
-    /// the caller's own `onGeometryChange` hook on every geometry change (unconditionally, not
-    /// gated behind a one-shot flag -- see `openAnimated`'s doc comment for why that mattered).
-    var cascadeFrame: CGRect = .zero
+    /// This level's own window's natural (un-positioned) size -- for a category window, whose
+    /// height is content-driven (however many products it holds), this needs one live
+    /// measurement; for a product window, whose size is already computed analytically (see
+    /// `MuseumCategoryView.productWindowSize`), it's never actually read. Measured via a
+    /// plain `.onGeometryChange(for: CGSize.self) { proxy.size }` wherever it's needed -- a
+    /// view's reported SIZE doesn't depend on which coordinate space you'd ask about, or
+    /// indeed on any offset applied to it, so this measurement can't repeat the
+    /// coordinate-space mix-up `windowOffset` replaced.
+    var naturalSize: CGSize = .zero
 
     static var zoomAnimation: Animation { .easeInOut(duration: 0.18) }
-
-    /// The lowest `dragOffset` this level's own drag gesture will accept, per axis -- passed
-    /// down for FinderWindowChrome to clamp against directly inside the gesture itself (see
-    /// FinderWindowChrome.minDragOffset's own doc comment for why it has to be enforced there,
-    /// not corrected reactively from here). `cascadeFrame` already equals `basePosition +
-    /// dragOffset` at last measurement (`basePosition` being this level's container position
-    /// plus the fixed +28/+28 cascade offset, neither of which changes mid-drag), so
-    /// `basePosition` -- and hence the floor that keeps `basePosition + dragOffset >=
-    /// topMargin` -- can be derived from state already being tracked, with no additional
-    /// geometry reader needed. `topMargin` stops the window well short of the literal top edge
-    /// (see `museumDragTopMargin`'s own doc comment), not right at it.
-    ///
-    /// Capped at the window's OWN current offset, never higher -- a real regression, confirmed
-    /// live: `topMargin - basePosition.y` can come out positive whenever `topMargin` exceeds
-    /// how far down this window's un-dragged cascade position already sits (easy to hit for a
-    /// deeply-nested product window, or after `museumDragTopMargin` was raised). A positive
-    /// floor forced `newOffset = max(newOffset, floor)` to push the window DOWN from wherever
-    /// it was resting the instant any drag tick fired -- not just limit how far up it could
-    /// go, but yank it away from its current position outright, making it impossible to drag
-    /// up at all and (with a window whose cascade position already opened low) stranding it
-    /// off the bottom of the app window with no way back. This floor's whole job is to limit
-    /// upward movement, never to force downward movement on its own -- capping at `dragOffset`
-    /// itself (this axis's current, pre-gesture position) guarantees it can only ever restrict
-    /// how far up a drag goes, the same way it did before `topMargin` grew past what's safe
-    /// for every window's resting position.
-    func minDragOffset(topMargin: CGFloat) -> CGSize {
-        CGSize(
-            width: min(dragOffset.width - cascadeFrame.minX, dragOffset.width),
-            height: min(dragOffset.height - cascadeFrame.minY + topMargin, dragOffset.height)
-        )
-    }
 
     func close() {
         selected = nil
@@ -179,60 +160,45 @@ final class MuseumCascadeState<Item: Identifiable> where Item.ID == String {
         withAnimation(Self.zoomAnimation) { open = nil }
     }
 
-    /// Opens `item` with the usual zoom animation, positioned fully into view via
-    /// `clampedDragOffset` from the very first frame of the animation when `predictedFrame`
-    /// is supplied -- the window's final size and position, computed analytically rather than
-    /// measured, BEFORE it's ever actually rendered (see `MuseumCategoryView.predictedProductFrame`'s
-    /// own doc comment for how). Without a prediction, falls back to the older two-step
-    /// sequence: reset to zero, animate, and only correct the position once the animation
-    /// actually finishes and a live measurement is available. That fallback is what MuseumView's
-    /// root -> category cascade still uses -- a category window's height is content-driven
-    /// (however many products it holds) and genuinely isn't knowable before it renders, so
-    /// there's nothing to predict there. The fallback's own live-measurement timing is why it
-    /// has to wait for animation completion rather than react to it: an earlier version read
-    /// `cascadeFrame` reactively, inside the same `onGeometryChange` that updates it, gated by
-    /// a one-shot flag; that flag got consumed by the FIRST geometry-change firing, early in
-    /// the zoom-open transition while the window is still mid-animation (tiny/partially
-    /// offscreen-scaled), not its final settled size -- so the clamp math always saw a frame
-    /// far too small to ever look like it needed correcting, and never actually fired.
-    /// Confirmed live with a temporary debug overlay showing the exact (undersized,
-    /// mid-animation) frame it had captured. The predicted-frame path sidesteps that whole
-    /// problem by never needing a live measurement to begin with -- confirmed live (after a
-    /// user report, with a screenshot, of a visible "opens off-position, then snaps into
-    /// place a moment later" jump) that computing the correct offset up front and animating
-    /// straight to it removes the snap entirely.
-    func openAnimated(_ item: Item, availableSize: CGSize, predictedFrame: CGRect? = nil) {
-        if let predictedFrame {
-            dragOffset = clampedDragOffset(for: predictedFrame, availableSize: availableSize, current: .zero)
-            withAnimation(Self.zoomAnimation) {
-                open = item
-            }
-        } else {
-            dragOffset = .zero
-            withAnimation(Self.zoomAnimation) {
-                open = item
-            } completion: {
-                self.dragOffset = clampedDragOffset(for: self.cascadeFrame, availableSize: availableSize, current: self.dragOffset)
-            }
+    /// Resets any leftover drag offset and opens `item` with the usual zoom animation.
+    /// Nothing else to do here anymore -- unlike every earlier version of this method, there's
+    /// no position to predict or correct after the fact, because `windowOffset` computes the
+    /// right answer fresh on every render, including the very first one after `open` changes.
+    func openAnimated(_ item: Item) {
+        dragOffset = .zero
+        withAnimation(Self.zoomAnimation) {
+            open = item
         }
     }
 
-    // A `reclampIfNeeded(availableSize:)` re-applying this same clamp on every `availableSize`
-    // change (not just at open time) was attempted here, to fix an already-open window
-    // sitting partially or fully off screen if the app is resized smaller. Reverted: live
-    // testing found a real cross-level interaction bug -- MuseumView's `cascade` and
-    // MuseumCategoryView's own nested `cascade` both react to the SAME `availableSize` change
-    // independently, but the product window's position is relative to the category window's
-    // (an `.overlay(alignment: .topLeading)`, not an absolute position -- see body's own
-    // comment on why), so correcting both levels simultaneously, each against a frame that
-    // doesn't yet reflect the OTHER level's own simultaneous correction, produced a visibly
-    // wrong, inconsistent, compounded shift (confirmed live: the product window drifted
-    // independently away from its category window instead of staying properly cascaded under
-    // it). Solving that correctly needs the two levels' reclamps to be ordered/coordinated
-    // rather than independent, which is a genuinely bigger change than this cleanup pass
-    // intended -- worth a dedicated pass of its own rather than shipping a fix that trades
-    // one bug for a more visible one. The open-time-only clamp above is unaffected and still
-    // works exactly as it did before this file's refactor.
+    /// Where this window should actually render, as an offset relative to its natural SwiftUI
+    /// layout position -- computed fresh from currently-known inputs every time this is
+    /// called, not a value tracked and corrected at specific moments. This is what actually
+    /// closes off the whole "when do I re-run the fit-into-view correction" class of bug: it's
+    /// one calculation, and SwiftUI re-evaluates it automatically whenever `dragOffset`,
+    /// `size`, or `availableSize` changes -- open, drag, or resize alike.
+    ///
+    /// `parentOrigin` is this window's cascade anchor's own CURRENT on-screen origin in
+    /// `museumContentSpace` -- the root window's measured frame for a category window (root
+    /// never moves, so this is a stable reference, not something that just changed out from
+    /// under this calculation), or a category window's own already-computed origin (its
+    /// parent's `windowOffset`, added to ITS parent's origin) for a product window. Used only
+    /// to determine whether this window's raw, un-fitted position would overflow -- NOT folded
+    /// into the returned offset itself. That's because this window renders as a NESTED overlay
+    /// inside its own parent's view chain (`.overlay(alignment: .topLeading)`, both levels),
+    /// so whatever offset the PARENT applies to itself is already automatically inherited by
+    /// this window when SwiftUI renders the whole subtree together -- folding `parentOrigin`
+    /// into the return value here too would double-count it.
+    func windowOffset(parentOrigin: CGPoint, size: CGSize, availableSize: CGSize) -> CGSize {
+        guard availableSize.width > 0, availableSize.height > 0 else {
+            return CGSize(width: 28 + dragOffset.width, height: 28 + dragOffset.height)
+        }
+        let rawX = parentOrigin.x + 28 + dragOffset.width
+        let rawY = parentOrigin.y + 28 + dragOffset.height
+        let fittedX = fittedOrigin(current: rawX, extent: size.width, available: availableSize.width, leadingMargin: 12, trailingMargin: 12)
+        let fittedY = fittedOrigin(current: rawY, extent: size.height, available: availableSize.height, leadingMargin: museumDragTopMargin, trailingMargin: 12, pinLeadingWhenOversized: true)
+        return CGSize(width: fittedX - parentOrigin.x, height: fittedY - parentOrigin.y)
+    }
 }
 
 /// Museum tab root: a list of product categories (Compact Macintosh, iMac, iPhone, ...).
@@ -249,16 +215,39 @@ struct MuseumView: View {
     @EnvironmentObject private var navigator: AppNavigator
 
     // macOS only -- root -> category cascade state (open/selected category, root window +
-    // icon frames, zoom anchor, drag offset, the open category window's own measured frame).
+    // icon frames, zoom anchor, drag offset, the open category window's own natural size).
     // See MuseumCascadeState's own doc comment for why this is one shared object instead of
     // seven separate @State vars. iOS keeps real NavigationLink push instead (see iconGrid
     // below), which needs none of this.
     @State private var cascade = MuseumCascadeState<MuseumCategory>()
     private static let zoomSpace = "museumZoomSpace"
 
-    // The Museum tab's own total available size, measured in `museumContentSpace` -- used to
-    // clamp a freshly-opened category window fully into view.
+    // The Museum tab's own total available size, measured in `museumContentSpace` -- fed into
+    // `cascade.windowOffset` to keep a category window fully into view, continuously (open,
+    // drag, AND resize alike -- see MuseumCascadeState's own doc comment), not just at open
+    // time.
     @State private var availableSize: CGSize = .zero
+    // The root window's own on-screen origin in `museumContentSpace` -- root never drags, so
+    // this is a stable reference that only changes on an actual resize, not something that
+    // just moved out from under a same-instant calculation. The one remaining live geometry
+    // read feeding the whole cascade's positioning (everything below root derives its own
+    // position from this, plus pure arithmetic -- see `cascade.windowOffset`).
+    @State private var rootFrame: CGRect = .zero
+
+    /// The open category window's own actual on-screen offset, relative to its natural
+    /// `.overlay(alignment: .topLeading)` position (root's own corner) -- see
+    /// `MuseumCascadeState.windowOffset`'s own doc comment for what this computes and why.
+    private var categoryOffset: CGSize {
+        cascade.windowOffset(parentOrigin: rootFrame.origin, size: cascade.naturalSize, availableSize: availableSize)
+    }
+    /// The open category window's own actual on-screen ORIGIN (not just its offset) -- root's
+    /// origin plus `categoryOffset` above. Forwarded down to MuseumCategoryView as the anchor
+    /// its own product-level `windowOffset` call cascades from; see that parameter's own doc
+    /// comment on `MuseumCategoryView` for why this is the right value to pass (and why
+    /// `categoryOffset` alone, without adding it to `rootFrame.origin`, would be wrong there).
+    private var categoryOrigin: CGPoint {
+        CGPoint(x: rootFrame.origin.x + categoryOffset.width, y: rootFrame.origin.y + categoryOffset.height)
+    }
 
     private func closeCategory() {
         cascade.close()
@@ -280,7 +269,7 @@ struct MuseumView: View {
         // openPendingProductIfNeeded -- see that one's doc comment.
         cascade.selected = category
         cascade.zoomAnchor = museumZoomAnchor(forIcon: category.id, iconFrames: cascade.iconFrames, windowFrame: cascade.containerFrame)
-        cascade.openAnimated(category, availableSize: availableSize)
+        cascade.openAnimated(category)
     }
 
     var body: some View {
@@ -302,86 +291,89 @@ struct MuseumView: View {
                 } action: { newValue in
                     cascade.containerFrame = newValue
                 }
+                .onGeometryChange(for: CGRect.self) { proxy in
+                    proxy.frame(in: .named(museumContentSpace))
+                } action: { newValue in
+                    rootFrame = newValue
+                }
                 .onTapGesture {
                     // Clicking the parent window while a folder is open closes it, like
                     // clicking away from a classic Mac OS window -- icon taps inside still
                     // win their own gesture, so this only fires on the surrounding chrome.
                     closeCategory()
                 }
-
-                if let openCategory = cascade.open {
-                    // Cascaded on top and offset, like double-clicking a folder in real
-                    // Finder -- the parent window stays put (now dimmed/inactive) behind it.
-                    //
-                    // No .frame(maxWidth: 640) here anymore -- MuseumCategoryView can now
-                    // itself nest a nested MuseumProductDetailView cascade, which wants up to
-                    // 700pt for itself. Capping the WHOLE subtree at 640 from out here forced
-                    // that wider product window (and, visibly, its category-window sibling
-                    // too) into a losing width negotiation inside one ZStack, which is what
-                    // produced the collapsed/sliver rendering. MuseumCategoryView now sets its
-                    // own 640 cap internally, on just its own FinderWindowChrome, the same way
-                    // MuseumProductDetailView already governs its own 700 -- each window
-                    // manages its own width instead of one constraint trying to cover a
-                    // subtree with two different natural sizes.
-                    MuseumCategoryView(
-                        category: openCategory, onClose: closeCategory, dragOffset: $cascade.dragOffset,
-                        // A read-only computed value, wrapped as a Binding purely so
-                        // FinderWindowChrome's drag gesture always reads it fresh -- see
-                        // FinderWindowChrome.minDragOffset's own doc comment for why a plain
-                        // captured value wasn't reliable mid-gesture.
-                        minDragOffset: Binding(get: { cascade.minDragOffset(topMargin: museumDragTopMargin) }, set: { _ in }),
-                        availableSize: availableSize,
-                        // This category window's own frame in museumContentSpace -- already
-                        // tracked here (cascade.cascadeFrame) for this level's own reclamp
-                        // math, and the one piece MuseumCategoryView itself has no way to
-                        // measure in the right coordinate space on its own. See
-                        // MuseumCategoryView.containerFrame's own doc comment.
-                        containerFrame: cascade.cascadeFrame
-                    )
-                        // Forces SwiftUI to treat a different category as a genuinely new
-                        // view instance rather than reusing this one's -- without an
-                        // explicit id, jumping straight from one open category window to a
-                        // different one (double-clicking a still-visible sibling icon on the
-                        // root grid while this one is open) left MuseumCategoryView's own
-                        // `cascade` object (its open/selected product, drag offset, etc.) intact
-                        // across the swap, so the new category's window could render with the
-                        // OLD category's product-detail overlay still on top of it, and no
-                        // zoom-open transition played for the swap since `cascade.open` never
-                        // passed through nil.
-                        .id(openCategory.id)
-                        .padding(24)
-                        // Base cascade offset plus whatever the user has dragged this
-                        // window by -- see MuseumCascadeState.dragOffset's own doc comment.
-                        .offset(x: 28 + cascade.dragOffset.width, y: 28 + cascade.dragOffset.height)
-                        // After .offset(), not before -- this needs to see the window's
-                        // actual rendered position (cascade + drag combined), not its
-                        // pre-offset layout position. Just tracks the latest frame
-                        // unconditionally now -- see MuseumCascadeState.openAnimated's doc
-                        // comment for why the open-time clamp waits for its completion handler
-                        // instead of applying reactively right here. The *reachable* (top/
-                        // left) clamp lives inside FinderWindowChrome's own drag gesture now,
-                        // driven by cascade.minDragOffset(topMargin:) above -- see that
-                        // method's doc comment for why a reactive correction from here
-                        // couldn't work.
-                        .onGeometryChange(for: CGRect.self) { proxy in
-                            proxy.frame(in: .named(museumContentSpace))
-                        } action: { newFrame in
-                            cascade.cascadeFrame = newFrame
-                        }
-                        // Classic Mac OS "zoom rectangles" close/open effect: the window
-                        // balloons open from and shrinks back down toward whichever icon
-                        // it cascades from (see zoomAnchor(forIcon:)), rather than a fixed
-                        // corner.
-                        .transition(.scale(scale: 0.05, anchor: cascade.zoomAnchor).combined(with: .opacity))
-                        // Pins this view on top of the root window for the FULL duration of
-                        // both the open AND close animation, not just steady state -- without
-                        // an explicit zIndex, SwiftUI's default declaration-order stacking can
-                        // waver mid-transition (confirmed: reported as "closing has no
-                        // animation" and, one level deeper, "briefly appears behind the
-                        // underlying window" -- both are the same z-order issue, just more or
-                        // less visually obvious depending on how much of the departing window
-                        // is still on screen when it flips behind its sibling).
-                        .zIndex(1)
+                // .overlay(alignment: .topLeading), not a sibling in the ZStack above -- a
+                // bare ZStack centers each child independently based on its OWN size, so a
+                // category window's "natural," pre-drag position wasn't deterministic once it
+                // and the root window were different sizes (the exact problem
+                // MuseumCategoryView's own product overlay, just below, already solved for
+                // itself one cascade level down -- see its matching comment). `.overlay`
+                // makes a category window's natural position exactly root's own top-leading
+                // corner, by construction, which is what lets `cascade.windowOffset` treat
+                // `rootFrame.origin` as a stable, known anchor instead of needing to
+                // rediscover it.
+                .overlay(alignment: .topLeading) {
+                    if let openCategory = cascade.open {
+                        // No .frame(maxWidth: 640) here anymore -- MuseumCategoryView can now
+                        // itself nest a nested MuseumProductDetailView cascade, which wants up
+                        // to 700pt for itself. Capping the WHOLE subtree at 640 from out here
+                        // forced that wider product window (and, visibly, its category-window
+                        // sibling too) into a losing width negotiation, which is what produced
+                        // the collapsed/sliver rendering. MuseumCategoryView now sets its own
+                        // 640 cap internally, on just its own FinderWindowChrome, the same way
+                        // MuseumProductDetailView already governs its own 700 -- each window
+                        // manages its own width instead of one constraint trying to cover a
+                        // subtree with two different natural sizes.
+                        MuseumCategoryView(
+                            category: openCategory, onClose: closeCategory, dragOffset: $cascade.dragOffset,
+                            availableSize: availableSize,
+                            // This category window's own actual on-screen origin -- see that
+                            // parameter's own doc comment on MuseumCategoryView.
+                            windowOrigin: categoryOrigin
+                        )
+                            // Forces SwiftUI to treat a different category as a genuinely new
+                            // view instance rather than reusing this one's -- without an
+                            // explicit id, jumping straight from one open category window to a
+                            // different one (double-clicking a still-visible sibling icon on
+                            // the root grid while this one is open) left MuseumCategoryView's
+                            // own `cascade` object (its open/selected product, drag offset,
+                            // etc.) intact across the swap, so the new category's window could
+                            // render with the OLD category's product-detail overlay still on
+                            // top of it, and no zoom-open transition played for the swap since
+                            // `cascade.open` never passed through nil.
+                            .id(openCategory.id)
+                            .padding(24)
+                            // Plain SIZE only, not a frame in any coordinate space -- see
+                            // MuseumCascadeState.naturalSize's own doc comment for why this
+                            // measurement can't repeat the coordinate-space mistake the old
+                            // position-tracking here was built on.
+                            .onGeometryChange(for: CGSize.self) { proxy in
+                                proxy.size
+                            } action: { newSize in
+                                cascade.naturalSize = newSize
+                            }
+                            // The window's actual on-screen offset -- computed fresh on every
+                            // render (open, drag, or resize alike) by `cascade.windowOffset`,
+                            // not a value corrected at specific moments. See
+                            // MuseumCascadeState's own doc comment for the whole redesign this
+                            // replaced.
+                            .offset(categoryOffset)
+                            // Classic Mac OS "zoom rectangles" close/open effect: the window
+                            // balloons open from and shrinks back down toward whichever icon
+                            // it cascades from (see zoomAnchor(forIcon:)), rather than a fixed
+                            // corner.
+                            .transition(.scale(scale: 0.05, anchor: cascade.zoomAnchor).combined(with: .opacity))
+                            // Pins this view on top of the root window for the FULL duration
+                            // of both the open AND close animation, not just steady state --
+                            // without an explicit zIndex, SwiftUI's default declaration-order
+                            // stacking can waver mid-transition (confirmed: reported as
+                            // "closing has no animation" and, one level deeper, "briefly
+                            // appears behind the underlying window" -- both are the same
+                            // z-order issue, just more or less visually obvious depending on
+                            // how much of the departing window is still on screen when it
+                            // flips behind its sibling).
+                            .zIndex(1)
+                    }
                 }
                 #else
                 // No fake title bar on iOS -- the real nav bar already reads "Museum" on a
@@ -422,7 +414,7 @@ struct MuseumView: View {
                     .onTapGesture(count: 2) {
                         cascade.selected = category
                         cascade.zoomAnchor = museumZoomAnchor(forIcon: category.id, iconFrames: cascade.iconFrames, windowFrame: cascade.containerFrame)
-                        cascade.openAnimated(category, availableSize: availableSize)
+                        cascade.openAnimated(category)
                     }
                     .onTapGesture(count: 1) {
                         cascade.selected = category
@@ -439,7 +431,7 @@ struct MuseumView: View {
                     .accessibilityAction {
                         cascade.selected = category
                         cascade.zoomAnchor = museumZoomAnchor(forIcon: category.id, iconFrames: cascade.iconFrames, windowFrame: cascade.containerFrame)
-                        cascade.openAnimated(category, availableSize: availableSize)
+                        cascade.openAnimated(category)
                     }
                 #else
                 NavigationLink {
@@ -488,26 +480,22 @@ struct MuseumCategoryView: View {
     /// (root) owns and applies the actual offset; see FinderWindowChrome.dragOffset's doc
     /// comment for why the caller has to own it rather than this view handling it internally.
     var dragOffset: Binding<CGSize>? = nil
-    /// Forwarded straight through to this window's own FinderWindowChrome, same as
-    /// `dragOffset` above -- MuseumView (root) owns and computes the actual value; see
-    /// MuseumCascadeState.minDragOffset's doc comment.
-    var minDragOffset: Binding<CGSize>? = nil
     /// The Museum tab's total available size, forwarded from MuseumView (root) -- used the
-    /// same way as there, to clamp a freshly-opened product window fully into view.
+    /// same way as there, to keep a product window fully into view via `cascade.windowOffset`.
     var availableSize: CGSize = .zero
-    /// This category window's own on-screen frame, in `museumContentSpace` -- forwarded from
-    /// MuseumView's own `cascade.cascadeFrame` (the frame it already measures for this exact
-    /// window, one level up). Needed for `predictedProductFrame` below: `cascade.containerFrame`
-    /// (this view's OWN state) measures the SAME window instead in `Self.zoomSpace`
+    /// This category window's own actual on-screen ORIGIN in `museumContentSpace` -- MuseumView
+    /// computes this as `rootFrame.origin + categoryOffset` (its own `cascade.windowOffset`
+    /// result, already added to root's origin) and forwards it down, since that's the one
+    /// piece MuseumCategoryView has no way to know on its own: `cascade.containerFrame` (this
+    /// view's OWN state) measures the SAME window instead in `Self.zoomSpace`
     /// ("museumCategoryZoomSpace"), a coordinate space local to this category's own icon grid
     /// -- correct for the zoom-open anchor math it was built for, but NOT interchangeable with
-    /// `museumContentSpace`, which is what `clampedDragOffset`/`availableSize` are expressed
-    /// in. Confirmed live, with a screenshot, that feeding `cascade.containerFrame` into a
-    /// `museumContentSpace` calculation produced a plausible-looking but wrong position --
-    /// the predicted-frame fix appeared to run, but the product window still opened
-    /// overflowing the app window's right and bottom edges, because the "fit into view" math
-    /// was fitting the wrong coordinates.
-    var containerFrame: CGRect = .zero
+    /// `museumContentSpace`, which is what `windowOffset`/`availableSize` are expressed in
+    /// (confirmed live, with a screenshot, that feeding one into the other produced a
+    /// plausible-looking but wrong position). Used as `parentOrigin` in this view's own product-
+    /// level `cascade.windowOffset` call -- see that method's own doc comment for why passing
+    /// this window's REAL current origin there (not root's raw one) is the right anchor.
+    var windowOrigin: CGPoint = .zero
 
     // macOS only -- category -> product cascade state, same shape as MuseumView's own root ->
     // category `cascade` one level up. This view owns and applies it (rather than forwarding
@@ -518,10 +506,11 @@ struct MuseumCategoryView: View {
 
     /// The product window's real target size, computed the exact same way `body`'s own
     /// `.frame(width:height:)` on MuseumProductDetailView computes it (factored out here so
-    /// the two can never drift apart) -- used as `museumZoomAnchor`'s `targetSize` so the
-    /// zoom-open anchor is computed against the product window's OWN real size rather than
-    /// this (often much shorter, product-count-driven) category window's size. See
-    /// `museumZoomAnchor`'s doc comment for why that mismatch mattered.
+    /// the two can never drift apart) -- used both as `museumZoomAnchor`'s `targetSize` (so
+    /// the zoom-open anchor is computed against the product window's OWN real size rather than
+    /// this often-much-shorter category window's size -- see `museumZoomAnchor`'s doc comment)
+    /// and as the `size` fed into `cascade.windowOffset`, since a product window's size is
+    /// already fully known analytically with no live measurement needed.
     private var productWindowSize: CGSize {
         CGSize(
             width: availableSize.width > 0 ? max(min(availableSize.width - 40, 700), 320) : 700,
@@ -529,25 +518,11 @@ struct MuseumCategoryView: View {
         )
     }
 
-    /// The product window's predicted frame, entirely before it's ever rendered -- both its
-    /// size (`productWindowSize`, already computed analytically above) and its position (the
-    /// `containerFrame` parameter above -- THIS category window's own already-settled frame
-    /// in `museumContentSpace`, forwarded from the parent, plus the fixed +28/+28 cascade
-    /// offset every product window opens at) are knowable in advance here, with no live
-    /// measurement needed. Passed to `cascade.openAnimated` so a manually-double-clicked (or
-    /// VoiceOver-activated) product opens directly at its correct, already-clamped position
-    /// instead of the raw, unclamped cascade position with a visible snap into place once a
-    /// live measurement catches up a render later -- see `openAnimated`'s own doc comment.
-    /// Deliberately NOT used by `openPendingProductIfNeeded` (the Home "Featured Collection"
-    /// deep-link path): that one can fire as early as this category window's own `.onAppear`,
-    /// before `containerFrame` has necessarily settled to its true value yet, so a prediction
-    /// made from it there could itself be wrong -- that path keeps the safer (if occasionally
-    /// snap-prone) live-measurement fallback instead.
-    private var predictedProductFrame: CGRect {
-        CGRect(
-            origin: CGPoint(x: containerFrame.minX + 28, y: containerFrame.minY + 28),
-            size: productWindowSize
-        )
+    /// The open product window's own actual on-screen offset, relative to its natural
+    /// `.overlay(alignment: .topLeading)` position (this category window's own corner) -- see
+    /// `MuseumCascadeState.windowOffset`'s own doc comment for what this computes and why.
+    private var productOffset: CGSize {
+        cascade.windowOffset(parentOrigin: windowOrigin, size: productWindowSize, availableSize: availableSize)
     }
 
     private func closeProduct() {
@@ -571,7 +546,7 @@ struct MuseumCategoryView: View {
         // flow this doc-commented feature exists for.
         cascade.selected = product
         cascade.zoomAnchor = museumZoomAnchor(forIcon: product.id, iconFrames: cascade.iconFrames, windowFrame: cascade.containerFrame, targetSize: productWindowSize)
-        cascade.openAnimated(product, availableSize: availableSize)
+        cascade.openAnimated(product)
         navigator.pendingMuseumProductId = nil
     }
 
@@ -596,7 +571,7 @@ struct MuseumCategoryView: View {
         // FinderWindowChrome using ITS frame for layout, but never contributes to what the
         // Museum root sees as this view's own size, so the category window's on-screen
         // position stays fixed regardless of whether a product is open.
-        FinderWindowChrome(title: category.title, statusText: "\(category.products.count) models", isActive: cascade.open == nil, onClose: onClose, dragOffset: dragOffset, minDragOffset: minDragOffset) {
+        FinderWindowChrome(title: category.title, statusText: "\(category.products.count) models", isActive: cascade.open == nil, onClose: onClose, dragOffset: dragOffset) {
             productGrid
         }
         // This window's own width cap, not an external one applied to the whole
@@ -616,10 +591,7 @@ struct MuseumCategoryView: View {
         .overlay(alignment: .topLeading) {
             if let openProduct = cascade.open {
                 MuseumProductDetailView(
-                    product: openProduct, onClose: closeProduct, dragOffset: $cascade.dragOffset,
-                    // Same reasoning as MuseumView's identical wrapping -- see
-                    // FinderWindowChrome.minDragOffset's doc comment.
-                    minDragOffset: Binding(get: { cascade.minDragOffset(topMargin: museumDragTopMargin) }, set: { _ in })
+                    product: openProduct, onClose: closeProduct, dragOffset: $cascade.dragOffset
                 )
                     // Same reasoning as MuseumView's identical .id(category.id) one cascade
                     // level up -- without this, jumping directly from one open product's
@@ -641,30 +613,23 @@ struct MuseumCategoryView: View {
                     // capped at category's own (often narrower) width instead of its own
                     // intended one. Confirmed live via a temporary debug overlay: the
                     // measured product frame was exactly 640pt wide, category's cap, not up
-                    // to 700. Driven by `availableSize` (already tracked for the bounds
-                    // clamp below) instead, with the same 700/600 ceiling
-                    // MuseumProductDetailView's own internal frame already caps at, so it's
-                    // sized correctly regardless of how narrow or short the category window
-                    // it happens to be cascading from is.
+                    // to 700. Driven by `availableSize` (already tracked for `windowOffset`
+                    // below) instead, with the same 700/600 ceiling MuseumProductDetailView's
+                    // own internal frame already caps at, so it's sized correctly regardless
+                    // of how narrow or short the category window it happens to be cascading
+                    // from is.
                     // max(..., 320/240) guards against a negative frame -- `availableSize`
                     // is expected to comfortably clear 40pt in either dimension in practice
                     // (RootTabView enforces a 420x560 minimum app window on macOS), but an
                     // early, not-yet-settled geometry pass could transiently report something
                     // smaller, and `.frame(width: -20, ...)` is an invalid SwiftUI frame.
                     .frame(width: productWindowSize.width, height: productWindowSize.height)
-                    // Base cascade offset plus whatever the user has dragged this window
-                    // by -- see MuseumCascadeState.dragOffset's own doc comment.
-                    .offset(x: 28 + cascade.dragOffset.width, y: 28 + cascade.dragOffset.height)
-                    // See MuseumView's identical bounds-check hook for the reasoning --
-                    // `museumContentSpace` was registered by MuseumView's own root ZStack,
-                    // an ancestor of this view, so it resolves correctly without needing to
-                    // be re-registered here. Just tracks the latest frame unconditionally;
-                    // cascade.openAnimated's completion handler does the actual clamping.
-                    .onGeometryChange(for: CGRect.self) { proxy in
-                        proxy.frame(in: .named(museumContentSpace))
-                    } action: { newFrame in
-                        cascade.cascadeFrame = newFrame
-                    }
+                    // The window's actual on-screen offset -- computed fresh on every render
+                    // (open, drag, or resize alike) by `cascade.windowOffset`, cascading from
+                    // THIS category window's own real current origin (`windowOrigin`, passed
+                    // in from MuseumView). See MuseumCascadeState's own doc comment for the
+                    // whole redesign this replaced.
+                    .offset(productOffset)
                     .transition(.scale(scale: 0.05, anchor: cascade.zoomAnchor).combined(with: .opacity))
                     // Same fix, same reasoning as MuseumView's matching zIndex on its own
                     // category overlay -- keeps this window pinned on top of its category
@@ -701,7 +666,7 @@ struct MuseumCategoryView: View {
                     .onTapGesture(count: 2) {
                         cascade.selected = product
                         cascade.zoomAnchor = museumZoomAnchor(forIcon: product.id, iconFrames: cascade.iconFrames, windowFrame: cascade.containerFrame, targetSize: productWindowSize)
-                        cascade.openAnimated(product, availableSize: availableSize, predictedFrame: predictedProductFrame)
+                        cascade.openAnimated(product)
                     }
                     .onTapGesture(count: 1) {
                         cascade.selected = product
@@ -714,7 +679,7 @@ struct MuseumCategoryView: View {
                     .accessibilityAction {
                         cascade.selected = product
                         cascade.zoomAnchor = museumZoomAnchor(forIcon: product.id, iconFrames: cascade.iconFrames, windowFrame: cascade.containerFrame, targetSize: productWindowSize)
-                        cascade.openAnimated(product, availableSize: availableSize, predictedFrame: predictedProductFrame)
+                        cascade.openAnimated(product)
                     }
                 #else
                 NavigationLink {
@@ -783,9 +748,6 @@ struct MuseumProductDetailView: View {
     /// Forwarded straight through to this window's own FinderWindowChrome -- MuseumCategoryView
     /// owns and applies the actual offset; see FinderWindowChrome.dragOffset's doc comment.
     var dragOffset: Binding<CGSize>? = nil
-    /// Forwarded straight through to this window's own FinderWindowChrome, same as
-    /// `dragOffset` above -- see MuseumCascadeState.minDragOffset's doc comment.
-    var minDragOffset: Binding<CGSize>? = nil
 
     private static let fallbackParagraph = "Not enough episodes have covered this one yet -- check back as the archive gets classified further."
 
@@ -814,7 +776,7 @@ struct MuseumProductDetailView: View {
         // title bar text instead of a separate inline heading. The close box zooms the
         // cascade shut via `onClose` now, not a NavigationStack pop -- this is always
         // presented as a cascaded window over MuseumCategoryView on macOS, never pushed.
-        FinderWindowChrome(title: product.name, onClose: onClose, dragOffset: dragOffset, minDragOffset: minDragOffset) {
+        FinderWindowChrome(title: product.name, onClose: onClose, dragOffset: dragOffset) {
             ClassicScrollView {
                 detailContent
             }

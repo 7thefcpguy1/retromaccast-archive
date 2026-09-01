@@ -46,7 +46,16 @@ struct RootTabView: View {
         // regardless of desktop theme) back to light no matter what this says.
         .preferredColorScheme(appearance.theme.isDark ? .dark : .light)
         #if os(macOS)
-        .frame(minWidth: 420, minHeight: 560)
+        // Minimum window size is iPad mini's landscape logical resolution (1133x744 pt) --
+        // deliberately generous rather than the old 420x560. The Museum tab's cascade
+        // windows (category/product Finder-style windows) need real breathing room; letting
+        // the app window shrink much smaller than that pushed the cascade layout into a
+        // regime (windows larger than available space on more than one axis at once) that
+        // produced a long string of positioning bugs this session. Raising the floor makes
+        // that regime unreachable in practice rather than chasing it edge case by edge case.
+        // Verified this comfortably fits the smallest current Mac's screen: a 13" MacBook Air
+        // (2560x1664 native) defaults to 1280x832 "looks like" points, well above 1133x744.
+        .frame(minWidth: 1133, minHeight: 744)
         #endif
     }
 }
