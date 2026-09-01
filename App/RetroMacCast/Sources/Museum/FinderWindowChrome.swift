@@ -64,6 +64,8 @@ struct FinderWindowChrome<Content: View>: View {
             }
             content
                 .background(Color.white)
+            Rectangle().fill(Color.black).frame(height: 1)
+            growBoxBar
         }
         // Sharp square corners and no drop shadow -- a real System 7 window sits flat on the
         // desktop with a plain black outline, not a soft floating card. Rounding + shadow was
@@ -197,6 +199,22 @@ struct FinderWindowChrome<Content: View>: View {
             .padding(.vertical, 1)
             .background(Color.white)
     }
+
+    /// The plain strip along the very bottom edge that hosts the grow box -- purely decorative,
+    /// same as `zoomBox` (this window isn't actually user-resizable; its size is either content-
+    /// driven or computed analytically by the caller). A real System 7 window's bottom edge
+    /// would also carry a horizontal scrollbar track here, but nothing in this app ever scrolls
+    /// horizontally (see `ClassicScrollView`'s own doc comment), so drawing a fake, inert
+    /// horizontal track next to the grow box would suggest a capability that doesn't exist --
+    /// left blank instead, same white as the content above it.
+    private var growBoxBar: some View {
+        HStack(spacing: 0) {
+            Spacer(minLength: 0)
+            GrowBoxGlyph()
+        }
+        .frame(height: 15)
+        .background(Color.white)
+    }
 }
 
 /// Draws the X inside the close box only while the mouse is actually held down on it --
@@ -253,6 +271,32 @@ struct CascadeGlyph: View {
                 .frame(width: 6, height: 6)
         }
         .frame(width: 11, height: 11, alignment: .topLeading)
+    }
+}
+
+/// The "grow box" classic Mac OS drew in a window's bottom-trailing corner -- a bordered
+/// square filled with diagonal ridge lines, per a close-up of a real System 7 Finder window.
+/// Square, not the close/zoom boxes' exact 11pt (a real grow box reads slightly larger, and
+/// needs the extra couple points for the diagonal lines to read clearly at this scale).
+struct GrowBoxGlyph: View {
+    var body: some View {
+        ZStack {
+            Rectangle().fill(Color.white)
+            Canvas { context, size in
+                var path = Path()
+                let spacing: CGFloat = 3
+                var x: CGFloat = -size.height
+                while x < size.width {
+                    path.move(to: CGPoint(x: x, y: size.height))
+                    path.addLine(to: CGPoint(x: x + size.height, y: 0))
+                    x += spacing
+                }
+                context.stroke(path, with: .color(.black.opacity(0.55)), lineWidth: 1)
+            }
+            .clipShape(Rectangle())
+            Rectangle().stroke(Color.black, lineWidth: 1.2)
+        }
+        .frame(width: 15, height: 15)
     }
 }
 

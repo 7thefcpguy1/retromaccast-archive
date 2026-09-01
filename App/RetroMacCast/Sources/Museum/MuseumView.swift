@@ -53,7 +53,7 @@ private let museumContentSpace = "museumContentSpace"
 /// constant used to be tangled up in (a positive-floor regression, then a "can barely drag
 /// up at all" regression, both downstream of trying to enforce this margin reactively inside
 /// a drag gesture instead of as part of one derived position calculation).
-private let museumDragTopMargin: CGFloat = 60
+private let museumDragTopMargin: CGFloat = 12
 
 /// Where a window's top-left corner should land along one axis so it's fully visible with a
 /// comfortable margin on both sides -- or, when it's simply too big for the available room,
