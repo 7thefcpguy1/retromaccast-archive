@@ -33,7 +33,22 @@ struct ClassicScrollView<Content: View>: View {
     var body: some View {
         HStack(spacing: 0) {
             ScrollView {
+                // .frame(maxWidth: .infinity), not `content` bare -- a vertical-only
+                // ScrollView hugs its CONTENT's own natural width on the cross axis rather
+                // than filling whatever width it's actually offered; it only ends up full-
+                // width "for free" when `content` itself happens to contain something already
+                // claiming maxWidth: .infinity (true of MuseumProductDetailView's synopsis
+                // column, which is why product windows never showed this). MuseumCategoryView's
+                // productGrid (a LazyVGrid with adaptive columns) has no such element, so
+                // without this, the ScrollView -- and the white background painted on `content`
+                // as a whole -- stopped at the grid's own compact width instead of the wider
+                // frame a resized window imposed from outside, leaving the excess width fully
+                // transparent. Confirmed live: a resized-wider category window showed the
+                // Museum root's own icon grid bleeding through down both sides of that gap,
+                // since the root window sits directly behind it with nothing else painting
+                // those pixels.
                 content
+                    .frame(maxWidth: .infinity)
             }
             .scrollPosition(scrollPosition)
             .scrollIndicators(.hidden)
