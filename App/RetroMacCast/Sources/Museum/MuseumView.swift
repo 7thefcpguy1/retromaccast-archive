@@ -151,6 +151,16 @@ final class MuseumCascadeState<Item: Identifiable> where Item.ID == String {
     /// indeed on any offset applied to it, so this measurement can't repeat the
     /// coordinate-space mix-up `windowOffset` replaced.
     var naturalSize: CGSize = .zero
+    /// This level's own window's user-set TOTAL size, from dragging its grow box -- nil until
+    /// the user actually resizes it, meaning "use whatever this window's own default size
+    /// would otherwise be" (`naturalSize` for a content-driven category window, the analytic
+    /// `productWindowSize` for a product window). Reset to nil, same as `dragOffset` resets to
+    /// `.zero`, whenever a genuinely different item opens -- a freshly opened window always
+    /// starts at its own default size, not whatever size a previously closed one was resized
+    /// to. Caller resolves the `?? default` and does any caller-specific max-size clamping (see
+    /// `FinderWindowChrome.resizableSize`'s own doc comment for why that division of
+    /// responsibility lives on the caller, not here or in FinderWindowChrome).
+    var userSize: CGSize?
 
     static var zoomAnimation: Animation { .easeInOut(duration: 0.18) }
 
@@ -160,12 +170,14 @@ final class MuseumCascadeState<Item: Identifiable> where Item.ID == String {
         withAnimation(Self.zoomAnimation) { open = nil }
     }
 
-    /// Resets any leftover drag offset and opens `item` with the usual zoom animation.
-    /// Nothing else to do here anymore -- unlike every earlier version of this method, there's
-    /// no position to predict or correct after the fact, because `windowOffset` computes the
-    /// right answer fresh on every render, including the very first one after `open` changes.
+    /// Resets any leftover drag offset and user resize, then opens `item` with the usual zoom
+    /// animation. Nothing else to do here anymore -- unlike every earlier version of this
+    /// method, there's no position to predict or correct after the fact, because `windowOffset`
+    /// computes the right answer fresh on every render, including the very first one after
+    /// `open` changes.
     func openAnimated(_ item: Item) {
         dragOffset = .zero
+        userSize = nil
         withAnimation(Self.zoomAnimation) {
             open = item
         }
@@ -234,11 +246,31 @@ struct MuseumView: View {
     // position from this, plus pure arithmetic -- see `cascade.windowOffset`).
     @State private var rootFrame: CGRect = .zero
 
+    /// This category window's own effective TOTAL size -- the user's own resized value once
+    /// they've dragged its grow box, otherwise `naturalSize` (its content-driven default). Used
+    /// both for `windowOffset`'s own fitting math below and as the actual `.frame(width:
+    /// height:)` applied at this window's overlay call site once the user has resized it (see
+    /// that call site's own comment for why it stays unconstrained, exactly as before, until
+    /// then).
+    private var categorySize: CGSize {
+        cascade.userSize ?? cascade.naturalSize
+    }
     /// The open category window's own actual on-screen offset, relative to its natural
     /// `.overlay(alignment: .topLeading)` position (root's own corner) -- see
     /// `MuseumCascadeState.windowOffset`'s own doc comment for what this computes and why.
     private var categoryOffset: CGSize {
-        cascade.windowOffset(parentOrigin: rootFrame.origin, size: cascade.naturalSize, availableSize: availableSize)
+        cascade.windowOffset(parentOrigin: rootFrame.origin, size: categorySize, availableSize: availableSize)
+    }
+    /// Caller-owned resize binding handed to MuseumCategoryView, which forwards it straight to
+    /// its own FinderWindowChrome -- same shape and reasoning as `dragOffset`'s equivalent
+    /// binding one level up. Clamps to this window's own existing internal 640pt width cap (see
+    /// MuseumCategoryView's `.frame(maxWidth: 640)`) so dragging can't request a size the window
+    /// would just refuse anyway with no visible feedback why the drag "stopped working."
+    private var categoryResizableSize: Binding<CGSize> {
+        Binding(
+            get: { categorySize },
+            set: { cascade.userSize = CGSize(width: min($0.width, 640), height: $0.height) }
+        )
     }
     /// The open category window's own actual on-screen ORIGIN (not just its offset) -- root's
     /// origin plus `categoryOffset` above. Forwarded down to MuseumCategoryView as the anchor
@@ -329,7 +361,9 @@ struct MuseumView: View {
                             availableSize: availableSize,
                             // This category window's own actual on-screen origin -- see that
                             // parameter's own doc comment on MuseumCategoryView.
-                            windowOrigin: categoryOrigin
+                            windowOrigin: categoryOrigin,
+                            resizableSize: categoryResizableSize,
+                            isResized: cascade.userSize != nil
                         )
                             // Forces SwiftUI to treat a different category as a genuinely new
                             // view instance rather than reusing this one's -- without an
@@ -343,10 +377,18 @@ struct MuseumView: View {
                             // `cascade.open` never passed through nil.
                             .id(openCategory.id)
                             .padding(24)
+                            // Optional width/height: nil (no constraint, exactly as before)
+                            // until the user actually drags the grow box, at which point
+                            // `cascade.userSize` becomes non-nil and this pins the window to
+                            // that explicit size instead of letting it size to content.
+                            .frame(width: cascade.userSize?.width, height: cascade.userSize?.height)
                             // Plain SIZE only, not a frame in any coordinate space -- see
                             // MuseumCascadeState.naturalSize's own doc comment for why this
                             // measurement can't repeat the coordinate-space mistake the old
-                            // position-tracking here was built on.
+                            // position-tracking here was built on. Keeps running even after a
+                            // user resize (harmlessly mirroring the now-externally-imposed
+                            // frame back) since `categorySize` already prefers `userSize` once
+                            // it's set -- this is only ever consulted as the pre-resize default.
                             .onGeometryChange(for: CGSize.self) { proxy in
                                 proxy.size
                             } action: { newSize in
@@ -496,6 +538,24 @@ struct MuseumCategoryView: View {
     /// level `cascade.windowOffset` call -- see that method's own doc comment for why passing
     /// this window's REAL current origin there (not root's raw one) is the right anchor.
     var windowOrigin: CGPoint = .zero
+    /// Forwarded straight through to this window's own FinderWindowChrome -- MuseumView (root)
+    /// owns and constructs the actual binding (clamped to this window's own 640pt width cap);
+    /// see FinderWindowChrome.resizableSize's own doc comment for why the caller has to own it.
+    var resizableSize: Binding<CGSize>? = nil
+    /// Whether the user has actually dragged this window's grow box at least once (i.e.
+    /// `cascade.userSize != nil` one cascade level up in MuseumView) -- switches `productGrid`
+    /// between a bare, content-hugging `LazyVGrid` (the default, unchanged from before this
+    /// window was resizable at all) and one wrapped in `ClassicScrollView` once a user size is
+    /// actually being imposed externally. Deliberately NOT unconditional: a plain SwiftUI
+    /// `ScrollView` (which `ClassicScrollView` wraps) is greedy along its scroll axis -- it
+    /// fills whatever height is PROPOSED to it rather than hugging its content's own ideal
+    /// height, the way a bare `LazyVGrid` does. Wrapping it always, even before any resize,
+    /// would have made every category window's default (un-resized) height match whatever
+    /// MuseumView's root window happens to propose instead of its own actual icon-count-driven
+    /// content height -- confirmed by reasoning through `.overlay(alignment:)`'s known proposal
+    /// behavior (see this view's own `.overlay` doc comment on the product level) rather than
+    /// live-testing a regression into existence first.
+    var isResized: Bool = false
 
     // macOS only -- category -> product cascade state, same shape as MuseumView's own root ->
     // category `cascade` one level up. This view owns and applies it (rather than forwarding
@@ -518,11 +578,26 @@ struct MuseumCategoryView: View {
         )
     }
 
+    /// This product window's own effective TOTAL size -- the user's own resized value once
+    /// they've dragged its grow box, otherwise the analytic `productWindowSize` default. Same
+    /// role as MuseumView's own `categorySize` one cascade level up.
+    private var productSize: CGSize {
+        cascade.userSize ?? productWindowSize
+    }
     /// The open product window's own actual on-screen offset, relative to its natural
     /// `.overlay(alignment: .topLeading)` position (this category window's own corner) -- see
     /// `MuseumCascadeState.windowOffset`'s own doc comment for what this computes and why.
     private var productOffset: CGSize {
-        cascade.windowOffset(parentOrigin: windowOrigin, size: productWindowSize, availableSize: availableSize)
+        cascade.windowOffset(parentOrigin: windowOrigin, size: productSize, availableSize: availableSize)
+    }
+    /// Same shape and reasoning as MuseumView's own `categoryResizableSize` one cascade level
+    /// up -- clamped to this product window's own existing internal 700x600 cap (see the
+    /// `.frame(maxWidth: 700, maxHeight: 600)` on MuseumProductDetailView's own body).
+    private var productResizableSize: Binding<CGSize> {
+        Binding(
+            get: { productSize },
+            set: { cascade.userSize = CGSize(width: min($0.width, 700), height: min($0.height, 600)) }
+        )
     }
 
     private func closeProduct() {
@@ -571,8 +646,18 @@ struct MuseumCategoryView: View {
         // FinderWindowChrome using ITS frame for layout, but never contributes to what the
         // Museum root sees as this view's own size, so the category window's on-screen
         // position stays fixed regardless of whether a product is open.
-        FinderWindowChrome(title: category.title, statusText: "\(category.products.count) models", isActive: cascade.open == nil, onClose: onClose, dragOffset: dragOffset) {
-            productGrid
+        FinderWindowChrome(title: category.title, statusText: "\(category.products.count) models", isActive: cascade.open == nil, onClose: onClose, dragOffset: dragOffset, resizableSize: resizableSize) {
+            // ClassicScrollView only once the user has actually resized this window (see
+            // `isResized`'s own doc comment for why not unconditionally) -- without this,
+            // shrinking below the icon grid's natural height would just clip the bottom rows
+            // with no way to reach them.
+            if isResized {
+                ClassicScrollView {
+                    productGrid
+                }
+            } else {
+                productGrid
+            }
         }
         // This window's own width cap, not an external one applied to the whole
         // MuseumCategoryView subtree -- see MuseumView's matching comment on why that
@@ -591,7 +676,8 @@ struct MuseumCategoryView: View {
         .overlay(alignment: .topLeading) {
             if let openProduct = cascade.open {
                 MuseumProductDetailView(
-                    product: openProduct, onClose: closeProduct, dragOffset: $cascade.dragOffset
+                    product: openProduct, onClose: closeProduct, dragOffset: $cascade.dragOffset,
+                    resizableSize: productResizableSize
                 )
                     // Same reasoning as MuseumView's identical .id(category.id) one cascade
                     // level up -- without this, jumping directly from one open product's
@@ -623,7 +709,10 @@ struct MuseumCategoryView: View {
                     // (RootTabView enforces a 420x560 minimum app window on macOS), but an
                     // early, not-yet-settled geometry pass could transiently report something
                     // smaller, and `.frame(width: -20, ...)` is an invalid SwiftUI frame.
-                    .frame(width: productWindowSize.width, height: productWindowSize.height)
+                    // `productSize`, not `productWindowSize` directly, so a user resize (grow
+                    // box) actually takes effect here instead of always snapping back to the
+                    // analytic default on the very next render.
+                    .frame(width: productSize.width, height: productSize.height)
                     // The window's actual on-screen offset -- computed fresh on every render
                     // (open, drag, or resize alike) by `cascade.windowOffset`, cascading from
                     // THIS category window's own real current origin (`windowOrigin`, passed
@@ -748,6 +837,10 @@ struct MuseumProductDetailView: View {
     /// Forwarded straight through to this window's own FinderWindowChrome -- MuseumCategoryView
     /// owns and applies the actual offset; see FinderWindowChrome.dragOffset's doc comment.
     var dragOffset: Binding<CGSize>? = nil
+    /// Forwarded straight through to this window's own FinderWindowChrome -- MuseumCategoryView
+    /// owns and constructs the actual binding (clamped to this window's own 700x600 cap); see
+    /// FinderWindowChrome.resizableSize's own doc comment for why the caller has to own it.
+    var resizableSize: Binding<CGSize>? = nil
 
     private static let fallbackParagraph = "Not enough episodes have covered this one yet -- check back as the archive gets classified further."
 
@@ -776,7 +869,7 @@ struct MuseumProductDetailView: View {
         // title bar text instead of a separate inline heading. The close box zooms the
         // cascade shut via `onClose` now, not a NavigationStack pop -- this is always
         // presented as a cascaded window over MuseumCategoryView on macOS, never pushed.
-        FinderWindowChrome(title: product.name, onClose: onClose, dragOffset: dragOffset) {
+        FinderWindowChrome(title: product.name, onClose: onClose, dragOffset: dragOffset, resizableSize: resizableSize, minResizableSize: CGSize(width: 320, height: 240)) {
             ClassicScrollView {
                 detailContent
             }

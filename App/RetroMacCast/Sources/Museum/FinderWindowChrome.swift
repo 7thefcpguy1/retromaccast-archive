@@ -36,6 +36,24 @@ struct FinderWindowChrome<Content: View>: View {
     /// inside the gesture -- so this gesture has nothing left to clamp. It just accumulates
     /// translation since the drag started and writes it straight through.
     var dragOffset: Binding<CGSize>?
+    /// Caller-owned, persisted TOTAL window size (title bar + content + every other row,
+    /// exactly what an external `.frame(width:height:)` around this whole view would use) --
+    /// when set, dragging the grow box updates it live, the same "accumulate since gesture
+    /// start, write straight through" shape as `dragOffset`. nil (the default) leaves the grow
+    /// box purely decorative, matching every caller that doesn't opt in (only Museum's cascaded
+    /// category/product windows do, same scoping as `dragOffset` -- the root Museum window
+    /// isn't draggable either, so it isn't resizable for the same reason: it was never asked to
+    /// be, and content-driven sizing already suits a window nothing ever repositions).
+    /// Deliberately caller-owned, not internal @State, and deliberately just a plain size with
+    /// no clamping beyond `minResizableSize` here -- this view has no idea what a sane maximum
+    /// is for any given caller (a category window's internal 640pt width cap vs. a product
+    /// window's 700x600 one, say), so upper bounds belong in whatever `Binding`'s `set` the
+    /// caller constructs, same division of responsibility `dragOffset`'s own doc comment
+    /// already establishes for position-fitting.
+    var resizableSize: Binding<CGSize>?
+    /// Floor the grow box won't drag `resizableSize` below -- guards against a zero/negative
+    /// SwiftUI frame (invalid) and against shrinking a window into uselessness.
+    var minResizableSize: CGSize = CGSize(width: 240, height: 180)
     @ViewBuilder let content: Content
 
     // True only for the duration of one continuous drag gesture -- lets titleBarDragGesture
@@ -45,6 +63,14 @@ struct FinderWindowChrome<Content: View>: View {
     // drag session.
     @State private var isDragging = false
     @State private var dragGestureStartOffset: CGSize = .zero
+
+    // Same pattern, same reasoning, as isDragging/dragGestureStartOffset above -- one continuous
+    // grow-box drag's own start-of-gesture bookkeeping, kept separate from the title bar's own
+    // isDragging/dragGestureStartOffset since a title-bar drag and a grow-box drag are always
+    // mutually exclusive gestures on different views, but sharing one pair of @State vars
+    // between them would let one gesture's start-of-drag capture clobber the other's.
+    @State private var isResizing = false
+    @State private var resizeGestureStartSize: CGSize = .zero
 
     var body: some View {
         VStack(spacing: 0) {
@@ -211,9 +237,40 @@ struct FinderWindowChrome<Content: View>: View {
         HStack(spacing: 0) {
             Spacer(minLength: 0)
             GrowBoxGlyph()
+                // Real Mac OS resize handles show a diagonal resize cursor -- there's no
+                // pointer-shape API in SwiftUI on macOS this simple to reach for from inside a
+                // shared chrome view, so this is skipped; the glyph itself (and the drag
+                // actually working) is the discoverability cue instead.
+                .contentShape(Rectangle())
+                .gesture(growBoxDragGesture)
         }
         .frame(height: 15)
         .background(Color.white)
+    }
+
+    /// Same shape as `titleBarDragGesture` (accumulate since gesture start, write straight
+    /// through) and the same `.global` coordinate space for the same reason: the grow box
+    /// itself moves every time this drag writes a new size (the window it's attached to grows
+    /// or shrinks around it), so measuring translation in `.local` space would measure against
+    /// a target that's constantly relocating out from under the gesture -- see
+    /// `titleBarDragGesture`'s own doc comment for the jitter that produced live, the first
+    /// time this exact mistake was made for `dragOffset`.
+    private var growBoxDragGesture: some Gesture {
+        DragGesture(minimumDistance: 2, coordinateSpace: .global)
+            .onChanged { value in
+                guard let resizableSize else { return }
+                if !isResizing {
+                    isResizing = true
+                    resizeGestureStartSize = resizableSize.wrappedValue
+                }
+                let newSize = CGSize(
+                    width: max(resizeGestureStartSize.width + value.translation.width, minResizableSize.width),
+                    height: max(resizeGestureStartSize.height + value.translation.height, minResizableSize.height)
+                )
+                guard newSize != resizableSize.wrappedValue else { return }
+                resizableSize.wrappedValue = newSize
+            }
+            .onEnded { _ in isResizing = false }
     }
 }
 
