@@ -98,14 +98,8 @@ struct SearchView: View {
                         .font(.chicago(13))
                         .foregroundStyle(Retro.amberText)
                     Spacer()
-                    Picker("Sort", selection: $viewModel.sortOrder) {
-                        ForEach(SearchSortOrder.allCases) { order in
-                            Text(order.rawValue).tag(order)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .frame(width: 220)
-                    .onChange(of: viewModel.sortOrder) { _, _ in viewModel.onSortChange() }
+                    SearchSortToggle(selection: $viewModel.sortOrder)
+                        .onChange(of: viewModel.sortOrder) { _, _ in viewModel.onSortChange() }
                 }
 
                 ForEach(viewModel.results) { result in
@@ -115,6 +109,51 @@ struct SearchView: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .topLeading)
+    }
+}
+
+/// The mascot + a live tagline ("keeping it retro for N days and counting"), computed from
+/// A two-segment "Relevance / Date" toggle for search results, standing in for a plain
+/// `Picker(.segmented)`. That native control only ever showed ONE option at a time as a
+/// solid rounded pill instead of both segments side by side -- confirmed via screenshot: at
+/// this control's actual on-screen width, macOS collapsed the segmented Picker into its
+/// compact "current selection only" presentation rather than laying out both segments, a
+/// real (if under-documented) `.segmented` behavior once available width gets tight, not
+/// something a frame tweak reliably prevents. It was also the only native-looking control
+/// anywhere in this view -- everything else here (Chicago font, `Retro.amberText`/
+/// `Retro.cardBorder`) is already hand-styled, so a bright blue rounded macOS pill sitting
+/// next to "N moments found" was a visual mismatch even before the layout bug. Hand-rolling
+/// both segments as plain Buttons sidesteps the collapse behavior entirely (nothing to
+/// collapse -- it's just two views in an HStack) and matches this view's own look instead of
+/// the system's.
+private struct SearchSortToggle: View {
+    @Binding var selection: SearchSortOrder
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(Array(SearchSortOrder.allCases.enumerated()), id: \.element) { index, order in
+                if index > 0 {
+                    Rectangle().fill(Retro.cardBorder).frame(width: 1)
+                }
+                Button {
+                    selection = order
+                } label: {
+                    Text(order.rawValue)
+                        .font(.chicago(12))
+                        .foregroundStyle(selection == order ? Retro.beige : Retro.amberText)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 6)
+                        .frame(maxWidth: .infinity)
+                        .background(selection == order ? Retro.amberText : Color.clear)
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(selection == order ? [.isButton, .isSelected] : .isButton)
+            }
+        }
+        .background(Retro.beige)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Retro.cardBorder, lineWidth: 1))
+        .frame(width: 220)
     }
 }
 
