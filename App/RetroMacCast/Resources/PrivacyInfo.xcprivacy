@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- No tracking, no ads, no analytics SDK, nothing sent to a server the developer
+	     controls beyond fetching public content: Libsyn (episode audio), YouTube (the
+	     Videos tab's embedded player), and GitHub Releases (corpus updates). -->
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+	<!-- Only "required reason" API this app actually uses: UserDefaults, for its own local
+	     settings (AppearanceManager's theme choice, CorpusUpdateManager's last-checked
+	     state) -- never shared with another app or developer, so CA92.1 ("access info from
+	     the same app") is the correct, and only, reason code needed here. Checked: no file
+	     timestamp, system boot time, disk space, or active keyboard API usage anywhere in
+	     the app target. -->
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>CA92.1</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

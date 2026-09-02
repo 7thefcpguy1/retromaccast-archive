@@ -18,6 +18,8 @@
 		1ACDFFD1F81D19056EEADB97 /* QuickTimePlayerChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF1F3428CE41E9972D2CD580 /* QuickTimePlayerChrome.swift */; };
 		2098A7AE5E80AC90D8EF6552 /* QuickTimePlayerChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF1F3428CE41E9972D2CD580 /* QuickTimePlayerChrome.swift */; };
 		20CBAF69C7A26E49F8EADF68 /* rmc.sqlite in Resources */ = {isa = PBXBuildFile; fileRef = 4D880E4203F33F376FF224EF /* rmc.sqlite */; };
+		CE9519A5034DADAAE5AC2109 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 40B6FA5759A82CF2F1CB5351 /* PrivacyInfo.xcprivacy */; };
+		9768D1E0D31AD09AC7E07DCD /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 40B6FA5759A82CF2F1CB5351 /* PrivacyInfo.xcprivacy */; };
 		2127E417C3B1F31431E0DC93 /* ClassicScrollBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 840994A2A6C09664F49DDC42 /* ClassicScrollBar.swift */; };
 		27767FCDF9D5CA4046091741 /* AppearanceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DFCB9AFAED78AFC47FA166F /* AppearanceManager.swift */; };
 		28359E818D06C6E2216123EA /* MuseumData+iMac.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04CEDDC72E6FF21D19101DBD /* MuseumData+iMac.swift */; };
@@ -99,6 +101,7 @@
 		37A3F6BEBF658809D3C63DD7 /* MuseumData+iPod.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MuseumData+iPod.swift"; sourceTree = "<group>"; };
 		3DA6B452BDCB2B3EE340B095 /* GlossaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlossaryView.swift; sourceTree = "<group>"; };
 		4D880E4203F33F376FF224EF /* rmc.sqlite */ = {isa = PBXFileReference; lastKnownFileType = file; path = rmc.sqlite; sourceTree = "<group>"; };
+		40B6FA5759A82CF2F1CB5351 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		4DCEE9E02B2231A85C26DD4F /* VideosView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideosView.swift; sourceTree = "<group>"; };
 		6121B42C402400EB9DF586A0 /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
 		64175BBFF7709A80C5033103 /* MuseumData+ModularMacintosh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MuseumData+ModularMacintosh.swift"; sourceTree = "<group>"; };
@@ -197,6 +200,7 @@
 				79B3A201D8EC52A81373A719 /* Assets.xcassets */,
 				0CEA19B0565A66C982C2E3B9 /* ChicagoFLF.ttf */,
 				4D880E4203F33F376FF224EF /* rmc.sqlite */,
+				40B6FA5759A82CF2F1CB5351 /* PrivacyInfo.xcprivacy */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -395,6 +399,7 @@
 				3344E54CC2D0CD1C9FF1A87D /* Assets.xcassets in Resources */,
 				7A3215095D880E9928F47198 /* ChicagoFLF.ttf in Resources */,
 				A50BE1D33F33AD9FD32FD312 /* rmc.sqlite in Resources */,
+				CE9519A5034DADAAE5AC2109 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -405,6 +410,7 @@
 				87178729A5FAD91FF4409876 /* Assets.xcassets in Resources */,
 				81C53071125D0DAAF68DC22D /* ChicagoFLF.ttf in Resources */,
 				20CBAF69C7A26E49F8EADF68 /* rmc.sqlite in Resources */,
+				9768D1E0D31AD09AC7E07DCD /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -556,6 +562,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "RetroMacCast/Resources/RetroMacCast-macOS.entitlements";
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -663,6 +670,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "RetroMacCast/Resources/RetroMacCast-macOS.entitlements";
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_HARDENED_RUNTIME = YES;

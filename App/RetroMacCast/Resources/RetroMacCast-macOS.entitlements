@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Mandatory for any Mac App Store / TestFlight-for-Mac build -- Developer ID direct
+	     distribution doesn't require this, but TestFlight only ever serves Mac App Store
+	     builds, so this is non-negotiable for that distribution path. -->
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+	<!-- All outgoing network access the app does at runtime: Libsyn (episode audio lookup +
+	     streaming), the YouTube iframe player (WKWebView, Videos tab), and the GitHub
+	     Releases API (corpus update check/download). No incoming connections, no other
+	     sandbox exceptions needed -- the corpus download itself just writes to the app's own
+	     Application Support container, which every sandboxed app can already do without an
+	     extra entitlement. -->
+	<key>com.apple.security.network.client</key>
+	<true/>
+</dict>
+</plist>
