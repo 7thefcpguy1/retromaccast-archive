@@ -306,7 +306,22 @@ struct MuseumView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
+            // .top, not the default .center -- a bare ZStack centers each child independently
+            // within the available space, and root's own height is purely content-driven
+            // (however many category icons there are), often much shorter than a tall app
+            // window. Left centered, root -- and by extension the whole cascade, since every
+            // level positions itself relative to root's own actual origin -- ended up sitting
+            // in the vertical middle of the tab with a large empty gap above it. The cascade's
+            // own "pull fully into view" fitting (`windowOffset`) could still mathematically
+            // reach the literal top of the full available space through that gap, but visually
+            // that read as "stuck partway up, with room to spare above it" rather than an
+            // actual stopping point -- reported live (dragging a category/product window all
+            // the way up in a tall app window stopped well short of the toolbar, confirmed by
+            // comparing the drag's own logged offset against its on-screen result). Pinning
+            // root to the top removes the gap at the source: the cascade's own math was
+            // already correct, root's position just needs to match where a user expects a
+            // Finder window to sit -- near the top of its desktop, not floating in the middle.
+            ZStack(alignment: .top) {
                 DesktopBackgroundView(theme: appearance.theme).ignoresSafeArea()
                 #if os(macOS)
                 // A decorative Finder-window panel floating on the app's beige "desktop" --
