@@ -47,7 +47,7 @@ let powerMacModels: [MuseumProduct] = [
     MuseumProduct(
         id: "mac-pro-2013",
         name: "Mac Pro (\"Trash Can\")",
-        dateRange: "2013",
+        dateRange: "2013–2019",
         imageAssetName: "MuseumMacPro2013",
         imageAttribution: "Photo by Paul Hudson, licensed CC BY 2.0, via Wikimedia Commons",
         synopsis: "Unveiled at WWDC 2013 and shipped that December, the radically redesigned Mac Pro shrank the tower down to a glossy black cylinder about the size of a small trash can -- hence the nickname -- built around a unified thermal core with no internal expansion bays. It proved divisive with the professional users the Mac Pro was built for, went without a meaningful update for years, and set up the more conventional 2019 redesign as a course correction.",
@@ -56,10 +56,10 @@ let powerMacModels: [MuseumProduct] = [
     MuseumProduct(
         id: "mac-pro-2019",
         name: "Mac Pro",
-        dateRange: "2019–Present",
+        dateRange: "2019–2026",
         imageAssetName: "MuseumMacPro2019",
         imageAttribution: "Photo by FASTILY, licensed CC BY-SA 4.0, via Wikimedia Commons",
-        synopsis: "Announced in 2019 as an explicit return to expandability after the 2013 model's reception, the redesigned Mac Pro brought back a stainless-steel cheese-grater-style lattice, full internal expansion, and a modular design aimed squarely at professional users -- eventually gaining an Apple Silicon version in 2023 while keeping the same tower.",
+        synopsis: "Announced in 2019 as an explicit return to expandability after the 2013 model's reception, the redesigned Mac Pro brought back a stainless-steel cheese-grater-style lattice, full internal expansion, and a modular design aimed squarely at professional users -- eventually gaining an Apple Silicon version in 2023 while keeping the same tower. Apple discontinued the Mac Pro in March 2026, ending the line without a successor.",
         collectionSlug: "mac-pro-2019"
     ),
 ]
