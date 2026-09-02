@@ -18,8 +18,6 @@
 		1ACDFFD1F81D19056EEADB97 /* QuickTimePlayerChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF1F3428CE41E9972D2CD580 /* QuickTimePlayerChrome.swift */; };
 		2098A7AE5E80AC90D8EF6552 /* QuickTimePlayerChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF1F3428CE41E9972D2CD580 /* QuickTimePlayerChrome.swift */; };
 		20CBAF69C7A26E49F8EADF68 /* rmc.sqlite in Resources */ = {isa = PBXBuildFile; fileRef = 4D880E4203F33F376FF224EF /* rmc.sqlite */; };
-		CE9519A5034DADAAE5AC2109 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 40B6FA5759A82CF2F1CB5351 /* PrivacyInfo.xcprivacy */; };
-		9768D1E0D31AD09AC7E07DCD /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 40B6FA5759A82CF2F1CB5351 /* PrivacyInfo.xcprivacy */; };
 		2127E417C3B1F31431E0DC93 /* ClassicScrollBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 840994A2A6C09664F49DDC42 /* ClassicScrollBar.swift */; };
 		27767FCDF9D5CA4046091741 /* AppearanceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DFCB9AFAED78AFC47FA166F /* AppearanceManager.swift */; };
 		28359E818D06C6E2216123EA /* MuseumData+iMac.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04CEDDC72E6FF21D19101DBD /* MuseumData+iMac.swift */; };
@@ -33,7 +31,6 @@
 		3EB5864A6362E6E2335FEF72 /* RetroMacCastApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E488D0C57FE63F183ECA87CD /* RetroMacCastApp.swift */; };
 		41F340773E8003A4C36581E3 /* MuseumData+iPod.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37A3F6BEBF658809D3C63DD7 /* MuseumData+iPod.swift */; };
 		46AA4482C3411BE2BBEF2444 /* RetroStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DA8791C8E48BC407348CBB4 /* RetroStyle.swift */; };
-		91FE7C522E668C66109242A0 /* PlayableMomentCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E31114A71C94BE4035B46E0 /* PlayableMomentCard.swift */; };
 		480F3D09939F139DE1DE28AA /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB96F53A68C85288CF99197F /* SettingsView.swift */; };
 		4A2B7AC9D4344A008BFE762C /* PlayerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16C232C7F9B42B439FF8AC9B /* PlayerViewModel.swift */; };
 		503FE61F27179C65E7ED4E9B /* VideosView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DCEE9E02B2231A85C26DD4F /* VideosView.swift */; };
@@ -57,11 +54,12 @@
 		8DD4AEFAC1E7372C8A87650A /* CorpusUpdateManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAA9B4A0E366FEB911483280 /* CorpusUpdateManager.swift */; };
 		90BCAF0918C6DBE883456946 /* MuseumData+ModularMacintosh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64175BBFF7709A80C5033103 /* MuseumData+ModularMacintosh.swift */; };
 		9111D4133599DB5BB39C07AE /* TriviaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEDEE901F628C27EDA27F725 /* TriviaView.swift */; };
+		91FE7C522E668C66109242A0 /* PlayableMomentCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E31114A71C94BE4035B46E0 /* PlayableMomentCard.swift */; };
 		92FAA142CA80D38D34547AEC /* MuseumData+Laptops.swift in Sources */ = {isa = PBXBuildFile; fileRef = B925B2116BF4FB8531E61AAE /* MuseumData+Laptops.swift */; };
 		9312202D1ACAB66190C7335C /* MuseumData+Newton.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD28459F6B6F7EF61C8530F3 /* MuseumData+Newton.swift */; };
 		937D40A664273D5810644774 /* RetroStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DA8791C8E48BC407348CBB4 /* RetroStyle.swift */; };
-		BB140771F2954DC5DF3B798A /* PlayableMomentCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E31114A71C94BE4035B46E0 /* PlayableMomentCard.swift */; };
 		96545C3CDED166276548A2DB /* RetroMacCastApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E488D0C57FE63F183ECA87CD /* RetroMacCastApp.swift */; };
+		9768D1E0D31AD09AC7E07DCD /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 40B6FA5759A82CF2F1CB5351 /* PrivacyInfo.xcprivacy */; };
 		9A6714804DD49C9FEFCC011A /* MuseumData+Newton.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD28459F6B6F7EF61C8530F3 /* MuseumData+Newton.swift */; };
 		A06ED2B05DC29EA6209C5FBB /* RootTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6121B42C402400EB9DF586A0 /* RootTabView.swift */; };
 		A4012B5E683EC4C1C9A54540 /* CorpusUpdateManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAA9B4A0E366FEB911483280 /* CorpusUpdateManager.swift */; };
@@ -69,11 +67,13 @@
 		AA7A709339E29E9C5020878F /* MuseumData+iMac.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04CEDDC72E6FF21D19101DBD /* MuseumData+iMac.swift */; };
 		AE4BEB62D8866B12B146338E /* DesktopBackgroundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD405A1852F73D3759A04D45 /* DesktopBackgroundView.swift */; };
 		B3694573A7070A839DBC2D77 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0FF236AF09CA4446AC9448 /* SearchView.swift */; };
+		BB140771F2954DC5DF3B798A /* PlayableMomentCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E31114A71C94BE4035B46E0 /* PlayableMomentCard.swift */; };
 		C08FC4D69901AF56505E9762 /* MuseumData+ModularMacintosh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64175BBFF7709A80C5033103 /* MuseumData+ModularMacintosh.swift */; };
 		C2AC122CF234A63666D72A2B /* Corpus.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1EEC18DF155B41B2DAD729E /* Corpus.swift */; };
 		C85A4F96E5B07186C6C06C94 /* MuseumData+CompactMacintosh.swift in Sources */ = {isa = PBXBuildFile; fileRef = C68B1CA6C86A4205CF451D59 /* MuseumData+CompactMacintosh.swift */; };
 		CB645E55B31A1DE031DA523B /* MuseumData+MacMiniStudio.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83998AA0DFEB39381162C01 /* MuseumData+MacMiniStudio.swift */; };
 		CB81419D1C53E4716EDF8AEF /* DesktopBackgroundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD405A1852F73D3759A04D45 /* DesktopBackgroundView.swift */; };
+		CE9519A5034DADAAE5AC2109 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 40B6FA5759A82CF2F1CB5351 /* PrivacyInfo.xcprivacy */; };
 		D609CCF6240D12914DB4DC77 /* GlossaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DA6B452BDCB2B3EE340B095 /* GlossaryView.swift */; };
 		DA1EE87882231CAC544B866B /* MuseumData+PowerMac.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D04099854993668F20B3948 /* MuseumData+PowerMac.swift */; };
 		DDD4FE4FF0A33FA02F6EE3BE /* MuseumData+iPhone.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C72BE246D886E8446E4D079 /* MuseumData+iPhone.swift */; };
@@ -93,15 +93,15 @@
 		04CEDDC72E6FF21D19101DBD /* MuseumData+iMac.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MuseumData+iMac.swift"; sourceTree = "<group>"; };
 		0CEA19B0565A66C982C2E3B9 /* ChicagoFLF.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = ChicagoFLF.ttf; sourceTree = "<group>"; };
 		0DA8791C8E48BC407348CBB4 /* RetroStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RetroStyle.swift; sourceTree = "<group>"; };
-		2E31114A71C94BE4035B46E0 /* PlayableMomentCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayableMomentCard.swift; sourceTree = "<group>"; };
 		16C232C7F9B42B439FF8AC9B /* PlayerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerViewModel.swift; sourceTree = "<group>"; };
-		28EEC16B84989F68A34FEB81 /* RetroMacCast-macOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "RetroMacCast-macOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		28EEC16B84989F68A34FEB81 /* RetroMacCast.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RetroMacCast.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2D04099854993668F20B3948 /* MuseumData+PowerMac.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MuseumData+PowerMac.swift"; sourceTree = "<group>"; };
 		2DFCB9AFAED78AFC47FA166F /* AppearanceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceManager.swift; sourceTree = "<group>"; };
+		2E31114A71C94BE4035B46E0 /* PlayableMomentCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayableMomentCard.swift; sourceTree = "<group>"; };
 		37A3F6BEBF658809D3C63DD7 /* MuseumData+iPod.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MuseumData+iPod.swift"; sourceTree = "<group>"; };
 		3DA6B452BDCB2B3EE340B095 /* GlossaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlossaryView.swift; sourceTree = "<group>"; };
-		4D880E4203F33F376FF224EF /* rmc.sqlite */ = {isa = PBXFileReference; lastKnownFileType = file; path = rmc.sqlite; sourceTree = "<group>"; };
 		40B6FA5759A82CF2F1CB5351 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		4D880E4203F33F376FF224EF /* rmc.sqlite */ = {isa = PBXFileReference; lastKnownFileType = file; path = rmc.sqlite; sourceTree = "<group>"; };
 		4DCEE9E02B2231A85C26DD4F /* VideosView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideosView.swift; sourceTree = "<group>"; };
 		6121B42C402400EB9DF586A0 /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
 		64175BBFF7709A80C5033103 /* MuseumData+ModularMacintosh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MuseumData+ModularMacintosh.swift"; sourceTree = "<group>"; };
@@ -128,7 +128,7 @@
 		E1EEC18DF155B41B2DAD729E /* Corpus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Corpus.swift; sourceTree = "<group>"; };
 		E488D0C57FE63F183ECA87CD /* RetroMacCastApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RetroMacCastApp.swift; sourceTree = "<group>"; };
 		E954693D01DDC5AF2E74D254 /* MuseumData+iPad.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MuseumData+iPad.swift"; sourceTree = "<group>"; };
-		EB1DCB15115FD8C5F467348E /* RetroMacCast-iOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = "RetroMacCast-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		EB1DCB15115FD8C5F467348E /* RetroMacCast.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RetroMacCast.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F3ABAD308F4B4DB7513CBADA /* YouTubePlayerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubePlayerModel.swift; sourceTree = "<group>"; };
 		F8B324DF879F3C9673025E84 /* SearchViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchViewModel.swift; sourceTree = "<group>"; };
 		FE49C27B5192FA95F3587724 /* FinderWindowChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderWindowChrome.swift; sourceTree = "<group>"; };
@@ -253,8 +253,8 @@
 		6A68910434C81D1E30B8B943 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				EB1DCB15115FD8C5F467348E /* RetroMacCast-iOS.app */,
-				28EEC16B84989F68A34FEB81 /* RetroMacCast-macOS.app */,
+				EB1DCB15115FD8C5F467348E /* RetroMacCast.app */,
+				28EEC16B84989F68A34FEB81 /* RetroMacCast.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -334,7 +334,7 @@
 				1CB0F2EAC0628A1DF7C02692 /* RMCCore */,
 			);
 			productName = "RetroMacCast-macOS";
-			productReference = 28EEC16B84989F68A34FEB81 /* RetroMacCast-macOS.app */;
+			productReference = 28EEC16B84989F68A34FEB81 /* RetroMacCast.app */;
 			productType = "com.apple.product-type.application";
 		};
 		CDBD2BBED07887E2FF69987F /* RetroMacCast-iOS */ = {
@@ -354,7 +354,7 @@
 				94186E73C5041162DF799002 /* RMCCore */,
 			);
 			productName = "RetroMacCast-iOS";
-			productReference = EB1DCB15115FD8C5F467348E /* RetroMacCast-iOS.app */;
+			productReference = EB1DCB15115FD8C5F467348E /* RetroMacCast.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -365,8 +365,6 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
-				TargetAttributes = {
-				};
 			};
 			buildConfigurationList = 788A4623D55A7B3411A46A92 /* Build configuration list for PBXProject "RetroMacCast" */;
 			developmentRegion = en;
@@ -563,8 +561,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "RetroMacCast/Resources/RetroMacCast-macOS.entitlements";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5YH2C6QAN5;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Generated/Info-macOS.plist";
@@ -577,6 +578,7 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.retromaccast.mac;
 				PRODUCT_NAME = RetroMacCast;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.10;
 			};
@@ -588,6 +590,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5YH2C6QAN5;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Generated/Info-iOS.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = RetroMacCast;
@@ -671,8 +674,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "RetroMacCast/Resources/RetroMacCast-macOS.entitlements";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5YH2C6QAN5;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Generated/Info-macOS.plist";
@@ -685,6 +691,7 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.retromaccast.mac;
 				PRODUCT_NAME = RetroMacCast;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.10;
 			};
@@ -696,6 +703,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5YH2C6QAN5;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Generated/Info-iOS.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = RetroMacCast;

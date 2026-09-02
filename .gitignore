@@ -20,3 +20,9 @@ pipeline/corpus/manifest.json
 
 # macOS
 .DS_Store
+
+# Xcode per-user state (window layout, breakpoints, recently opened files) -- machine-
+# specific, regenerated automatically, and just noise in a diff for anyone else who opens
+# this project. Shared schemes (xcshareddata/) are NOT covered by this and stay tracked.
+xcuserdata/
+*.xcuserstate
