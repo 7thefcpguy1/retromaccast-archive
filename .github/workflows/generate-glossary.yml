@@ -4,6 +4,14 @@ name: Generate Glossary Terms
 # (`generate-glossary`), for the Glossary tab prototype. Manual-only (no schedule) -- `limit`
 # defaults to a small test batch so a first run's content/cost can be sanity-checked before
 # re-dispatching with limit=0 for the full corpus.
+#
+# Routine, week-to-week mining of newly-published episodes is now handled automatically by
+# weekly-sync.yml's own "Mine glossary terms from new episodes" step (same underlying command,
+# no --reset) -- that's naturally incremental, since `generate-glossary` only ever picks up
+# episodes it hasn't mined before. What's left for THIS workflow to do by hand: the very first
+# full-corpus backfill, and a `--reset` re-run whenever a prompt change invalidates everything
+# mined so far (weekly-sync deliberately never passes --reset itself, so a bad prompt can't
+# silently wipe the whole glossary on its own).
 
 on:
   workflow_dispatch:

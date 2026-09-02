@@ -98,6 +98,16 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: .build/release/rmc-pipeline classify
 
+      # Naturally incremental -- `generate-glossary` only ever selects episodes where
+      # `glossaryMinedAt IS NULL`, so a normal week (no --reset) just mines whatever's new
+      # since last Monday, the same "only touch what changed" shape as crawl-index/classify
+      # above. `--limit 0` means no cap, not "skip this step" -- a normal week is ~1 new
+      # episode, so this is a small, cheap addition to the run, not a full-corpus pass.
+      - name: Mine glossary terms from new episodes
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: .build/release/rmc-pipeline generate-glossary --limit 0
+
       - name: Reset synthesis for collections touched by new episodes
         run: .build/release/rmc-pipeline reset-stale-synthesis --since "${{ steps.since.outputs.timestamp }}"
 
