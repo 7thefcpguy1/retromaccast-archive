@@ -84,5 +84,6 @@ struct DesktopTheme: Identifiable, Equatable {
         ),
     ]
 
-    static let `default` = all[0]
+    // Light blue "Tiny Guy" checker -- the default first-launch background.
+    static let `default` = all.first { $0.id == "tinyGuy" }!
 }

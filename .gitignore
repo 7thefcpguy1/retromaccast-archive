@@ -2,6 +2,11 @@
 pipeline/.build/
 App/.build/
 
+# Archive/export/notarization output from ad hoc Developer ID distribution builds -- large
+# (100MB+), machine-specific, and reproducible on demand from the project + signing cert, so
+# not worth tracking.
+App/build/
+
 # Whisper models -- large, publicly downloadable, not project-specific
 pipeline/models/
 
